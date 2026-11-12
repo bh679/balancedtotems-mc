@@ -8,7 +8,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Fatigue | Mining Fatigue II for 20 minutes |
 | Totem of Heartbreak | 2 fewer hearts for 20 minutes |
 | Totem of Blindness | Blindness for 30 seconds |
-| Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
+| Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone. As a bee, parrot or bat you fly and can't land; as a chicken you flutter down slowly |
 | Totem of Zombification | You become a zombie: iron and snow golems hunt you. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
 | Totem of Pacifism | Vow of Peace: hurt anything within 20 minutes and you die |

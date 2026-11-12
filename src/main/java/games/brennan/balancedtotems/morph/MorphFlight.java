@@ -1,0 +1,63 @@
+package games.brennan.balancedtotems.morph;
+
+import games.brennan.balancedtotems.BalancedTotems;
+import games.brennan.balancedtotems.registry.BtRegistries;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.player.Abilities;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+
+import javax.annotation.Nullable;
+
+/**
+ * How a form moves through the air. A flying form ({@link BtRegistries#FLYING_FORMS}: bee, parrot, bat)
+ * is always airborne: creative-style flight that never lands, so no walking or jumping. A chicken
+ * flutters: hidden Slow Falling while the form lasts, which also stops fall damage.
+ */
+@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+public final class MorphFlight {
+
+    private MorphFlight() {}
+
+    public static boolean flies(@Nullable EntityType<?> form) {
+        return form != null && form.is(BtRegistries.FLYING_FORMS);
+    }
+
+    /** From {@link Morphs#setForm}: start or stop flight and fluttering for the new form. */
+    static void onFormChanged(ServerPlayer player, @Nullable EntityType<?> previous, @Nullable EntityType<?> form) {
+        Abilities abilities = player.getAbilities();
+        if (flies(form)) {
+            abilities.mayfly = true;
+            abilities.flying = true;
+            player.onUpdateAbilities();
+        } else if (flies(previous)) {
+            // Back to what the game mode gives: creative and spectator players keep their flight.
+            player.gameMode.getGameModeForPlayer().updatePlayerAbilities(abilities);
+            player.onUpdateAbilities();
+        }
+        boolean flutters = form == EntityType.CHICKEN;
+        MobEffectInstance slowFalling = player.getEffect(MobEffects.SLOW_FALLING);
+        if (flutters && slowFalling == null) {
+            player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, MobEffectInstance.INFINITE_DURATION, 0, true, false, false));
+        } else if (!flutters && slowFalling != null && slowFalling.isInfiniteDuration()) {
+            player.removeEffect(MobEffects.SLOW_FALLING);
+        }
+    }
+
+    /** Vanilla stops flight when you touch the ground; a flying form takes off again at once. */
+    @SubscribeEvent
+    public static void onPlayerTick(PlayerTickEvent.Pre event) {
+        Player player = event.getEntity();
+        if (!flies(Morphs.formOf(player).orElse(null))) return;
+        Abilities abilities = player.getAbilities();
+        if (abilities.flying && abilities.mayfly) return;
+        abilities.mayfly = true;
+        abilities.flying = true;
+        if (player instanceof ServerPlayer server) server.onUpdateAbilities();
+    }
+}

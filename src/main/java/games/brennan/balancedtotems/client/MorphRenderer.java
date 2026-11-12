@@ -9,6 +9,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -87,6 +88,7 @@ public final class MorphRenderer {
         LivingEntity existing = DUMMIES.get(player.getUUID());
         if (existing != null && existing.getType() == form) return existing;
         if (!(form.create(player.level()) instanceof LivingEntity created)) return null;
+        if (created instanceof Bat bat) bat.setResting(false); // a new bat hangs upside down
         created.setPos(player.getX(), player.getY(), player.getZ());
         created.setOldPosAndRot();
         DUMMIES.put(player.getUUID(), created);

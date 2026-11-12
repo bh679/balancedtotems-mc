@@ -96,6 +96,9 @@ public final class BtRegistries {
 
     public static final TagKey<EntityType<?>> MORPH_POOL =
         TagKey.create(Registries.ENTITY_TYPE, BalancedTotems.id("morph_pool"));
+    /** Forms that fly: always airborne, no walking or jumping (see {@code morph/MorphFlight}). */
+    public static final TagKey<EntityType<?>> FLYING_FORMS =
+        TagKey.create(Registries.ENTITY_TYPE, BalancedTotems.id("flying_forms"));
     /** What counts as a Rampage kill besides real players (PlayerMob, when it is installed). */
     public static final TagKey<EntityType<?>> RAMPAGE_TARGETS =
         TagKey.create(Registries.ENTITY_TYPE, BalancedTotems.id("rampage_targets"));

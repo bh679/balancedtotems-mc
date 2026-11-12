@@ -249,6 +249,32 @@ public final class BalancedTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void flyingFormsFlyAndStopWhenTheFormEnds(GameTestHelper helper) {
+        for (EntityType<?> flyer : List.of(EntityType.BEE, EntityType.PARROT, EntityType.BAT)) {
+            ServerPlayer player = player(helper);
+            Morphs.setForm(player, flyer);
+            check(helper, player.getAbilities().mayfly && player.getAbilities().flying, flyer + " form should fly");
+            player.getAbilities().flying = false; // as vanilla does on touching the ground
+            tick(player, 1);
+            check(helper, player.getAbilities().flying, flyer + " form should take off again at once");
+            Morphs.setForm(player, null);
+            check(helper, !player.getAbilities().mayfly && !player.getAbilities().flying, "flight should end with the form");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void chickenFormFlutters(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CHICKEN);
+        check(helper, player.hasEffect(MobEffects.SLOW_FALLING), "a chicken should fall slowly");
+        check(helper, !player.getAbilities().flying, "a chicken walks");
+        Morphs.setForm(player, EntityType.COW);
+        check(helper, !player.hasEffect(MobEffects.SLOW_FALLING), "slow falling should end with the chicken form");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void monstersIgnoreAMorphedPlayer(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         Morphs.setForm(player, EntityType.COW);

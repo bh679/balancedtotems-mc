@@ -71,11 +71,13 @@ public final class Morphs {
 
     /** Sets (or with null, clears) the player's form, then re-applies stats, hitbox and sync. */
     public static void setForm(ServerPlayer player, @Nullable EntityType<?> type) {
+        EntityType<?> previous = formOf(player).orElse(null);
         String id = type == null ? "" : BuiltInRegistries.ENTITY_TYPE.getKey(type).toString();
         player.setData(BtRegistries.FORM, id);
         applyStats(player, type);
         player.refreshDimensions();
         if (type != null) dropMonsterAggro(player);
+        MorphFlight.onFormChanged(player, previous, type);
         BtNetwork.sendToTrackingAndSelf(player, new MorphSyncPayload(player.getId(), id));
     }
 
