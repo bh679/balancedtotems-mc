@@ -11,7 +11,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
 | Totem of Zombification | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
-| Void Totem | Only saves you from death to the void, and pulls you back to safety |
+| Void Totem | Only saves you from void death, and pulls you back to safety |
 | Feather Totem | Only saves you from falling |
 
 Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance) when held in either
