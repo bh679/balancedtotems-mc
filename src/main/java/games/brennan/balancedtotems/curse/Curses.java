@@ -41,7 +41,7 @@ public final class Curses {
     /** Puts {@code curse} on the player at {@code amplifier} for {@code duration} ticks, plus its form if it has one. */
     public static void apply(ServerPlayer player, Curse curse, int amplifier, int duration) {
         if (curse.effect() == null) return;
-        if (curse == Curse.RAMPAGE && !player.hasEffect(BtRegistries.RAMPAGE)) DeadlineCurses.setRampageKills(player, 0);
+        if (Tallies.counted(curse) && !player.hasEffect(curse.effect())) Tallies.reset(player, curse);
         // showIcon true, visible particles off: a curse is a status, not a potion cloud.
         MobEffectInstance instance = new MobEffectInstance(curse.effect(), duration, amplifier, false, false, true);
         instance.getCures().remove(EffectCures.PROTECTED_BY_TOTEM);

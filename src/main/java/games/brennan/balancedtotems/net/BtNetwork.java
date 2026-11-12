@@ -25,9 +25,9 @@ public final class BtNetwork {
         registrar.playToClient(MorphSyncPayload.TYPE, MorphSyncPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.balancedtotems.client.ClientPayloads.onMorphSync(payload)));
-        registrar.playToClient(RampageKillsPayload.TYPE, RampageKillsPayload.STREAM_CODEC,
+        registrar.playToClient(CurseCountPayload.TYPE, CurseCountPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
-                () -> games.brennan.balancedtotems.client.ClientPayloads.onRampageKills(payload)));
+                () -> games.brennan.balancedtotems.client.ClientPayloads.onCurseCount(payload)));
     }
 
     /**

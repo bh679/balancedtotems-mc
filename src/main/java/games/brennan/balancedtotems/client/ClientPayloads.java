@@ -1,7 +1,7 @@
 package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.net.MorphSyncPayload;
-import games.brennan.balancedtotems.net.RampageKillsPayload;
+import games.brennan.balancedtotems.net.CurseCountPayload;
 import games.brennan.balancedtotems.net.TotemPopPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.client.CameraType;
@@ -60,8 +60,9 @@ public final class ClientPayloads {
         }
     }
 
-    public static void onRampageKills(RampageKillsPayload payload) {
+    public static void onCurseCount(CurseCountPayload payload) {
         Player player = Minecraft.getInstance().player;
-        if (player != null) player.setData(BtRegistries.RAMPAGE_KILLS, payload.kills());
+        if (player == null) return;
+        player.setData(payload.curse().equals("LONELINESS") ? BtRegistries.LONELY_FRIENDS : BtRegistries.RAMPAGE_KILLS, payload.count());
     }
 }

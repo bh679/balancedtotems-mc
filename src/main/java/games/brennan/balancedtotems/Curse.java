@@ -25,6 +25,7 @@ public enum Curse {
     MORPHING("morphing_totem", () -> BtRegistries.MORPHED, Ticks.SECOND * 30),
     ZOMBIFIED("zombified_totem", () -> BtRegistries.ZOMBIFIED, Ticks.MINUTE * 10),
     RAMPAGE("rampage_totem", () -> BtRegistries.RAMPAGE, Ticks.MINUTE * 15),
+    LONELINESS("loneliness_totem", () -> BtRegistries.LONELY, Ticks.MINUTE * 10),
     /** Saves you only from falling out of the world, and leaves no curse. */
     VOID("void_totem", null, 0),
     /** Saves you only from a deadly fall, and leaves no curse. */

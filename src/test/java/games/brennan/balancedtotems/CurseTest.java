@@ -21,6 +21,7 @@ class CurseTest {
         assertEquals(30 * 20, Curse.MORPHING.durationTicks());
         assertEquals(10 * 60 * 20, Curse.ZOMBIFIED.durationTicks());
         assertEquals(15 * 60 * 20, Curse.RAMPAGE.durationTicks());
+        assertEquals(10 * 60 * 20, Curse.LONELINESS.durationTicks());
     }
 
     @Test

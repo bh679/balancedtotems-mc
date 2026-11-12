@@ -1,7 +1,8 @@
 package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.BalancedTotems;
-import games.brennan.balancedtotems.curse.DeadlineCurses;
+import games.brennan.balancedtotems.Curse;
+import games.brennan.balancedtotems.curse.Tallies;
 import games.brennan.balancedtotems.effect.HeartbreakEffect;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.ChatFormatting;
@@ -27,7 +28,7 @@ import java.util.Optional;
 
 /**
  * Hover text for curses in the inventory's effect list: hearts Heartbreak takes, how to cure Zombified,
- * and what Rage still wants. Vanilla only shows effect tooltips on the narrow (icon-only) list, so on the wide list,
+ * and what Rage or Lonely still want. Vanilla only shows effect tooltips on the narrow (icon-only) list, so on the wide list,
  * which has no tooltip of its own, this draws one for the curse under the mouse.
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID, value = Dist.CLIENT)
@@ -83,8 +84,11 @@ public final class CurseTooltips {
         } else if (effect.is(BtRegistries.ZOMBIFIED)) {
             lines.add(Component.translatable("effect.balancedtotems.zombified.cure").withStyle(ChatFormatting.GRAY));
         } else if (effect.is(BtRegistries.RAMPAGE)) {
-            int kills = Math.max(0, DeadlineCurses.killsNeeded(effect) - player.getData(BtRegistries.RAMPAGE_KILLS));
+            int kills = Math.max(0, Tallies.needed(effect) - Tallies.count(player, Curse.RAMPAGE));
             lines.add(Component.translatable("effect.balancedtotems.rampage.deadline", kills, left).withStyle(ChatFormatting.GRAY));
+        } else if (effect.is(BtRegistries.LONELY)) {
+            int friends = Math.max(0, Tallies.needed(effect) - Tallies.count(player, Curse.LONELINESS));
+            lines.add(Component.translatable("effect.balancedtotems.lonely.deadline", friends, left).withStyle(ChatFormatting.GRAY));
         }
         return lines;
     }

@@ -11,6 +11,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
 | Totem of Zombification | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
+| Totem of Loneliness | Lonely: make 3 friends within 10 minutes, or die. A friend is a PlayerMob you swap gifts with |
 | Void Totem | Only saves you from void death, and pulls you back to safety |
 | Feather Totem | Only saves you from falling |
 
@@ -35,5 +36,8 @@ back on the train, but it works on its own.
   picks where the Void Totem sends a player.
 - Curses are plain mob effects: `balancedtotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage).
 - Datapacks can change `balancedtotems:morph_pool` and `balancedtotems:rampage_targets` (entity type tags).
+
+Without PlayerMob, villagers stand in: Rage counts villager kills, and Lonely counts a villager you
+trade with, feed, or cure. Under Dungeon Train villagers never count.
 
 Licence: PolyForm Shield 1.0.0.

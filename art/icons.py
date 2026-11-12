@@ -1,4 +1,4 @@
-"""The four curse effect icons (18x18), each built from vanilla sprites."""
+"""The curse effect icons (18x18), each built from vanilla sprites."""
 from PIL import Image
 
 from pixel import Vanilla, over
@@ -52,9 +52,15 @@ def rampage(vanilla: Vanilla) -> Image.Image:
     return icon
 
 
+def lonely(vanilla: Vanilla) -> Image.Image:
+    """The vanilla empty health-bar heart at 2x."""
+    return vanilla.load(HEART + "container.png").resize((18, 18), Image.NEAREST)
+
+
 ICONS = {
     "heartbreak": heartbreak,
     "morphed": morphed,
     "zombified": zombified,
     "rampage": rampage,
+    "lonely": lonely,
 }

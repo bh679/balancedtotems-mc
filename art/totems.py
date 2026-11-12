@@ -1,4 +1,4 @@
-"""The nine totems (16x16). Each is a grid over the vanilla totem's shape.
+"""The ten totems (16x16). Each is a grid over the vanilla totem's shape.
 
 Grid keys: '0'..'6' are body tones darkest to lightest (the vanilla totem's own
 seven), 'g'/'h' its light/dark eye pixels, '.' transparent, and any other letter
@@ -168,6 +168,16 @@ def rampage(vanilla: Vanilla) -> Image.Image:
     return render(grid, palette)
 
 
+def loneliness(vanilla: Vanilla) -> Image.Image:
+    """Pink, downcast, a tear, holding an empty vanilla health-bar heart."""
+    grid = list(VANILLA)
+    grid[5] = "....06333360...."
+    grid[7] = "....0t354320...."
+    grid[8] = ".1111t244201111."
+    palette = {**PINK, **cols(g="fcdce0", h="9a4456", t="6ab4f0")}
+    return over(render(grid, palette), vanilla.load("gui/sprites/hud/heart/container.png"), (3, 7))
+
+
 def void(vanilla: Vanilla) -> Image.Image:
     """Plain dark, dim purple eyes."""
     palette = {**ramp("06060a", "0e0e14", "16161e", "1c1c26", "242430", "2c2c3a", "363648"),
@@ -209,6 +219,7 @@ TOTEMS = {
     "morphing_totem": morphing,
     "zombified_totem": zombified,
     "rampage_totem": rampage,
+    "loneliness_totem": loneliness,
     "void_totem": void,
     "feather_totem": feather,
 }

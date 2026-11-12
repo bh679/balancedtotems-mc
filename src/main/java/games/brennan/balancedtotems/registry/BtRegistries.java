@@ -25,6 +25,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -56,7 +57,11 @@ public final class BtRegistries {
     public static final DeferredHolder<MobEffect, MobEffect> RAMPAGE = EFFECTS.register("rampage",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x8B0000, false));
 
-    /** Kills needed per Rampage level. */
+    /** Make {@link #RAMPAGE_KILLS_NEEDED} friends per level before it runs out, or die (see {@code curse/LonelyFriends}). */
+    public static final DeferredHolder<MobEffect, MobEffect> LONELY = EFFECTS.register("lonely",
+        () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xE68C9C, false));
+
+    /** Kills (Rage) or friends (Lonely) needed per level. */
     public static final int RAMPAGE_KILLS_NEEDED = 3;
 
     /** The entity type a player is shown and played as, by id; empty for their own body. */
@@ -66,6 +71,14 @@ public final class BtRegistries {
     /** Rampage kills so far in the current rampage. */
     public static final Supplier<AttachmentType<Integer>> RAMPAGE_KILLS = ATTACHMENTS.register("rampage_kills",
         () -> AttachmentType.builder(() -> 0).serialize(Codec.INT).build());
+
+    /** Friends made so far while Lonely. */
+    public static final Supplier<AttachmentType<Integer>> LONELY_FRIENDS = ATTACHMENTS.register("lonely_friends",
+        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT).build());
+
+    /** Who those friends are (entity UUIDs), so each one counts once. */
+    public static final Supplier<AttachmentType<List<String>>> LONELY_FRIEND_IDS = ATTACHMENTS.register("lonely_friend_ids",
+        () -> AttachmentType.<List<String>>builder(() -> List.of()).serialize(Codec.STRING.listOf()).build());
 
     public static final Map<Curse, DeferredItem<TotemItem>> TOTEMS = registerTotems();
 
@@ -79,6 +92,8 @@ public final class BtRegistries {
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("zombification"));
     public static final ResourceKey<DamageType> RAMPAGE_FAILED =
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("rampage_failed"));
+    public static final ResourceKey<DamageType> LONELINESS =
+        ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("loneliness"));
 
     private BtRegistries() {}
 

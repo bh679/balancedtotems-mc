@@ -1,8 +1,7 @@
 package games.brennan.balancedtotems.curse;
 
 import games.brennan.balancedtotems.BalancedTotems;
-import games.brennan.balancedtotems.net.BtNetwork;
-import games.brennan.balancedtotems.net.RampageKillsPayload;
+import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -17,7 +16,6 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -25,7 +23,6 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.Map;
@@ -33,13 +30,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The two curses you must lift before they run out, or die:
+ * The three curses you must lift before they run out, or die:
  * <ul>
  *   <li><b>Zombified</b> (10 min): eat a golden apple while you have Weakness, like curing a zombie
  *       villager. Any Weakness counts: a potion, a splash, or a Totem of Weakness's curse.</li>
  *   <li><b>Rampage</b> (15 min): kill {@link BtRegistries#RAMPAGE_KILLS_NEEDED} players or entities
- *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs) per level.</li>
+ *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs; villagers stand in, see {@link Targets}) per
+ *       level.</li>
+ *   <li><b>Lonely</b> (10 min): make three friends per level ({@link LonelyFriends}).</li>
  * </ul>
+ * Rage and Lonely keep their counts in {@link Tallies}.
  * Lifting a curse removes its effect; running out kills you on the next tick (deferred so the kill
  * never lands inside the effect-tick loop that reported the expiry).
  */
@@ -56,6 +56,7 @@ public final class DeadlineCurses {
         if (instance == null || !(event.getEntity() instanceof ServerPlayer player)) return;
         if (instance.is(BtRegistries.ZOMBIFIED)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.ZOMBIFICATION);
         if (instance.is(BtRegistries.RAMPAGE)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.RAMPAGE_FAILED);
+        if (instance.is(BtRegistries.LONELY)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.LONELINESS);
     }
 
     @SubscribeEvent
@@ -87,44 +88,14 @@ public final class DeadlineCurses {
     @SubscribeEvent
     public static void onKill(LivingDeathEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
-        MobEffectInstance rampage = killer.getEffect(BtRegistries.RAMPAGE);
-        if (rampage == null) return;
+        if (!killer.hasEffect(BtRegistries.RAMPAGE)) return;
         LivingEntity victim = event.getEntity();
-        if (victim == killer || !countsForRampage(victim)) return;
-
-        int kills = killer.getData(BtRegistries.RAMPAGE_KILLS) + 1;
-        int needed = killsNeeded(rampage);
-        setRampageKills(killer, kills);
-        if (kills >= needed) {
-            cure(killer, BtRegistries.RAMPAGE, "rampage");
-        } else {
-            killer.displayClientMessage(Component.translatable("message.balancedtotems.rampage.progress", kills, needed), true);
-        }
+        if (victim != killer && Targets.countsForRage(victim)) Tallies.add(killer, Curse.RAMPAGE);
     }
 
-    /** Kills that lift this Rampage: {@link BtRegistries#RAMPAGE_KILLS_NEEDED} per level. */
-    public static int killsNeeded(MobEffectInstance rampage) {
-        return BtRegistries.RAMPAGE_KILLS_NEEDED * (rampage.getAmplifier() + 1);
-    }
-
-    /** Sets the kill count and tells the player's client (it shows what is left on hover). */
-    public static void setRampageKills(ServerPlayer player, int kills) {
-        player.setData(BtRegistries.RAMPAGE_KILLS, kills);
-        BtNetwork.sendTo(player, new RampageKillsPayload(kills));
-    }
-
-    @SubscribeEvent
-    public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) setRampageKills(player, player.getData(BtRegistries.RAMPAGE_KILLS));
-    }
-
-    private static boolean countsForRampage(LivingEntity victim) {
-        return victim instanceof Player || victim.getType().is(BtRegistries.RAMPAGE_TARGETS);
-    }
-
-    private static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
+    /** Lifts {@code curse}: no more deadline, a message and a sound. */
+    static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
         player.removeEffect(curse);
-        if (curse.is(BtRegistries.RAMPAGE)) setRampageKills(player, 0);
         PENDING_DEATHS.remove(player.getUUID());
         player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), true);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);

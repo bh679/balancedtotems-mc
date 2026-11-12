@@ -13,6 +13,8 @@
   "item.balancedtotems.zombified_totem.curse": "Zombified on death, 10m",
   "item.balancedtotems.rampage_totem": "Totem of Rage",
   "item.balancedtotems.rampage_totem.curse": "Enraged on death, 15m",
+  "item.balancedtotems.loneliness_totem": "Totem of Loneliness",
+  "item.balancedtotems.loneliness_totem.curse": "Lonely on death, 10m",
   "item.balancedtotems.void_totem": "Void Totem",
   "item.balancedtotems.void_totem.curse": "Only saves you from void death",
   "item.balancedtotems.feather_totem": "Feather Totem",
@@ -22,16 +24,22 @@
   "effect.balancedtotems.morphed": "Morphed",
   "effect.balancedtotems.zombified": "Zombified",
   "effect.balancedtotems.rampage": "Rage",
+  "effect.balancedtotems.lonely": "Lonely",
   "effect.balancedtotems.heartbreak.hearts": "%s less max hearts",
   "effect.balancedtotems.zombified.cure": "Get Weakness, then eat a golden apple",
   "effect.balancedtotems.rampage.deadline": "Kill %s more players in %s to survive",
+  "effect.balancedtotems.lonely.deadline": "Make %s more friends in %s to survive",
 
   "message.balancedtotems.rampage.progress": "Rage: %s of %s",
   "message.balancedtotems.rampage.lifted": "Your rage is spent. You live.",
   "message.balancedtotems.zombified.lifted": "You are human again.",
+  "message.balancedtotems.lonely.progress": "Friends: %s of %s",
+  "message.balancedtotems.lonely.lifted": "You are not alone.",
 
   "death.attack.balancedtotems.zombification": "%1$s was lost to zombification",
   "death.attack.balancedtotems.zombification.player": "%1$s was lost to zombification",
   "death.attack.balancedtotems.rampage_failed": "%1$s was lost to their own rage",
-  "death.attack.balancedtotems.rampage_failed.player": "%1$s was lost to their own rage"
+  "death.attack.balancedtotems.rampage_failed.player": "%1$s was lost to their own rage",
+  "death.attack.balancedtotems.loneliness": "%1$s died of loneliness",
+  "death.attack.balancedtotems.loneliness.player": "%1$s died of loneliness"
 }

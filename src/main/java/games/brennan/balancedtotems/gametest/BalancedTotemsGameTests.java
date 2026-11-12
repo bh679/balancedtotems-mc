@@ -4,7 +4,9 @@ import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.api.BalancedTotemsApi;
 import games.brennan.balancedtotems.curse.CurseMemory;
+import games.brennan.balancedtotems.compat.PlayerMobGifts;
 import games.brennan.balancedtotems.curse.Curses;
+import games.brennan.balancedtotems.curse.Tallies;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
@@ -22,9 +24,12 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Evoker;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -32,7 +37,9 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
@@ -41,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Server-side behaviour of every totem, against a mock player in a real level.
@@ -387,6 +395,69 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
+    // ---- loneliness ----
+
+    @GameTest(template = EMPTY)
+    public static void lonelyIsLiftedByThreeVillagerFriends(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.LONELINESS);
+        expectEffect(helper, player, BtRegistries.LONELY, Curse.LONELINESS.durationTicks());
+        Villager first = villager(helper);
+        trade(player, first);
+        trade(player, first); // the same villager counts once
+        check(helper, Tallies.count(player, Curse.LONELINESS) == 1, "one villager should be one friend");
+        trade(player, villager(helper));
+        trade(player, villager(helper));
+        check(helper, !player.hasEffect(BtRegistries.LONELY), "three friends should lift Lonely");
+        tick(player, 3);
+        check(helper, player.isAlive(), "a lifted Lonely never kills");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void secondLonelyNeedsSixFriends(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.LONELINESS);
+        pop(player, Curse.LONELINESS);
+        for (int i = 0; i < 2 * BtRegistries.RAMPAGE_KILLS_NEEDED; i++) {
+            check(helper, player.hasEffect(BtRegistries.LONELY), "Lonely II lifted after only " + i + " friends");
+            trade(player, villager(helper));
+        }
+        check(helper, !player.hasEffect(BtRegistries.LONELY), "six friends should lift Lonely II");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void lonelyRunningOutKills(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        player.addEffect(new MobEffectInstance(BtRegistries.LONELY, 2, 0));
+        tick(player, 5);
+        check(helper, !player.isAlive(), "player should die when Lonely runs out");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void playerMobFriendNeedsGiftsBothWays(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.LONELINESS);
+        UUID mob = UUID.randomUUID();
+        PlayerMobGifts.gift(player, mob, true);
+        check(helper, Tallies.count(player, Curse.LONELINESS) == 0, "a gift one way is not a friend yet");
+        PlayerMobGifts.gift(player, mob, false);
+        check(helper, Tallies.count(player, Curse.LONELINESS) == 1, "gifts both ways make a friend");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void rageCountsVillagersWhenTheyStandIn(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.RAMPAGE);
+        Villager villager = villager(helper);
+        CommonHooks.onLivingDeath(villager, villager.damageSources().playerAttack(player));
+        check(helper, Tallies.count(player, Curse.RAMPAGE) == 1, "a villager kill should count without PlayerMob");
+        helper.succeed();
+    }
+
     // ---- loot ----
 
     @GameTest(template = EMPTY)
@@ -456,6 +527,15 @@ public final class BalancedTotemsGameTests {
 
     private static void eatGoldenApple(ServerPlayer player) {
         EventHooks.onItemUseFinish(player, new ItemStack(Items.GOLDEN_APPLE), 0, ItemStack.EMPTY);
+    }
+
+    private static Villager villager(GameTestHelper helper) {
+        return helper.spawn(EntityType.VILLAGER, 2, 1, 2);
+    }
+
+    private static void trade(ServerPlayer player, Villager villager) {
+        MerchantOffer offer = new MerchantOffer(new ItemCost(Items.EMERALD), new ItemStack(Items.BREAD), 1, 1, 0.0F);
+        NeoForge.EVENT_BUS.post(new TradeWithVillagerEvent(player, offer, villager));
     }
 
     /** Pops {@code curse}'s totem on the player. */
