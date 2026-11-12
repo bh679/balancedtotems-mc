@@ -6,6 +6,7 @@ import games.brennan.balancedtotems.net.BtNetwork;
 import games.brennan.balancedtotems.net.MorphActionPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -23,6 +24,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -45,6 +47,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class FormAttacks {
 
     private static final double RAM_KNOCKBACK = 2.5;
+    /** Speed of a goat's charge into the ram, and the little hop it gives. */
+    private static final double RAM_CHARGE = 0.9;
+    private static final double RAM_HOP = 0.15;
     private static final double GOLEM_TOSS = 0.4;
     private static final int GRAZE_COOLDOWN_TICKS = 40;
     private static final int STING_DEATH_ODDS_CAP = 1200;
@@ -92,7 +97,14 @@ public final class FormAttacks {
             && DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).hasAttribute(Attributes.ATTACK_DAMAGE);
     }
 
+    /** A goat charges into the ram: you sprint forward at the target as it is knocked away. */
     private static void ram(ServerPlayer player, Entity target) {
+        Vec3 charge = new Vec3(target.getX() - player.getX(), 0.0, target.getZ() - player.getZ());
+        if (charge.lengthSqr() > 1.0E-4) {
+            player.setSprinting(true);
+            player.setDeltaMovement(charge.normalize().scale(RAM_CHARGE).add(0.0, RAM_HOP, 0.0));
+            player.connection.send(new ClientboundSetEntityMotionPacket(player)); // the client moves the player
+        }
         if (target instanceof LivingEntity living) {
             living.knockback(RAM_KNOCKBACK, player.getX() - target.getX(), player.getZ() - target.getZ());
         }

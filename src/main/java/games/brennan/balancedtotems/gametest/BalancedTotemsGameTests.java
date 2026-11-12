@@ -304,6 +304,8 @@ public final class BalancedTotemsGameTests {
         player.attack(pig);
         double push = pig.getDeltaMovement().horizontalDistance();
         check(helper, push > 0.5, "a ram should knock the target far, was " + push);
+        double charge = player.getDeltaMovement().horizontalDistance();
+        check(helper, charge > 0.5 && player.isSprinting(), "a goat should charge into the ram, moved " + charge);
         pig.discard();
         helper.succeed();
     }
