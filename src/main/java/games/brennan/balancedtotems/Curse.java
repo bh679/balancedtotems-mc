@@ -22,7 +22,7 @@ public enum Curse {
     MORPHING("morphing_totem", () -> BtRegistries.MORPHED, Ticks.SECOND * 20),
     ZOMBIFIED("zombified_totem", () -> BtRegistries.ZOMBIFIED, Ticks.MINUTE * 10),
     RAMPAGE("rampage_totem", () -> BtRegistries.RAMPAGE, Ticks.MINUTE * 15),
-    /** Saves you from the void and lethal falls only, and leaves no curse. */
+    /** Saves you only from falling out of the world, and leaves no curse. */
     VOID("void_totem", null, 0);
 
     private final String itemName;

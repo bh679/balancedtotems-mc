@@ -44,7 +44,7 @@ public final class TotemTriggerEvents {
     /** Whether a totem with this curse saves you from this death. */
     static boolean saves(Curse curse, DamageSource source) {
         if (curse.savesFromVoidOnly()) {
-            return source.is(DamageTypes.FELL_OUT_OF_WORLD) || source.is(DamageTypes.FALL);
+            return source.is(DamageTypes.FELL_OUT_OF_WORLD);
         }
         return !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY);
     }

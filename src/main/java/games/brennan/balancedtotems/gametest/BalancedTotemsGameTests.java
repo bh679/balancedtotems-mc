@@ -137,10 +137,10 @@ public final class BalancedTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void voidTotemSavesFromLethalFalls(GameTestHelper helper) {
+    public static void voidTotemIgnoresLethalFalls(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.VOID);
         player.hurt(player.damageSources().fall(), LETHAL);
-        check(helper, player.isAlive(), "player should survive the fall");
+        check(helper, !player.isAlive(), "a lethal fall is not a void death");
         helper.succeed();
     }
 
