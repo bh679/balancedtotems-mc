@@ -20,7 +20,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.network.PacketDistributor;
+import games.brennan.balancedtotems.net.BtNetwork;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -76,7 +76,7 @@ public final class Morphs {
         applyStats(player, type);
         player.refreshDimensions();
         if (type != null) dropMonsterAggro(player);
-        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new MorphSyncPayload(player.getId(), id));
+        BtNetwork.sendToTrackingAndSelf(player, new MorphSyncPayload(player.getId(), id));
     }
 
     /** The player's current form, if any. Safe on both sides and during entity construction. */

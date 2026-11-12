@@ -14,7 +14,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.neoforged.neoforge.common.EffectCures;
-import net.neoforged.neoforge.network.PacketDistributor;
+import games.brennan.balancedtotems.net.BtNetwork;
 
 /**
  * Vanilla's totem pop ({@code LivingEntity#checkTotemDeathProtection}) with our item in the
@@ -40,7 +40,7 @@ public final class TotemPop {
         player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
         applyCurse(player, curse);
 
-        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new TotemPopPayload(player.getId(), used));
+        BtNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));
     }
 
     private static void applyCurse(ServerPlayer player, Curse curse) {

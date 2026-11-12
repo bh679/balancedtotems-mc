@@ -54,6 +54,12 @@ neoForge {
             programArgument '--nogui'
         }
 
+        // ./gradlew runGameTestServer: runs gametest/BalancedTotemsGameTests and exits.
+        gameTestServer {
+            type = 'gameTestServer'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        }
+
         configureEach {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             logLevel = org.slf4j.event.Level.DEBUG

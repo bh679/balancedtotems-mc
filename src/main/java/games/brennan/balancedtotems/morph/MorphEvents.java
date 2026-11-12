@@ -21,7 +21,7 @@ import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
+import games.brennan.balancedtotems.net.BtNetwork;
 
 /** Hitbox, mob reactions, zombie sunburn, and keeping the form in step with its curse. */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
@@ -87,7 +87,7 @@ public final class MorphEvents {
     public static void onStartTracking(PlayerEvent.StartTracking event) {
         if (!(event.getTarget() instanceof Player target)) return;
         if (!(event.getEntity() instanceof ServerPlayer tracker)) return;
-        Morphs.formOf(target).ifPresent(type -> PacketDistributor.sendToPlayer(tracker,
+        Morphs.formOf(target).ifPresent(type -> BtNetwork.sendTo(tracker,
             new MorphSyncPayload(target.getId(), target.getData(BtRegistries.FORM))));
     }
 
