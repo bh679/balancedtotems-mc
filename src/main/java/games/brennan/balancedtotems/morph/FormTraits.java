@@ -44,8 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>Chickens fall slowly; water forms swim fast; turtles breathe underwater; lava forms and
  *       zombified piglins shrug off fire and lava. Each is a
  *       hidden, endless effect that lasts exactly as long as the form.</li>
- *   <li>Water forms breathe in water and dry out on land like the mob: fish, squid and tadpoles
- *       in 15 seconds, dolphins in 2 minutes, axolotls in 5; after that they take damage.</li>
+ *   <li>Water forms breathe and get about on land as their mobs do ({@link WaterLife}).</li>
  *   <li>Snow golems leave snow where they walk and melt in warm biomes, rain and water.</li>
  *   <li>Falls hurt as they hurt the mob: cats, chickens, golems and flyers take none (the vanilla
  *       {@code fall_damage_immune} tag), frogs and goats fall further first, horses take half.</li>
@@ -56,17 +55,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class FormTraits {
 
-    private static final int FISH_DRY_TICKS = 300;
-    private static final int DOLPHIN_DRY_TICKS = 2400;
-    private static final int AXOLOTL_DRY_TICKS = 6000;
-    private static final int DRY_DAMAGE_EVERY_TICKS = 20;
-    private static final float DRY_DAMAGE = 2.0F;
 
     /** Every hidden effect a form can bring (see {@link #effectsFor}). */
     private static final List<Holder<MobEffect>> FORM_EFFECTS =
         List.of(MobEffects.SLOW_FALLING, MobEffects.DOLPHINS_GRACE, MobEffects.FIRE_RESISTANCE, MobEffects.WATER_BREATHING);
 
-    private static final Map<UUID, Integer> DRY_TICKS = new ConcurrentHashMap<>();
 
     /** {@code Frog#calculateFallDamage} and {@code Goat#calculateFallDamage}: blocks fallen before it hurts. */
     private static final float FROG_SAFE_FALL = 5.0F;
@@ -139,7 +132,6 @@ public final class FormTraits {
 
     /** From {@link Morphs#setForm}: swap the hidden effects to the new form's. */
     static void onFormChanged(ServerPlayer player, @Nullable EntityType<?> form) {
-        DRY_TICKS.remove(player.getUUID());
         Set<Holder<MobEffect>> wantedEffects = effectsFor(form);
         for (Holder<MobEffect> effect : FORM_EFFECTS) {
             boolean wanted = wantedEffects.contains(effect);
@@ -175,26 +167,7 @@ public final class FormTraits {
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         run(player, form);
         chill(player, form);
-        if (isWaterForm(form)) breathe(player, form);
         if (form == EntityType.SNOW_GOLEM) beSnowGolem(player);
-    }
-
-    /** In water: full air. Out of it: air runs down over the form's time, then the form takes damage. */
-    private static void breathe(ServerPlayer player, EntityType<?> form) {
-        boolean moistAnywhere = form == EntityType.DOLPHIN || form == EntityType.AXOLOTL;
-        boolean wet = moistAnywhere ? player.isInWaterRainOrBubble() : player.isInWater();
-        if (wet) {
-            DRY_TICKS.remove(player.getUUID());
-            player.setAirSupply(player.getMaxAirSupply());
-            return;
-        }
-        int limit = form == EntityType.DOLPHIN ? DOLPHIN_DRY_TICKS : form == EntityType.AXOLOTL ? AXOLOTL_DRY_TICKS : FISH_DRY_TICKS;
-        int dry = DRY_TICKS.merge(player.getUUID(), 1, Integer::sum);
-        player.setAirSupply(Mth.clamp(player.getMaxAirSupply() * (limit - dry) / limit, 0, player.getMaxAirSupply()));
-        if (dry > limit && dry % DRY_DAMAGE_EVERY_TICKS == 0) {
-            DamageSource source = moistAnywhere ? player.damageSources().dryOut() : player.damageSources().drown();
-            player.hurt(source, DRY_DAMAGE);
-        }
     }
 
     /** {@code SnowGolem#aiStep}: melt where it's warm or wet, and leave snow underfoot. */

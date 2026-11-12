@@ -5,7 +5,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-/** Client to server: a morphed player with a ranged attack (llama spit, snowball) attacked the air. */
+/** Client to server: a morphed player attacked the air (a shot, a goat's ram, or a noise). */
 public record FormAttackPayload() implements CustomPacketPayload {
 
     public static final FormAttackPayload INSTANCE = new FormAttackPayload();

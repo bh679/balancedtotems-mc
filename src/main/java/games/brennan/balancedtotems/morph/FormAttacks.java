@@ -45,7 +45,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A form attacks the way its mob does. Goats ram, iron golems throw the target up, polar bears rear,
- * llamas spit and snow golems throw snowballs (at a mob, or at range by attacking the air),
+ * llamas spit and snow golems throw snowballs (at a mob, or at range by attacking the air), a goat
+ * charges into a ram even at nothing; every attack comes with the form's noise, and forms with no attack
+ * make only that,
  * pufferfish poison, frogs swallow small slimes and magma cubes, bees
  * sting once (poison) and then may die like a stung bee unless the morph ends first, and forms with no
  * attack do no damage. Sheep, cows and horses graze instead: hitting grass eats it.
@@ -58,6 +60,8 @@ public final class FormAttacks {
     private static final double RAM_CHARGE = 0.9;
     private static final double RAM_HOP = 0.15;
     private static final double GOLEM_TOSS = 0.4;
+    /** How often a goat can charge into the air. */
+    private static final int AIR_RAM_COOLDOWN = 20;
     private static final int GRAZE_COOLDOWN_TICKS = 40;
     private static final int STING_DEATH_ODDS_CAP = 1200;
     /** {@code Pufferfish#touch} at full puff. */
@@ -88,6 +92,7 @@ public final class FormAttacks {
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         if (form == null) return;
         Entity target = event.getTarget();
+        FormSounds.speak(player); // every form makes its noise as it attacks
         if (form == EntityType.GOAT) {
             ram(player, target);
         } else if (form == EntityType.IRON_GOLEM) {
@@ -103,11 +108,11 @@ public final class FormAttacks {
             }
         } else if (RANGED.contains(form)) {
             event.setCanceled(true); // the shot does the damage
-            rangedAttack(player);
+            attackAir(player);
         } else if (form == EntityType.FROG) {
             if (tongue(player, target)) event.setCanceled(true);
         } else if (!hasAttack(form)) {
-            event.setCanceled(true);
+            event.setCanceled(true); // nothing to hit with: just the noise
         } else if (form == EntityType.POLAR_BEAR) {
             show(player, FormAction.STAND);
         } else {
@@ -176,11 +181,28 @@ public final class FormAttacks {
         player.level().playSound(null, player.blockPosition(), SoundEvents.BEE_STING, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 
-    /** A llama spits and a snow golem throws a snowball where you look; other forms have no ranged attack. */
-    public static void rangedAttack(ServerPlayer player) {
+    /**
+     * Attacking the air: a llama spits and a snow golem throws a snowball where you look, a goat charges
+     * into a ram, and every other form makes its noise.
+     */
+    public static void attackAir(ServerPlayer player) {
         EntityType<?> form = Morphs.formOf(player).orElse(null);
+        if (form == null) return;
         if (form == EntityType.SNOW_GOLEM) LandMoves.throwSnowball(player);
         else if (form == EntityType.LLAMA || form == EntityType.TRADER_LLAMA) spit(player);
+        else if (form == EntityType.GOAT) chargeRam(player);
+        else FormSounds.speak(player);
+    }
+
+    /** {@code RamTarget} with no target: a goat lowers its head and charges where you look. */
+    private static void chargeRam(ServerPlayer player) {
+        if (!FormTimers.ready(player, "ram", AIR_RAM_COOLDOWN)) return;
+        Vec3 look = player.getLookAngle().multiply(1.0, 0.0, 1.0).normalize();
+        player.setSprinting(true);
+        player.setDeltaMovement(look.scale(RAM_CHARGE).add(0.0, RAM_HOP, 0.0));
+        player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        player.level().playSound(null, player.blockPosition(), SoundEvents.GOAT_PREPARE_RAM, SoundSource.PLAYERS, 1.0F, 1.0F);
+        show(player, FormAction.RAM);
     }
 
     /** {@code Llama#spit}, aimed where you look. */

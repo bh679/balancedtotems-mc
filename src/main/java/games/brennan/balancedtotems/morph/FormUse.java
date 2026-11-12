@@ -3,6 +3,7 @@ package games.brennan.balancedtotems.morph;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.net.BtNetwork;
 import games.brennan.balancedtotems.net.MorphActionPayload;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,6 +17,15 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BellBlock;
+import net.minecraft.world.level.block.CakeBlock;
+import net.minecraft.world.level.block.ComparatorBlock;
+import net.minecraft.world.level.block.LeverBlock;
+import net.minecraft.world.level.block.NoteBlock;
+import net.minecraft.world.level.block.RepeaterBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
@@ -53,8 +63,7 @@ public final class FormUse {
         if (form == null) return;
         if (form == EntityType.CHICKEN) layEgg(player);
         else if (form == EntityType.ARMADILLO) setRolled(player, !ROLLED.contains(player.getUUID()));
-        else if (form == EntityType.CAMEL) LandMoves.dash(player);
-        else if (form == EntityType.CAT) LandMoves.sit(player);
+        else if (form == EntityType.CAMEL || form == EntityType.CAT) LandMoves.sit(player);
         else if (form == EntityType.BAT) LandMoves.hang(player);
         else if (form == EntityType.FROG) LandMoves.croak(player);
         else if (form == EntityType.SNIFFER) LandMoves.dig(player);
@@ -65,12 +74,33 @@ public final class FormUse {
         else if (form == EntityType.PUFFERFISH) WaterMoves.puff(player);
         else if (form == EntityType.SQUID || form == EntityType.GLOW_SQUID) WaterMoves.ink(player);
         else if (form == EntityType.DOLPHIN) WaterMoves.leap(player);
+        else FormSounds.speak(player); // no move of its own: its noise
     }
 
-    /** Forms with a "use" move (the client only sends "use" for these). */
+    /** From the {@link games.brennan.balancedtotems.net.FormJumpPayload} handler: a camel's jump is its dash. */
+    public static void jump(ServerPlayer player) {
+        if (Morphs.formOf(player).orElse(null) == EntityType.CAMEL) LandMoves.dash(player);
+    }
+
+    /** Forms that jump their own way: the client sends their jump to the server. */
+    public static final Set<EntityType<?>> OWN_JUMP = Set.of(EntityType.CAMEL);
+
+    /** Forms with a "use" move; the rest make their sound. */
     public static final Set<EntityType<?>> USABLE = Set.of(EntityType.CHICKEN, EntityType.ARMADILLO, EntityType.CAMEL,
         EntityType.CAT, EntityType.BAT, EntityType.FROG, EntityType.SNIFFER, EntityType.SNOW_GOLEM, EntityType.TURTLE,
         EntityType.PARROT, EntityType.AXOLOTL, EntityType.PUFFERFISH, EntityType.SQUID, EntityType.GLOW_SQUID, EntityType.DOLPHIN);
+
+    /** Blocks a hand is for (right-clicking them as a form still uses them): anything with a block entity (chests, furnaces, signs), doors, switches, beds. */
+    public static boolean isUsable(Level level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return level.getBlockEntity(pos) != null || state.getMenuProvider(level, pos) != null
+            || state.is(BlockTags.DOORS) || state.is(BlockTags.TRAPDOORS) || state.is(BlockTags.FENCE_GATES)
+            || state.is(BlockTags.BUTTONS) || state.is(BlockTags.BEDS) || state.is(BlockTags.CANDLES)
+            || state.getBlock() instanceof LeverBlock
+            || state.getBlock() instanceof BellBlock || state.getBlock() instanceof NoteBlock
+            || state.getBlock() instanceof RepeaterBlock || state.getBlock() instanceof ComparatorBlock
+            || state.getBlock() instanceof CakeBlock;
+    }
 
     /** {@code Chicken#aiStep}: an egg drops with the chicken's plop. */
     private static void layEgg(ServerPlayer player) {
@@ -79,7 +109,9 @@ public final class FormUse {
         LAST_EGG.put(player.getUUID(), now);
         float pitch = (player.getRandom().nextFloat() - player.getRandom().nextFloat()) * 0.2F + 1.0F;
         player.level().playSound(null, player.blockPosition(), SoundEvents.CHICKEN_EGG, SoundSource.PLAYERS, 1.0F, pitch);
-        player.level().addFreshEntity(new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), new ItemStack(Items.EGG)));
+        ItemEntity egg = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), new ItemStack(Items.EGG));
+        egg.setDefaultPickUpDelay(); // as Mob#spawnAtLocation: you see it laid before you pick it up
+        player.level().addFreshEntity(egg);
     }
 
     private static void setRolled(ServerPlayer player, boolean rolled) {

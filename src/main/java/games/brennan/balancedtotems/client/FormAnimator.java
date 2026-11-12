@@ -42,7 +42,6 @@ final class FormAnimator {
     private static final int HORSE_REAR_TICKS = 10;
     private static final int RAM_TICKS = 10;
     private static final int EAT_TICKS = 20;
-    private static final float ARMADILLO_WALK_SCALE = 0.35F;
     private static final int DASH_TICKS = 20;
     private static final int CROAK_TICKS = 60;
     private static final int TONGUE_TICKS = 10;
@@ -64,6 +63,8 @@ final class FormAnimator {
     private static final Map<UUID, Integer> STANDING = new ConcurrentHashMap<>();
     /** A curled armadillo keeps the way it faced when it rolled up. */
     private static final Map<UUID, Float> CURLED_YAW = new ConcurrentHashMap<>();
+    /** Armadillos all the way into their ball (not rolling up or out). */
+    private static final Set<UUID> CURLED = ConcurrentHashMap.newKeySet();
     /** A pose the mob holds for a while (croak, tongue, dig), and how it ends. */
     private static final Map<UUID, Timed> TIMED = new ConcurrentHashMap<>();
     /** Sitting cats and hanging bats, until the player moves. */
@@ -81,9 +82,8 @@ final class FormAnimator {
         follow(standIn, player);
         runOwnTick(standIn);
         follow(standIn, player);
-        if (standIn instanceof Armadillo armadillo) {
-            if (armadillo.isScared()) armadillo.walkAnimation.setSpeed(0.0F); // a ball doesn't walk
-            else walkCalmly(standIn); // its walk is tuned for a slow mob and flails at player speed
+        if (standIn instanceof Armadillo armadillo && armadillo.isScared()) {
+            armadillo.walkAnimation.setSpeed(0.0F); // a ball doesn't walk
         } else {
             standIn.calculateEntityAnimation(MorphFlight.flies(standIn.getType()));
         }
@@ -138,11 +138,15 @@ final class FormAnimator {
                 if (!(standIn instanceof Armadillo armadillo)) return;
                 CURLED_YAW.put(player, armadillo.yBodyRot);
                 armadillo.switchToState(Armadillo.ArmadilloState.ROLLING);
-                startTimed(player, ROLL_UP_TICKS, () -> armadillo.switchToState(Armadillo.ArmadilloState.SCARED));
+                startTimed(player, ROLL_UP_TICKS, () -> {
+                    armadillo.switchToState(Armadillo.ArmadilloState.SCARED);
+                    CURLED.add(player);
+                });
             }
             case UNROLL -> { // and unroll before standing up again
                 if (!(standIn instanceof Armadillo armadillo)) return;
                 armadillo.switchToState(Armadillo.ArmadilloState.UNROLLING);
+                CURLED.remove(player);
                 startTimed(player, UNROLL_TICKS, () -> {
                     armadillo.switchToState(Armadillo.ArmadilloState.IDLE);
                     CURLED_YAW.remove(player);
@@ -158,7 +162,8 @@ final class FormAnimator {
                 DASHING.put(player, DASH_TICKS);
             }
             case SIT -> {
-                if (standIn instanceof TamableAnimal pet) pet.setInSittingPose(true);
+                        if (standIn instanceof TamableAnimal pet) pet.setInSittingPose(true);
+                if (standIn instanceof Camel camel) camel.sitDown();
                 RESTING.add(player);
             }
             case HANG -> {
@@ -215,10 +220,16 @@ final class FormAnimator {
     private static void stopResting(LivingEntity standIn, UUID player) {
         RESTING.remove(player);
         if (standIn instanceof TamableAnimal pet) pet.setInSittingPose(false);
+        if (standIn instanceof Camel camel) camel.standUp();
         if (standIn instanceof Bat bat) bat.setResting(false);
     }
 
     private record Timed(int left, Runnable end) {}
+
+    /** Whether an armadillo is all the way curled up, so moving would unroll it. */
+    static boolean isCurled(UUID player) {
+        return CURLED.contains(player);
+    }
 
     /** The body yaw a curled armadillo holds, or null when it isn't curled. */
     static Float curledYaw(UUID player) {
@@ -243,14 +254,6 @@ final class FormAnimator {
         EATING.put(id, Math.max(EATING.getOrDefault(id, 0), 2));
     }
 
-    /** {@code calculateEntityAnimation}, at a fraction of the speed. */
-    private static void walkCalmly(LivingEntity standIn) {
-        double dx = standIn.getX() - standIn.xo;
-        double dz = standIn.getZ() - standIn.zo;
-        float speed = Math.min((float) Math.sqrt(dx * dx + dz * dz) * 4.0F, 1.0F);
-        standIn.walkAnimation.update(speed * ARMADILLO_WALK_SCALE, 0.4F);
-    }
-
     /** Stand-in classes whose own tick threw, so they're drawn without animation. */
     static Set<Class<?>> failures() {
         return Set.copyOf(FAILED);
@@ -264,6 +267,7 @@ final class FormAnimator {
         DASHING.remove(player);
         STANDING.remove(player);
         CURLED_YAW.remove(player);
+        CURLED.remove(player);
         TIMED.remove(player);
         RESTING.remove(player);
     }
@@ -290,6 +294,7 @@ final class FormAnimator {
      */
     private static void runOwnTick(LivingEntity standIn) {
         if (FAILED.contains(standIn.getClass())) return;
+        standIn.tickCount++; // ClientLevel#tickNonPassenger ages a mob before its tick; models animate on its age
         double xo = standIn.xo;
         double yo = standIn.yo;
         double zo = standIn.zo;

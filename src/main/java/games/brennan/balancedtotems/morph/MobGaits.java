@@ -6,10 +6,12 @@ import javax.annotation.Nullable;
 import java.util.Map;
 
 /**
- * How fast each land form walks and runs, as its mob does. A mob's AI moves it at a multiple of its
+ * How fast each land form walks and runs, from its mob. A mob's AI moves it at a multiple of its
  * movement speed: its stroll multiplier when it wanders, its panic (or chase) multiplier when it hurries.
- * Mobs ridden by a player (horses, llamas, camels) run at their ridden speed instead. Only land forms are
- * here; flyers and swimmers keep {@link MorphStats#speedBonus}.
+ * A form walks at twice its mob's stroll and sprints at its run (at least a player's sprint over the
+ * walk). Mobs ridden by a player (horses, llamas, camels) run at their ridden speed. Only land forms are
+ * here, and the axolotl's walk on land; flyers keep {@link MorphStats#speedBonus}, and other water forms
+ * can't walk ({@link WaterLife}).
  *
  * <p>Multipliers are vanilla's: {@code WaterAvoidingRandomStrollGoal}, {@code PanicGoal}, the brain mobs'
  * {@code RandomStroll.stroll} and {@code AnimalPanic}. GameTest {@code mobsWalkAtTheirOwnPace} measures
@@ -21,7 +23,7 @@ public final class MobGaits {
      * A mob's walk and run multipliers. {@code ridden} runs at the ridden speed (the mob's movement
      * speed taken as a player's, plus {@code riddenSprintBonus}, a camel's dash). {@code measuredWalk}
      * and {@code measuredRun} (blocks per second) replace the formula for mobs whose own movement code
-     * sets their pace: turtles slow themselves on land, frogs and rabbits hop.
+     * sets their pace: turtles and axolotls slow themselves on land, frogs and rabbits hop.
      */
     public record Gait(double walk, double run, boolean ridden, double riddenSprintBonus, double measuredWalk, double measuredRun) {
         static Gait of(double walk, double run) {
@@ -40,6 +42,8 @@ public final class MobGaits {
     /** A player's walk (movement speed 0.1) covers this much ground a second. */
     static final double PLAYER_WALK_BLOCKS_PER_SECOND = 4.317;
     static final double PLAYER_WALK_SPEED = 0.1;
+    /** How much faster than its mob's stroll a form walks. */
+    static final double WALK_OVER_STROLL = 2.0;
     /** A player's sprint is +30% (multiplied total). */
     static final double PLAYER_SPRINT = 1.3;
     /** Movement input: a player's forward impulse is 0.98; a mob's is its own speed. */
@@ -47,6 +51,8 @@ public final class MobGaits {
 
     public static final Map<EntityType<?>, Gait> GAITS = Map.ofEntries(
         Map.entry(EntityType.ARMADILLO, Gait.of(1.0, 2.0)),
+        // AxolotlAi#SPEED_MULTIPLIER_ON_LAND, slowed again by its move control out of water; it swims at its own pace
+        Map.entry(EntityType.AXOLOTL, Gait.measured(0.15, 0.15, 0.24, 0.24)),
         Map.entry(EntityType.CAMEL, Gait.ridden(2.0, 0.1)),
         Map.entry(EntityType.CAT, Gait.of(0.8, 1.5)),
         Map.entry(EntityType.CHICKEN, Gait.of(1.0, 1.4)),
@@ -83,17 +89,27 @@ public final class MobGaits {
         return form == null ? null : GAITS.get(form);
     }
 
-    /** The player movement speed that walks like this mob (with movement speed {@code mobSpeed}). */
-    public static double walkSpeed(Gait gait, double mobSpeed) {
+    /** The player movement speed of the mob's own stroll. */
+    public static double strollSpeed(Gait gait, double mobSpeed) {
         if (gait.measuredWalk() > 0.0) return fromBlocksPerSecond(gait.measuredWalk());
         return likeAMob(mobSpeed * gait.walk());
     }
 
-    /** The player movement speed that runs like this mob. */
-    public static double runSpeed(Gait gait, double mobSpeed) {
+    /** The player movement speed of the mob's own run (its panic or chase; a ridden mob's ridden speed). */
+    public static double mobRunSpeed(Gait gait, double mobSpeed) {
         if (gait.ridden()) return mobSpeed + gait.riddenSprintBonus(); // a ridden mob moves on the player's input
         if (gait.measuredRun() > 0.0) return fromBlocksPerSecond(gait.measuredRun());
         return likeAMob(mobSpeed * gait.run());
+    }
+
+    /** A form walks at twice its mob's stroll: a mob's amble is too slow to play. */
+    public static double walkSpeed(Gait gait, double mobSpeed) {
+        return strollSpeed(gait, mobSpeed) * WALK_OVER_STROLL;
+    }
+
+    /** A form sprints at its mob's run, and always at least a player's sprint over its walk. */
+    public static double runSpeed(Gait gait, double mobSpeed) {
+        return Math.max(mobRunSpeed(gait, mobSpeed), walkSpeed(gait, mobSpeed) * PLAYER_SPRINT);
     }
 
     /**

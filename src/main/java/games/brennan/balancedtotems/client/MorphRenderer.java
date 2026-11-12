@@ -119,11 +119,13 @@ public final class MorphRenderer {
         float pitch = FormAnimator.headDown(player.getUUID()) ? EATING_PITCH : player.getXRot();
         dummy.setXRot(pitch);
         dummy.xRotO = FormAnimator.headDown(player.getUUID()) ? EATING_PITCH : player.xRotO;
-        Float curled = FormAnimator.curledYaw(player.getUUID()); // a curled armadillo doesn't turn with you
-        dummy.yBodyRot = curled != null ? curled : player.yBodyRot;
-        dummy.yBodyRotO = curled != null ? curled : player.yBodyRotO;
-        dummy.yHeadRot = curled != null ? curled : player.yHeadRot;
-        dummy.yHeadRotO = curled != null ? curled : player.yHeadRotO;
+        // The body faces where you face, as a ridden horse follows its rider (a player's own body only turns
+        // lazily, which left four-legged forms half-turned); a curled armadillo doesn't turn at all.
+        Float curled = FormAnimator.curledYaw(player.getUUID());
+        dummy.yBodyRot = curled != null ? curled : player.getYRot();
+        dummy.yBodyRotO = curled != null ? curled : player.yRotO;
+        dummy.yHeadRot = curled != null ? curled : player.getYRot();
+        dummy.yHeadRotO = curled != null ? curled : player.yRotO;
         dummy.setOnGround(player.onGround());
         dummy.setShiftKeyDown(player.isShiftKeyDown());
         dummy.setInvisible(player.isInvisible());

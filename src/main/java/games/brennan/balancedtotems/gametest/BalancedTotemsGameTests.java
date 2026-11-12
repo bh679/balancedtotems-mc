@@ -13,6 +13,7 @@ import games.brennan.balancedtotems.morph.FormTraits;
 import games.brennan.balancedtotems.morph.FormUse;
 import games.brennan.balancedtotems.morph.MorphForm;
 import games.brennan.balancedtotems.morph.Morphs;
+import games.brennan.balancedtotems.morph.WaterLife;
 import games.brennan.balancedtotems.morph.WaterMoves;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import games.brennan.balancedtotems.voidtotem.VoidRescue;
@@ -408,7 +409,7 @@ public final class BalancedTotemsGameTests {
         Morphs.setForm(player, EntityType.CHICKEN);
         FormUse.use(player);
         check(helper, !helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(2),
-            item -> item.getItem().is(Items.EGG)).isEmpty(), "a chicken should lay an egg");
+            item -> item.getItem().is(Items.EGG) && item.hasPickUpDelay()).isEmpty(), "a chicken should lay an egg you see before picking up");
         Morphs.setForm(player, EntityType.ARMADILLO);
         FormUse.use(player);
         check(helper, FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0, "a rolled armadillo can't move");
@@ -520,8 +521,8 @@ public final class BalancedTotemsGameTests {
 
     /**
      * Every land form's real mob strolls, and runs, at its own AI's multipliers down its own stone lane
-     * high above the grid; its ground speed must match
-     * {@link MobGaits}, what the form is given, within 10%. The strider walks on lava, where it's warm. Lanes run {@value #LANES_PER_BATCH} at a time
+     * high above the grid; its ground speed must match {@link MobGaits}' stroll and run for it (a form walks
+     * at twice the stroll), within 10%. The strider walks on lava, where it's warm. Lanes run {@value #LANES_PER_BATCH} at a time
      * on one force-loaded patch. Ridden mobs' runs are the player's input on them, so only their walk is
      * measured.
      */
@@ -534,8 +535,8 @@ public final class BalancedTotemsGameTests {
         for (Map.Entry<EntityType<?>, MobGaits.Gait> entry : gaits) {
             MobGaits.Gait gait = entry.getValue();
             double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) entry.getKey()).getBaseValue(Attributes.MOVEMENT_SPEED);
-            lanes.add(new GaitLane(entry.getKey(), false, gait.walk(), MobGaits.toBlocksPerSecond(MobGaits.walkSpeed(gait, mobSpeed))));
-            if (!gait.ridden()) lanes.add(new GaitLane(entry.getKey(), true, gait.run(), MobGaits.toBlocksPerSecond(MobGaits.runSpeed(gait, mobSpeed))));
+            lanes.add(new GaitLane(entry.getKey(), false, gait.walk(), MobGaits.toBlocksPerSecond(MobGaits.strollSpeed(gait, mobSpeed))));
+            if (!gait.ridden()) lanes.add(new GaitLane(entry.getKey(), true, gait.run(), MobGaits.toBlocksPerSecond(MobGaits.mobRunSpeed(gait, mobSpeed))));
         }
         for (int x = 0; x < LANES_PER_BATCH * LANE_SPACING; x++) {
             for (int z = -1; z <= LANE_LENGTH; z++) {
@@ -681,13 +682,64 @@ public final class BalancedTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void camelDashesForward(GameTestHelper helper) {
+    public static void camelDashesOnJumpAndSitsOnUse(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         Morphs.setForm(player, EntityType.CAMEL);
         player.setOnGround(true);
         FormUse.use(player);
+        check(helper, player.getDeltaMovement().horizontalDistance() < 0.1, "right-click sits a camel down, it doesn't dash");
+        FormUse.jump(player);
         Vec3 motion = player.getDeltaMovement();
-        check(helper, motion.horizontalDistance() > 1.0 && motion.y > 0.0, "a camel's dash should lunge, was " + motion);
+        check(helper, motion.horizontalDistance() > 1.0 && motion.y > 0.0, "a camel's jump is its dash, was " + motion);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void goatChargesAtNothing(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.GOAT);
+        FormAttacks.attackAir(player);
+        check(helper, player.getDeltaMovement().horizontalDistance() > 0.5, "a goat attacking the air charges into a ram");
+        Morphs.setForm(player, EntityType.CAT);
+        player.setDeltaMovement(Vec3.ZERO);
+        FormAttacks.attackAir(player); // just its noise
+        check(helper, player.getDeltaMovement().horizontalDistance() == 0.0, "a cat attacking the air doesn't move");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void waterFormsBreatheLikeTheirMobs(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COD);
+        tick(player, 100);
+        check(helper, WaterLife.airLeft(player) == 200, "a cod on land has 15 s of air, " + WaterLife.airLeft(player) + " left after 5 s");
+        check(helper, player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0, "a cod can't walk on land");
+        Morphs.setForm(player, EntityType.AXOLOTL);
+        tick(player, 100);
+        check(helper, WaterLife.airLeft(player) == 5900, "an axolotl on land has 5 min of air, " + WaterLife.airLeft(player) + " left after 5 s");
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "an axolotl's air bar runs down on land");
+        check(helper, player.getAttributeValue(Attributes.MOVEMENT_SPEED) > 0.0, "an axolotl walks on land");
+        Morphs.setForm(player, EntityType.DOLPHIN);
+        tick(player, 100);
+        check(helper, WaterLife.airLeft(player) == 4800, "a dolphin breathes air on land");
+        submerge(helper, player, Blocks.WATER);
+        tick(player, 99);
+        check(helper, WaterLife.airLeft(player) == 4700, "a dolphin holds its breath under water, " + WaterLife.airLeft(player) + " left after 5 s");
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "a dolphin's air bar runs down under water");
+        Morphs.setForm(player, EntityType.COD);
+        tick(player, 20);
+        check(helper, WaterLife.airLeft(player) == 300 && player.getAirSupply() == player.getMaxAirSupply(), "a cod breathes in water");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void doorsStillOpenAsAForm(GameTestHelper helper) {
+        BlockPos door = helper.absolutePos(new BlockPos(1, 1, 1));
+        BlockPos grass = helper.absolutePos(new BlockPos(3, 1, 3));
+        helper.getLevel().setBlockAndUpdate(door, Blocks.OAK_DOOR.defaultBlockState());
+        helper.getLevel().setBlockAndUpdate(grass, Blocks.GRASS_BLOCK.defaultBlockState());
+        check(helper, FormUse.isUsable(helper.getLevel(), door), "a door is for using");
+        check(helper, !FormUse.isUsable(helper.getLevel(), grass), "grass isn't: right-click does the form's move");
         helper.succeed();
     }
 

@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.BalancedTotems;
+import games.brennan.balancedtotems.morph.FormUse;
 import games.brennan.balancedtotems.morph.MobGaits;
 import games.brennan.balancedtotems.morph.MorphForm;
 import games.brennan.balancedtotems.morph.Morphs;
@@ -97,6 +98,7 @@ public final class FormSelfTest {
             .toList();
         REPORT.add("forms: " + forms.size());
         run(server, "effect clear @a"); // a curse left in the world (an ending Morphed) would undo the forms
+        run(server, "clear @a"); // an empty hand: right-click is the form's move, not the item's
         run(server, "difficulty peaceful");
         run(server, "gamemode survival @a");
         run(server, "time set day");
@@ -141,6 +143,7 @@ public final class FormSelfTest {
         if (t >= 16 && t < 56) minecraft.options.keyUp.setDown(true);
         if (t >= 36 && t < 56) minecraft.options.keySprint.setDown(true);
         if (t >= 20 && t < 56) measure(minecraft, form);
+        if (t == 20 || t == 55) ageAt(minecraft, form, t == 20);
         if (t == 25 || t == 45) lastPlayerPosition = null; // past the speed-up into each gait
         if (t >= 25 && t < 36) step(player, walkSteps);
         if (t >= 45 && t < 56) step(player, sprintSteps);
@@ -160,6 +163,7 @@ public final class FormSelfTest {
         if (t == 63) minecraft.options.keyJump.setDown(false);
         if (t == 68) shot(minecraft, name, "4_jump");
         if (t == 76) aimAtPig(minecraft);
+        if (t == 78) bodyTurn(minecraft, name);
         if (t == 80) {
             REPORT.add(name + ": attack aims at " + (minecraft.hitResult == null ? "nothing" : minecraft.hitResult.getType())
                 + ", pig health " + pigHealth(minecraft));
@@ -171,7 +175,19 @@ public final class FormSelfTest {
         if (t == 95) KeyMapping.click(minecraft.options.keyUse.getKey());
         if (t == 98) shot(minecraft, name, "7_use");
         if (t == 112) shot(minecraft, name, "8_use_after");
-        if (t == 118) KeyMapping.click(minecraft.options.keyUse.getKey());
+        if (t == 118 && form != EntityType.ARMADILLO) KeyMapping.click(minecraft.options.keyUse.getKey());
+        if (form == EntityType.ARMADILLO && t >= 118 && t < 124) minecraft.options.keyUp.setDown(true); // pushing to move unrolls it
+        if (form == EntityType.ARMADILLO && t == 124) minecraft.options.keyUp.setDown(false);
+        if (t == 112) {
+            ServerPlayer serverPlayer = server.getPlayerList().getPlayer(player.getUUID());
+            if (MorphRenderer.standIn(player) instanceof net.minecraft.world.entity.animal.camel.Camel camel) REPORT.add(name + ": " + (camel.isCamelSitting() ? "sits on right-click" : "DIDN'T sit"));
+            if (MorphRenderer.standIn(player) instanceof net.minecraft.world.entity.animal.Cat cat) REPORT.add(name + ": " + (cat.isInSittingPose() ? "sits on right-click" : "DIDN'T sit"));
+            if (form == EntityType.ARMADILLO) REPORT.add(name + ": " + (serverPlayer != null && FormUse.isRolled(serverPlayer) ? "rolled up on right-click" : "DIDN'T roll up"));
+        }
+        if (form == EntityType.ARMADILLO && t == 136) {
+            ServerPlayer serverPlayer = server.getPlayerList().getPlayer(player.getUUID());
+            REPORT.add(name + ": " + (serverPlayer != null && FormUse.isRolled(serverPlayer) ? "still rolled after moving" : "unrolled when moved"));
+        }
         if (t == 121) shot(minecraft, name, "9_use_again");
         if (t == 136) shot(minecraft, name, "10_use_again_after");
         if (t == TICKS_PER_FORM - 1) server.execute(() -> discardTestMobs(server));
@@ -313,6 +329,24 @@ public final class FormSelfTest {
         }
         BalancedTotems.LOGGER.info("Self-test done:\n{}", String.join("\n", REPORT));
         minecraft.stop();
+    }
+
+    private static int ageStart;
+
+    /** A stand-in ages one tick a tick, as mobs in a world do (models animate on it). */
+    private static void ageAt(Minecraft minecraft, EntityType<?> form, boolean start) {
+        LivingEntity standIn = MorphRenderer.standIn(minecraft.player);
+        if (standIn == null || standIn.getType() != form) return;
+        if (start) ageStart = standIn.tickCount;
+        else REPORT.add(BuiltInRegistries.ENTITY_TYPE.getKey(form).getPath() + ": ages " + (standIn.tickCount - ageStart) / 35.0 + " a tick");
+    }
+
+    /** After turning to face the pig, the body faces the same way. */
+    private static void bodyTurn(Minecraft minecraft, String name) {
+        LivingEntity standIn = MorphRenderer.standIn(minecraft.player);
+        if (standIn == null) return;
+        float off = Math.abs(net.minecraft.util.Mth.wrapDegrees(standIn.yBodyRot - minecraft.player.getYRot()));
+        REPORT.add(String.format("%s: body %.0f degrees off where it faces", name, off));
     }
 
     private static String pigHealth(Minecraft minecraft) {

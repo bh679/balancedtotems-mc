@@ -131,6 +131,7 @@ public final class Morphs {
         FormAttacks.onFormChanged(player, type);
         FormTraits.onFormChanged(player, type);
         FormUse.onFormChanged(player, type);
+        WaterLife.onFormChanged(player);
         BtNetwork.sendToTrackingAndSelf(player, new MorphSyncPayload(player.getId(), id));
     }
 
@@ -157,7 +158,9 @@ public final class Morphs {
         AttributeSupplier mob = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) type);
         add(player, mob, Attributes.MAX_HEALTH, MAX_HEALTH_ID, MorphStats::maxHealthDelta, AttributeModifier.Operation.ADD_VALUE);
         MobGaits.Gait gait = MobGaits.of(type);
-        if (gait == null) { // flyers and swimmers
+        if (WaterLife.isLandlocked(type)) { // can't walk on land (swimming doesn't use this speed)
+            add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, mobSpeed -> -1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        } else if (gait == null) { // flyers
             add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, MorphStats::speedBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
         } else { // land forms walk at their mob's stroll
             add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID,

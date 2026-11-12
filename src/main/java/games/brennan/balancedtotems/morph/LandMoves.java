@@ -38,7 +38,7 @@ final class LandMoves {
 
     private LandMoves() {}
 
-    /** A camel's dash: a long lunge where you're looking. */
+    /** A camel's dash, on jump as when ridden: a long lunge where you're looking. */
     static void dash(ServerPlayer player) {
         if (!player.onGround() || !FormTimers.ready(player, "dash", DASH_COOLDOWN)) return;
         Vec3 look = player.getLookAngle().multiply(1.0, 0.0, 1.0).normalize();
@@ -48,7 +48,7 @@ final class LandMoves {
         FormTimers.show(player, FormAction.DASH);
     }
 
-    /** A cat sits (and stands again when you move). */
+    /** A cat or camel sits (and stands again when you move). */
     static void sit(ServerPlayer player) {
         FormTimers.show(player, FormAction.SIT);
     }
@@ -82,7 +82,9 @@ final class LandMoves {
             .withParameter(LootContextParams.THIS_ENTITY, player)
             .create(LootContextParamSets.GIFT);
         for (ItemStack stack : table.getRandomItems(params)) {
-            level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), stack));
+            ItemEntity seed = new ItemEntity(level, player.getX(), player.getY(), player.getZ(), stack);
+            seed.setDefaultPickUpDelay();
+            level.addFreshEntity(seed);
         }
         level.playSound(null, player.blockPosition(), SoundEvents.SNIFFER_DROP_SEED, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
