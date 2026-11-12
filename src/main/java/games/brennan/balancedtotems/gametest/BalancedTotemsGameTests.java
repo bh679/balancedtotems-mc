@@ -658,6 +658,29 @@ public final class BalancedTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void morphCommandStepsThroughForms(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        net.minecraft.commands.CommandSourceStack source = player.createCommandSourceStack().withPermission(2).withSuppressedOutput();
+        net.minecraft.commands.Commands commands = helper.getLevel().getServer().getCommands();
+        commands.performPrefixedCommand(source, "morph minecraft:cow");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.COW, "/morph cow makes a cow");
+        commands.performPrefixedCommand(source, "morph next");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.DOLPHIN, "/morph next after cow is dolphin, was " + Morphs.formOf(player));
+        commands.performPrefixedCommand(source, "morph prev");
+        commands.performPrefixedCommand(source, "morph prev");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.COD, "two back from dolphin is cod, was " + Morphs.formOf(player));
+        commands.performPrefixedCommand(source, "morph minecraft:zombie");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.COD, "a zombie isn't a morph form");
+        commands.performPrefixedCommand(source, "morph off");
+        check(helper, Morphs.formOf(player).isEmpty(), "/morph off turns you back");
+        commands.performPrefixedCommand(source, "morph prev");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.ZOMBIFIED_PIGLIN, "prev from nothing wraps to the last form");
+        commands.performPrefixedCommand(player.createCommandSourceStack().withPermission(0).withSuppressedOutput(), "morph off");
+        check(helper, Morphs.formOf(player).isPresent(), "only ops can morph");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void camelDashesForward(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         Morphs.setForm(player, EntityType.CAMEL);

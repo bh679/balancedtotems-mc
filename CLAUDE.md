@@ -85,7 +85,7 @@ to `dev/<feature-slug>`.
 
 1. `./gradlew build` (runs `test`) must pass
 2. `./gradlew runClient`: `/give @s balancedtotems:<name>_totem`, hold it, `/damage @s 100`
-   (void: `/tp ~ -100 ~`). F2 screenshots
+   (void: `/tp ~ -100 ~`). Morph forms without a totem: `/morph next|prev|<form>|off`. F2 screenshots
 3. Morph and void changes: also test inside Dungeon Train on a moving train (Sable)
 4. Present the Gate 2 report in plan mode and wait for approval
 
