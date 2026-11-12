@@ -1,7 +1,8 @@
 package games.brennan.dungeontotems.client;
 
+import games.brennan.dungeontotems.Curse;
 import games.brennan.dungeontotems.net.MorphSyncPayload;
-import games.brennan.dungeontotems.net.CurseCountPayload;
+import games.brennan.dungeontotems.net.CurseTimerPayload;
 import games.brennan.dungeontotems.net.TotemPopPayload;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.client.CameraType;
@@ -13,6 +14,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Client side of every payload. Only ever reached from a payload handler on the client. */
 public final class ClientPayloads {
@@ -24,6 +27,9 @@ public final class ClientPayloads {
     private static CameraType cameraBeforeMorph;
     /** The view a morph switches you to. */
     private static final CameraType MORPH_CAMERA = CameraType.THIRD_PERSON_BACK;
+
+    /** Seconds left on each timed curse, by Curse name. */
+    private static final Map<String, Integer> TIMERS = new ConcurrentHashMap<>();
 
     private ClientPayloads() {}
 
@@ -65,9 +71,12 @@ public final class ClientPayloads {
         }
     }
 
-    public static void onCurseCount(CurseCountPayload payload) {
-        Player player = Minecraft.getInstance().player;
-        if (player == null) return;
-        player.setData(payload.curse().equals("LONELINESS") ? TotemRegistries.LONELY_FRIENDS : TotemRegistries.RAMPAGE_KILLS, payload.count());
+    public static void onCurseTimer(CurseTimerPayload payload) {
+        TIMERS.put(payload.curse(), payload.secondsLeft());
+    }
+
+    /** Seconds left on your Rage or Lonely timer, as the server last said; 0 when unknown. */
+    public static int secondsLeft(Curse curse) {
+        return TIMERS.getOrDefault(curse.name(), 0);
     }
 }

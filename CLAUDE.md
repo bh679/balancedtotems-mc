@@ -33,18 +33,20 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `Curse`, `TotemItem`, `registry/TotemRegistries` | The totem table, items, effects, attachments, tags, damage keys |
 | `TotemTriggerEvents`, `TotemPop` | `LivingDeathEvent` at HIGHEST → vanilla pop + curse; vanilla totem still wins |
 | `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn |
-| `curse/DeadlineCurses` | Zombified, Rage, Lonely: cures and death on expiry |
-| `curse/Curses`, `CurseMemory` | Applying a curse (stacking, levels), keeping curses through death |
-| `curse/Tallies`, `Targets`, `LonelyFriends` | Rage kills / Lonely friends; who counts (PlayerMobs, villagers without PlayerMob and Dungeon Train) |
-| `curse/VowOfPeace` | Pacifism: any damage you deal under the vow kills you next tick |
-| `curse/RuleCurses` | Melon Diet (food other than melon) and Restrained (chests, barrels, ender chests) |
-| `compat/PlayerMobGifts` | PlayerMob gifts both ways = a friend; chains PlayerMob's single gift observer by reflection |
+| `curse/HeldCurses` | Held curses on while the totem is in either hand, off (or Rage/Lonely II for 1 min) when let go |
+| `curse/Curses`, `CurseMemory` | Applying a curse; after-save curses and their shield time; keeping after-save curses through death |
+| `curse/SavedCurseShield` | After a save, a curse's own damage stops at half a heart |
+| `curse/DeadlineCurses` | Zombified's cure and death on expiry; the rule curses' doom |
+| `curse/CurseTimers`, `LonelyGifts` | Rage (hit) and Lonely (gift) timers, 60/40/30 s by level, Poison-rate true damage when missed |
+| `curse/VowOfPeace`, `RuleCurses` | Pacifism, Melon Diet, Restrained: a held totem pops; otherwise the curse dooms you |
+| `curse/Breathless`, `InsomniaPhantoms` | Air drains on land; phantoms by night (100%) and day (25%, Fire Resistance) |
+| `compat/PlayerMobGifts` | A gift you give a PlayerMob counts for Lonely; chains PlayerMob's single gift observer by reflection |
 | `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
 | `api/DungeonTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 
 Other mods find curses by effect id (`dungeontotems:zombified` etc.), with no compile dependency.
-Data: `tags/entity_type/morph_pool.json` (morph forms), `rampage_targets.json` (PlayerMob, optional).
+Data: `tags/entity_type/morph_pool.json` (morph forms).
 Textures come from `art/make_textures.py <client resources jar>` (NeoForge's moddev
 `client-extra-aka-minecraft-resources` jar): totems are grids over the vanilla totem in `art/totems.py`,
 effect icons combine vanilla sprites in `art/icons.py`. Build effect icons from vanilla sprites where they exist.

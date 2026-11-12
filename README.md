@@ -1,32 +1,41 @@
 # Dungeon Totems
 
-Totems of Undying that still save your life, but leave a curse behind. NeoForge 1.21.1.
+Totems of Undying that still save your life, but curse you for carrying them. NeoForge 1.21.1.
 
-| Totem | After it saves you |
-|---|---|
-| Totem of Weakness | Weakness for 20 minutes |
-| Totem of Fatigue | Mining Fatigue II for 20 minutes |
-| Totem of Heartbreak | 2 fewer hearts for 20 minutes |
-| Totem of Blindness | Blindness for 30 seconds |
-| Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
-| Totem of Zombification | You become a zombie: iron and snow golems hunt you. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
-| Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
-| Totem of Pacifism | Vow of Peace: hurt anything within 20 minutes and you die |
-| Totem of Melon Diet | Melon Diet: eat anything but melon within 20 minutes and you die |
-| Totem of Restraint | Restrained: open a chest, barrel or ender chest within 20 minutes and you die |
-| Totem of Loneliness | Lonely: make 3 friends within 10 minutes, or die. A friend is a PlayerMob you swap gifts with |
-| Void Totem | Only saves you from void death: it teleports you like a chorus fruit, onto ground near where you last stood. In Dungeon Train it puts you back on the train |
-| Feather Totem | Only saves you from falling |
-| Boom Totem | Only saves you from explosions |
+| Totem | While held | After it saves you |
+|---|---|---|
+| Totem of Weakness | Weakness | Weakness, 4 min |
+| Totem of Fatigue | Mining Fatigue | Mining Fatigue, 4 min |
+| Totem of Heartbreak | 3 fewer max hearts | 3 fewer max hearts, 4 min |
+| Totem of Hunger | Hunger | Hunger, 4 min |
+| Totem of Slowness | Slowness | Slowness, 4 min |
+| Totem of Rage | Rage: hit something every 60 s | Rage II (every 40 s), 5 min |
+| Totem of Loneliness | Lonely: give a gift every 60 s | Lonely II (every 40 s), 5 min |
+| Totem of Pacifism | Hurt anything and it pops | Vow of Peace, 4 min |
+| Totem of Melon Diet | Eat anything but melon and it pops | Melon Diet, 10 min |
+| Totem of Restraint | Open a chest, barrel or ender chest and it pops | Restrained, 4 min |
+| Totem of Breathlessness | You lose air even on land, and drown | Breathless, 4 min |
+| Totem of Insomnia | Phantoms come at night, and a quarter of the time by day (with Fire Resistance) | Insomnia, 4 min |
+| Totem of Blindness | | Blindness, 30 s |
+| Totem of Morphing | | You become a random animal for 30 s, seen in third person, with its size, speed, health and moves. Monsters leave you alone |
+| Totem of Zombification | | You become a zombie: iron and snow golems hunt you. Get Weakness, then eat a golden apple within 10 minutes, or die |
+| Void Totem | | Only saves you from void death: a chorus-fruit hop onto ground near where you last stood. In Dungeon Train it puts you back on the train |
+| Feather Totem | | Only saves you from falling |
+| Boom Totem | | Only saves you from explosions |
+| Fire Totem | | Only saves you from fire and lava |
 
 Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance; the Void, Feather and
-Boom Totems skip Fire Resistance) when held in either hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zombified or Rage curses.
+Boom Totems skip Fire Resistance) when held in either hand. A vanilla totem in hand is used first.
 
-Curses stack: a later pop never clears an earlier curse. The same curse again goes up a level with a
-fresh timer (Rage needs 3 more kills per level; Morphing picks a new animal; Heartbreak stops at
-half a heart). Fatigue, Pacifism, Melon Diet and Restraint never level up: another pop adds 20 minutes instead. Curses survive
-death and come back on respawn with a full timer. Hover Heartbreak, Zombified or Rage in the inventory to see
-the hearts taken, the cure, or the kills and time left.
+A held curse comes off when you let go, except Rage and Lonely, which stay at level II for a minute.
+Rage and Lonely are timers: miss one and you take true damage at Poison's rate until you hit something
+or give a gift (a villager trade, food a villager picks up, or a PlayerMob gift). Break Pacifism,
+Melon Diet or Restraint while holding the totem and it pops, saving you, with a line in chat.
+
+For its time after a save, a curse can't kill you: a broken rule, a missed timer or Breathless drowning
+leaves you on half a heart. Those after-save curses come back after you respawn; held ones don't.
+Milk doesn't lift the Morphed, Zombified, Rage or other rule curses. Hover a curse in the inventory to see
+the hearts taken, the cure, the rule or the seconds left.
 
 Evokers drop one of these at random instead of the vanilla totem. The pool is the item tag
 `dungeontotems:evoker_totems`, so a datapack can change it.
@@ -38,10 +47,8 @@ back on the train, but it works on its own.
 
 - `games.brennan.dungeontotems.api.DungeonTotemsApi.setRescueTarget(player -> Optional<Vec3>)`
   picks where the Void Totem sends a player.
-- Curses are plain mob effects: `dungeontotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage).
-- Datapacks can change `dungeontotems:morph_pool` and `dungeontotems:rampage_targets` (entity type tags).
-
-Without PlayerMob, villagers stand in: Rage counts villager kills, and Lonely counts a villager you
-trade with, feed, or cure. Under Dungeon Train villagers never count.
+- Curses are plain mob effects: `dungeontotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage),
+  `lonely`, `breathless`, `insomnia` and the rule curses.
+- Datapacks can change `dungeontotems:morph_pool` (entity type tag).
 
 Licence: PolyForm Shield 1.0.0.

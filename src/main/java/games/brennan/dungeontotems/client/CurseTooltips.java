@@ -2,7 +2,6 @@ package games.brennan.dungeontotems.client;
 
 import games.brennan.dungeontotems.DungeonTotems;
 import games.brennan.dungeontotems.Curse;
-import games.brennan.dungeontotems.curse.Tallies;
 import games.brennan.dungeontotems.effect.HeartbreakEffect;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.ChatFormatting;
@@ -10,7 +9,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffectUtil;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -28,7 +26,7 @@ import java.util.Optional;
 
 /**
  * Hover text for curses in the inventory's effect list: hearts Heartbreak takes, how to cure Zombified,
- * and what Rage or Lonely still want. Vanilla only shows effect tooltips on the narrow (icon-only) list, so on the wide list,
+ * each rule, and how long Rage or Lonely give you. Vanilla only shows effect tooltips on the narrow (icon-only) list, so on the wide list,
  * which has no tooltip of its own, this draws one for the curse under the mouse.
  */
 @EventBusSubscriber(modid = DungeonTotems.MOD_ID, value = Dist.CLIENT)
@@ -78,22 +76,27 @@ public final class CurseTooltips {
     /** The extra lines for a curse, or none for any other effect. */
     static List<Component> lines(MobEffectInstance effect, Player player) {
         List<Component> lines = new ArrayList<>();
-        Component left = MobEffectUtil.formatDuration(effect, 1.0F, player.level().tickRateManager().tickrate());
         if (effect.is(TotemRegistries.HEARTBREAK)) {
             lines.add(Component.translatable("effect.dungeontotems.heartbreak.hearts", heartsTaken(effect, player)).withStyle(ChatFormatting.GRAY));
         } else if (effect.is(TotemRegistries.ZOMBIFIED)) {
             lines.add(Component.translatable("effect.dungeontotems.zombified.cure").withStyle(ChatFormatting.GRAY));
         } else if (effect.is(TotemRegistries.RAMPAGE)) {
-            int kills = Math.max(0, Tallies.needed(effect) - Tallies.count(player, Curse.RAMPAGE));
-            lines.add(Component.translatable("effect.dungeontotems.rampage.deadline", kills, left).withStyle(ChatFormatting.GRAY));
-        } else if (effect.is(TotemRegistries.VOW_OF_PEACE) || effect.is(TotemRegistries.MELON_DIET) || effect.is(TotemRegistries.RESTRAINED)) {
+            lines.add(timer("rampage", ClientPayloads.secondsLeft(Curse.RAMPAGE)));
+        } else if (effect.is(TotemRegistries.BREATHLESS) || effect.is(TotemRegistries.INSOMNIA)
+            || effect.is(TotemRegistries.VOW_OF_PEACE) || effect.is(TotemRegistries.MELON_DIET) || effect.is(TotemRegistries.RESTRAINED)) {
             String id = effect.getEffect().unwrapKey().map(key -> key.location().getPath()).orElse("");
             lines.add(Component.translatable("effect.dungeontotems." + id + ".rule").withStyle(ChatFormatting.GRAY));
         } else if (effect.is(TotemRegistries.LONELY)) {
-            int friends = Math.max(0, Tallies.needed(effect) - Tallies.count(player, Curse.LONELINESS));
-            lines.add(Component.translatable("effect.dungeontotems.lonely.deadline", friends, left).withStyle(ChatFormatting.GRAY));
+            lines.add(timer("lonely", ClientPayloads.secondsLeft(Curse.LONELINESS)));
         }
         return lines;
+    }
+
+    /** "Hit something within 23s", or a warning once the timer has run out. */
+    private static Component timer(String name, int seconds) {
+        return seconds > 0
+            ? Component.translatable("effect.dungeontotems." + name + ".deadline", seconds).withStyle(ChatFormatting.GRAY)
+            : Component.translatable("effect.dungeontotems." + name + ".overdue").withStyle(ChatFormatting.RED);
     }
 
     /** Hearts Heartbreak takes right now (its last level may take less), as "2" or "9.5". */

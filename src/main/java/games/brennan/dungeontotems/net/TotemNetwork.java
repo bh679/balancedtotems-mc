@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
  */
 public final class TotemNetwork {
 
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
 
     private TotemNetwork() {}
 
@@ -25,9 +25,9 @@ public final class TotemNetwork {
         registrar.playToClient(MorphSyncPayload.TYPE, MorphSyncPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.dungeontotems.client.ClientPayloads.onMorphSync(payload)));
-        registrar.playToClient(CurseCountPayload.TYPE, CurseCountPayload.STREAM_CODEC,
+        registrar.playToClient(CurseTimerPayload.TYPE, CurseTimerPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
-                () -> games.brennan.dungeontotems.client.ClientPayloads.onCurseCount(payload)));
+                () -> games.brennan.dungeontotems.client.ClientPayloads.onCurseTimer(payload)));
     }
 
     /**

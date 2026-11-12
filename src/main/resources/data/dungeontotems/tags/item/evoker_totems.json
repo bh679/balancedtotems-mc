@@ -14,6 +14,11 @@
     "dungeontotems:pacifism_totem",
     "dungeontotems:melon_totem",
     "dungeontotems:restraint_totem",
-    "dungeontotems:boom_totem"
+    "dungeontotems:boom_totem",
+    "dungeontotems:hunger_totem",
+    "dungeontotems:slowness_totem",
+    "dungeontotems:breathlessness_totem",
+    "dungeontotems:insomnia_totem",
+    "dungeontotems:fire_totem"
   ]
 }
