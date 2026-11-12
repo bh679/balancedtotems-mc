@@ -16,6 +16,10 @@ import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.morph.WaterMoves;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import games.brennan.balancedtotems.voidtotem.VoidRescue;
+import net.minecraft.core.registries.BuiltInRegistries;
+import games.brennan.balancedtotems.morph.MorphFlight;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -64,8 +68,10 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -342,12 +348,14 @@ public final class BalancedTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void dyingInLavaGivesAStrider(GameTestHelper helper) {
+    public static void dyingInLavaGivesALavaForm(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.MORPHING);
         submerge(helper, player, Blocks.LAVA);
         player.hurt(player.damageSources().generic(), LETHAL);
-        check(helper, Morphs.formOf(player).orElse(null) == EntityType.STRIDER, "a lava pop should give a strider");
-        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a strider can't burn");
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        check(helper, form != null && Morphs.formData(form).map(MorphForm::pool).orElse(null) == MorphForm.Pool.LAVA,
+            "a lava pop should give a lava form, gave " + form);
+        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a lava form can't burn");
         helper.succeed();
     }
 
@@ -399,6 +407,87 @@ public final class BalancedTotemsGameTests {
         Morphs.setForm(player, EntityType.COW);
         check(helper, !FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) > 0.0, "changing form unrolls");
         helper.succeed();
+    }
+
+    /** How each form's attack should land, from its vanilla mob. */
+    private enum Hit { NONE, MELEE, POISON, SHOT }
+
+    private static final Map<EntityType<?>, Hit> FORM_HITS = Map.ofEntries(
+        Map.entry(EntityType.ALLAY, Hit.NONE), Map.entry(EntityType.ARMADILLO, Hit.NONE), Map.entry(EntityType.BAT, Hit.NONE),
+        Map.entry(EntityType.CAMEL, Hit.NONE), Map.entry(EntityType.CHICKEN, Hit.NONE), Map.entry(EntityType.COW, Hit.NONE),
+        Map.entry(EntityType.DONKEY, Hit.NONE), Map.entry(EntityType.HORSE, Hit.NONE), Map.entry(EntityType.MULE, Hit.NONE),
+        Map.entry(EntityType.MOOSHROOM, Hit.NONE), Map.entry(EntityType.PIG, Hit.NONE), Map.entry(EntityType.SHEEP, Hit.NONE),
+        Map.entry(EntityType.SNIFFER, Hit.NONE), Map.entry(EntityType.STRIDER, Hit.NONE), Map.entry(EntityType.TURTLE, Hit.NONE),
+        Map.entry(EntityType.SKELETON_HORSE, Hit.NONE), Map.entry(EntityType.ZOMBIE_HORSE, Hit.NONE), Map.entry(EntityType.PARROT, Hit.NONE),
+        Map.entry(EntityType.RABBIT, Hit.NONE), Map.entry(EntityType.COD, Hit.NONE), Map.entry(EntityType.SALMON, Hit.NONE),
+        Map.entry(EntityType.TROPICAL_FISH, Hit.NONE), Map.entry(EntityType.TADPOLE, Hit.NONE), Map.entry(EntityType.SQUID, Hit.NONE),
+        Map.entry(EntityType.GLOW_SQUID, Hit.NONE),
+        Map.entry(EntityType.CAT, Hit.MELEE), Map.entry(EntityType.OCELOT, Hit.MELEE), Map.entry(EntityType.FOX, Hit.MELEE),
+        Map.entry(EntityType.WOLF, Hit.MELEE), Map.entry(EntityType.PANDA, Hit.MELEE), Map.entry(EntityType.DOLPHIN, Hit.MELEE),
+        Map.entry(EntityType.AXOLOTL, Hit.MELEE), Map.entry(EntityType.POLAR_BEAR, Hit.MELEE), Map.entry(EntityType.ZOMBIFIED_PIGLIN, Hit.MELEE),
+        Map.entry(EntityType.GOAT, Hit.MELEE), Map.entry(EntityType.IRON_GOLEM, Hit.MELEE), Map.entry(EntityType.FROG, Hit.MELEE),
+        Map.entry(EntityType.BEE, Hit.MELEE),
+        Map.entry(EntityType.PUFFERFISH, Hit.POISON),
+        Map.entry(EntityType.LLAMA, Hit.SHOT), Map.entry(EntityType.TRADER_LLAMA, Hit.SHOT), Map.entry(EntityType.SNOW_GOLEM, Hit.SHOT));
+
+    /** {@code AbstractHorse}'s best roll, and a camel's no-jump. */
+    private static final Map<EntityType<?>, Double> FORM_JUMPS = Map.of(EntityType.HORSE, 1.0, EntityType.SKELETON_HORSE, 1.0,
+        EntityType.ZOMBIE_HORSE, 1.0, EntityType.CAMEL, 0.0);
+
+    /**
+     * Every form in the data map: hitting a pig (living, so poison takes) lands as the mob's attack would (nothing, a melee hit,
+     * poison, or a shot), its right-click move runs, horses jump their best, flyers fly, and a second of
+     * life in the form goes by cleanly.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    public static void everyFormFightsLikeItsMob(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        List<EntityType<?>> forms = BuiltInRegistries.ENTITY_TYPE.stream().filter(type -> Morphs.formData(type).isPresent()).toList();
+        Set<EntityType<?>> unlisted = new HashSet<>(forms);
+        unlisted.removeAll(FORM_HITS.keySet());
+        check(helper, unlisted.isEmpty(), "forms with no expected attack: " + unlisted);
+        List<String> wrong = new ArrayList<>();
+        for (EntityType<?> form : forms) {
+            String name = BuiltInRegistries.ENTITY_TYPE.getKey(form).getPath();
+            try {
+                Morphs.setForm(player, form);
+                Vec3 start = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
+                player.teleportTo(start.x, start.y, start.z);
+                player.setYRot(0.0F); // facing +z, at the target
+                player.setXRot(0.0F);
+                tick(player, 20); // a full attack charge
+                Pig target = helper.spawnWithNoFreeWill(EntityType.PIG, 2, 1, 4);
+                int shotsBefore = shots(helper);
+                float before = target.getHealth();
+                player.attack(target);
+                boolean hurt = target.getHealth() < before;
+                boolean poisoned = target.hasEffect(MobEffects.POISON);
+                boolean shot = shots(helper) > shotsBefore;
+                Hit expected = FORM_HITS.get(form);
+                Hit got = shot ? Hit.SHOT : poisoned && !hurt ? Hit.POISON : hurt ? Hit.MELEE : Hit.NONE;
+                if (got != expected) wrong.add(name + " attacked as " + got + ", expected " + expected);
+                target.discard();
+
+                if (FormUse.USABLE.contains(form)) FormUse.use(player);
+                Double jump = FORM_JUMPS.get(form);
+                double strength = player.getAttributeValue(Attributes.JUMP_STRENGTH);
+                if (jump != null && Math.abs(strength - jump) > 1.0E-6) wrong.add(name + " jumps " + strength + ", expected " + jump);
+                if (MorphFlight.flies(form) != player.getAbilities().mayfly) wrong.add(name + (player.getAbilities().mayfly ? " flies" : " can't fly"));
+                tick(player, 20);
+                if (!player.isAlive()) wrong.add(name + " died within a second");
+            } catch (RuntimeException e) {
+                wrong.add(name + " threw " + e);
+            }
+            if (!player.isAlive()) player = player(helper);
+        }
+        Morphs.setForm(player, null);
+        check(helper, wrong.isEmpty(), forms.size() + " forms, " + wrong.size() + " wrong: " + String.join("; ", wrong));
+        helper.succeed();
+    }
+
+    private static int shots(GameTestHelper helper) {
+        AABB area = new AABB(helper.absolutePos(BlockPos.ZERO)).inflate(32);
+        return helper.getLevel().getEntitiesOfClass(Projectile.class, area).size();
     }
 
     @GameTest(template = EMPTY)

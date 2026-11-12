@@ -31,5 +31,7 @@ public enum FormAction {
     /** A frog's tongue. */
     TONGUE,
     /** A sniffer digging. */
-    DIG
+    DIG,
+    /** A polar bear rearing up to strike. */
+    STAND
 }

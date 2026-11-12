@@ -8,6 +8,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.ambient.Bat;
+import net.minecraft.world.entity.animal.PolarBear;
 import net.minecraft.world.entity.animal.Pufferfish;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.Sheep;
@@ -46,6 +47,11 @@ final class FormAnimator {
     private static final int TONGUE_TICKS = 10;
     /** {@code LandMoves#DIG_SEED_DELAY}: the sniffer digs until the seed comes up. */
     private static final int DIG_TICKS = 120;
+    /** {@code PolarBearMeleeAttackGoal}: how long the bear stays up on its hind legs. */
+    private static final int STAND_TICKS = 20;
+    /** {@code Armadillo.ArmadilloState} durations: rolling into the ball, and unrolling out of it. */
+    private static final int ROLL_UP_TICKS = 10;
+    private static final int UNROLL_TICKS = 30;
     /** Moving further than this in a tick ends a sit or a hang. */
     private static final double STILL_DISTANCE_SQR = 0.0025;
 
@@ -54,6 +60,9 @@ final class FormAnimator {
     private static final Map<UUID, Integer> RAMMING = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> EATING = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> DASHING = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> STANDING = new ConcurrentHashMap<>();
+    /** A curled armadillo keeps the way it faced when it rolled up. */
+    private static final Map<UUID, Float> CURLED_YAW = new ConcurrentHashMap<>();
     /** A pose the mob holds for a while (croak, tongue, dig), and how it ends. */
     private static final Map<UUID, Timed> TIMED = new ConcurrentHashMap<>();
     /** Sitting cats and hanging bats, until the player moves. */
@@ -71,8 +80,9 @@ final class FormAnimator {
         follow(standIn, player);
         runOwnTick(standIn);
         follow(standIn, player);
-        if (standIn instanceof Armadillo) {
-            walkCalmly(standIn); // its walk is tuned for a slow mob and flails at player speed
+        if (standIn instanceof Armadillo armadillo) {
+            if (armadillo.isScared()) armadillo.walkAnimation.setSpeed(0.0F); // a ball doesn't walk
+            else walkCalmly(standIn); // its walk is tuned for a slow mob and flails at player speed
         } else {
             standIn.calculateEntityAnimation(MorphFlight.flies(standIn.getType()));
         }
@@ -81,6 +91,9 @@ final class FormAnimator {
         if (jumped) onJump(standIn, id);
         if (RESTING.contains(id) && (jumped || moved(player))) stopResting(standIn, id);
         if (standIn instanceof Camel camel && DASHING.containsKey(id)) camel.setDashing(true); // its tick ends a dash on landing
+        countDown(STANDING, id, () -> {
+            if (standIn instanceof PolarBear bear) bear.setStanding(false);
+        });
         countDown(DASHING, id, () -> {
             if (standIn instanceof Camel camel) camel.setDashing(false);
         });
@@ -120,11 +133,23 @@ final class FormAnimator {
                 if (standIn instanceof AbstractHorse horse) horse.setEating(true);
                 EATING.put(player, EAT_TICKS);
             }
-            case ROLL_UP -> {
-                if (standIn instanceof Armadillo armadillo) armadillo.switchToState(Armadillo.ArmadilloState.ROLLING);
+            case ROLL_UP -> { // as the mob's AI does: roll into the ball, then stay curled
+                if (!(standIn instanceof Armadillo armadillo)) return;
+                CURLED_YAW.put(player, armadillo.yBodyRot);
+                armadillo.switchToState(Armadillo.ArmadilloState.ROLLING);
+                startTimed(player, ROLL_UP_TICKS, () -> armadillo.switchToState(Armadillo.ArmadilloState.SCARED));
             }
-            case UNROLL -> {
-                if (standIn instanceof Armadillo armadillo) armadillo.switchToState(Armadillo.ArmadilloState.IDLE);
+            case UNROLL -> { // and unroll before standing up again
+                if (!(standIn instanceof Armadillo armadillo)) return;
+                armadillo.switchToState(Armadillo.ArmadilloState.UNROLLING);
+                startTimed(player, UNROLL_TICKS, () -> {
+                    armadillo.switchToState(Armadillo.ArmadilloState.IDLE);
+                    CURLED_YAW.remove(player);
+                });
+            }
+            case STAND -> {
+                if (standIn instanceof PolarBear bear) bear.setStanding(true);
+                STANDING.put(player, STAND_TICKS);
             }
             case SWING_ARM -> standIn.swing(InteractionHand.MAIN_HAND);
             case DASH -> {
@@ -194,6 +219,11 @@ final class FormAnimator {
 
     private record Timed(int left, Runnable end) {}
 
+    /** The body yaw a curled armadillo holds, or null when it isn't curled. */
+    static Float curledYaw(UUID player) {
+        return CURLED_YAW.get(player);
+    }
+
     /** Whether the stand-in should hang its head to eat (mobs with no eat pose of their own, like the cow). */
     static boolean headDown(UUID player) {
         return EATING.containsKey(player);
@@ -226,6 +256,8 @@ final class FormAnimator {
         RAMMING.remove(player);
         EATING.remove(player);
         DASHING.remove(player);
+        STANDING.remove(player);
+        CURLED_YAW.remove(player);
         TIMED.remove(player);
         RESTING.remove(player);
     }

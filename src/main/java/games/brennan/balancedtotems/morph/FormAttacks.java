@@ -44,7 +44,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A form attacks the way its mob does. Goats ram, iron golems throw the target up, llamas spit,
+ * A form attacks the way its mob does. Goats ram, iron golems throw the target up, polar bears rear,
+ * llamas spit and snow golems throw snowballs (at a mob, or at range by attacking the air),
  * pufferfish poison, frogs swallow small slimes and magma cubes, bees
  * sting once (poison) and then may die like a stung bee unless the morph ends first, and forms with no
  * attack do no damage. Sheep, cows and horses graze instead: hitting grass eats it.
@@ -64,6 +65,13 @@ public final class FormAttacks {
     /** Biome temperatures that make cold and warm frogs. */
     private static final float COLD_FROG = 0.2F;
     private static final float WARM_FROG = 1.0F;
+
+    /** {@code Llama}'s ranged attack goal: one spit every two seconds. */
+    private static final int SPIT_COOLDOWN = 40;
+    /** Mobs with an attack attribute that never attack: allays, parrots, and rabbits other than the killer bunny. */
+    private static final Set<EntityType<?>> PEACEFUL = Set.of(EntityType.ALLAY, EntityType.PARROT, EntityType.RABBIT);
+    /** Forms whose attack is a ranged shot; the client sends attacks on the air for these. */
+    public static final Set<EntityType<?>> RANGED = Set.of(EntityType.LLAMA, EntityType.TRADER_LLAMA, EntityType.SNOW_GOLEM);
 
     private static final Set<EntityType<?>> GRAZERS = Set.of(EntityType.SHEEP, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE,
         EntityType.COW, EntityType.MOOSHROOM);
@@ -93,13 +101,15 @@ public final class FormAttacks {
                 living.addEffect(new MobEffectInstance(MobEffects.POISON, PUFFERFISH_POISON_TICKS, 0), player);
                 player.level().playSound(null, player.blockPosition(), SoundEvents.PUFFER_FISH_STING, SoundSource.PLAYERS, 1.0F, 1.0F);
             }
-        } else if (form == EntityType.LLAMA || form == EntityType.TRADER_LLAMA) {
-            event.setCanceled(true);
-            spit(player, target);
+        } else if (RANGED.contains(form)) {
+            event.setCanceled(true); // the shot does the damage
+            rangedAttack(player);
         } else if (form == EntityType.FROG) {
             if (tongue(player, target)) event.setCanceled(true);
         } else if (!hasAttack(form)) {
             event.setCanceled(true);
+        } else if (form == EntityType.POLAR_BEAR) {
+            show(player, FormAction.STAND);
         } else {
             show(player, FormAction.SWING_ARM); // a zombified piglin's or zombie's arm swing
         }
@@ -130,7 +140,7 @@ public final class FormAttacks {
 
     /** Whether the mob has a melee attack of its own. */
     public static boolean hasAttack(EntityType<?> form) {
-        return DefaultAttributes.hasSupplier(form)
+        return !PEACEFUL.contains(form) && !RANGED.contains(form) && DefaultAttributes.hasSupplier(form)
             && DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).hasAttribute(Attributes.ATTACK_DAMAGE);
     }
 
@@ -166,14 +176,21 @@ public final class FormAttacks {
         player.level().playSound(null, player.blockPosition(), SoundEvents.BEE_STING, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 
-    private static void spit(ServerPlayer player, Entity target) {
+    /** A llama spits and a snow golem throws a snowball where you look; other forms have no ranged attack. */
+    public static void rangedAttack(ServerPlayer player) {
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        if (form == EntityType.SNOW_GOLEM) LandMoves.throwSnowball(player);
+        else if (form == EntityType.LLAMA || form == EntityType.TRADER_LLAMA) spit(player);
+    }
+
+    /** {@code Llama#spit}, aimed where you look. */
+    private static void spit(ServerPlayer player) {
+        if (!FormTimers.ready(player, "spit", SPIT_COOLDOWN)) return;
         LlamaSpit spit = new LlamaSpit(EntityType.LLAMA_SPIT, player.level());
         spit.setOwner(player);
         spit.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
-        double dx = target.getX() - player.getX();
-        double dy = target.getY(0.3333) - spit.getY();
-        double dz = target.getZ() - player.getZ();
-        spit.shoot(dx, dy + Math.sqrt(dx * dx + dz * dz) * 0.2, dz, 1.5F, 10.0F);
+        Vec3 look = player.getLookAngle();
+        spit.shoot(look.x, look.y, look.z, 1.5F, 1.0F);
         player.level().addFreshEntity(spit);
         player.level().playSound(null, player.blockPosition(), SoundEvents.LLAMA_SPIT, SoundSource.PLAYERS, 1.0F, 1.0F);
     }

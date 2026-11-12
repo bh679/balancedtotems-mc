@@ -34,6 +34,12 @@ public final class BtNetwork {
                     games.brennan.balancedtotems.morph.FormUse.use(player);
                 }
             }));
+        registrar.playToServer(FormAttackPayload.TYPE, FormAttackPayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(() -> {
+                if (context.player() instanceof net.minecraft.server.level.ServerPlayer player) {
+                    games.brennan.balancedtotems.morph.FormAttacks.rangedAttack(player);
+                }
+            }));
         registrar.playToClient(MorphActionPayload.TYPE, MorphActionPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.balancedtotems.client.ClientPayloads.onMorphAction(payload)));

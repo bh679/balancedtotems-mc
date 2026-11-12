@@ -63,5 +63,6 @@ public final class FormTimers {
     /** From {@link Morphs#setForm}: pending steps belong to the old form. */
     static void onFormChanged(ServerPlayer player) {
         LATER.remove(player.getUUID());
+        COOLDOWNS.remove(player.getUUID()); // a new animal hasn't used its moves yet
     }
 }

@@ -28,7 +28,8 @@ final class LandMoves {
     private static final int DASH_COOLDOWN = 55;
     private static final double DASH_SPEED = 1.4;
     private static final double DASH_LIFT = 0.35;
-    private static final int SNOWBALL_COOLDOWN = 10;
+    /** {@code SnowGolem}'s ranged attack goal: a snowball a second. */
+    private static final int SNOWBALL_COOLDOWN = 20;
     private static final int DIG_COOLDOWN = 1200;
     /** {@code Sniffer}: the seed comes up this long after the dig starts. */
     private static final int DIG_SEED_DELAY = 120;

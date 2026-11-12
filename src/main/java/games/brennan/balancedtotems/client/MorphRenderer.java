@@ -114,10 +114,11 @@ public final class MorphRenderer {
         float pitch = FormAnimator.headDown(player.getUUID()) ? EATING_PITCH : player.getXRot();
         dummy.setXRot(pitch);
         dummy.xRotO = FormAnimator.headDown(player.getUUID()) ? EATING_PITCH : player.xRotO;
-        dummy.yBodyRot = player.yBodyRot;
-        dummy.yBodyRotO = player.yBodyRotO;
-        dummy.yHeadRot = player.yHeadRot;
-        dummy.yHeadRotO = player.yHeadRotO;
+        Float curled = FormAnimator.curledYaw(player.getUUID()); // a curled armadillo doesn't turn with you
+        dummy.yBodyRot = curled != null ? curled : player.yBodyRot;
+        dummy.yBodyRotO = curled != null ? curled : player.yBodyRotO;
+        dummy.yHeadRot = curled != null ? curled : player.yHeadRot;
+        dummy.yHeadRotO = curled != null ? curled : player.yHeadRotO;
         dummy.setOnGround(player.onGround());
         dummy.setShiftKeyDown(player.isShiftKeyDown());
         dummy.setInvisible(player.isInvisible());

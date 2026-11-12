@@ -46,8 +46,13 @@ public final class Morphs {
     private static final ResourceLocation JUMP_ID = BalancedTotems.id("morph.jump");
     private static final ResourceLocation STEP_ID = BalancedTotems.id("morph.step_height");
     private static final ResourceLocation FORM_JUMP_ID = BalancedTotems.id("morph.form_jump");
-    /** Jumps a form's attributes don't capture: camels can't jump (they step up blocks), frogs leap. */
-    private static final Map<EntityType<?>, Double> FORM_JUMP = Map.of(EntityType.CAMEL, -1.0, EntityType.FROG, 0.6);
+    /**
+     * Jump strengths a form's default attributes don't capture: horses always make their best jump (vanilla
+     * rolls 0.4 to 1.0 per horse), camels can't jump (they step up blocks), frogs leap.
+     */
+    private static final Map<EntityType<?>, Double> FORM_JUMP = Map.of(
+        EntityType.HORSE, 1.0, EntityType.SKELETON_HORSE, 1.0, EntityType.ZOMBIE_HORSE, 1.0,
+        EntityType.CAMEL, 0.0, EntityType.FROG, 0.7);
 
     private Morphs() {}
 
@@ -153,11 +158,13 @@ public final class Morphs {
         add(player, mob, Attributes.MAX_HEALTH, MAX_HEALTH_ID, MorphStats::maxHealthDelta, AttributeModifier.Operation.ADD_VALUE);
         add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, MorphStats::speedBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
         add(player, mob, Attributes.ATTACK_DAMAGE, ATTACK_ID, MorphStats::attackDelta, AttributeModifier.Operation.ADD_VALUE);
-        add(player, mob, Attributes.JUMP_STRENGTH, JUMP_ID, MorphStats::jumpBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        if (!FORM_JUMP.containsKey(type)) {
+            add(player, mob, Attributes.JUMP_STRENGTH, JUMP_ID, MorphStats::jumpBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        }
         add(player, mob, Attributes.STEP_HEIGHT, STEP_ID, MorphStats::stepDelta, AttributeModifier.Operation.ADD_VALUE);
         AttributeInstance jump = player.getAttribute(Attributes.JUMP_STRENGTH);
-        if (jump != null && FORM_JUMP.containsKey(type)) {
-            jump.addTransientModifier(new AttributeModifier(FORM_JUMP_ID, FORM_JUMP.get(type), AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        if (jump != null && FORM_JUMP.containsKey(type)) { // to exactly this strength, from the player's own
+            jump.addTransientModifier(new AttributeModifier(FORM_JUMP_ID, FORM_JUMP.get(type) - jump.getBaseValue(), AttributeModifier.Operation.ADD_VALUE));
         }
         if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());
     }
