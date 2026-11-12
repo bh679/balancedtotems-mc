@@ -102,6 +102,8 @@ public final class MorphRenderer {
         LivingEntity existing = DUMMIES.get(player.getUUID());
         if (existing != null && existing.getType() == form) return existing;
         if (!(form.create(player.level(), EntitySpawnReason.LOAD) instanceof LivingEntity created)) return null;
+        // 26.x renderers read the entity id; real ids are positive, so a negative one never clashes.
+        created.setId(-1 - player.getId());
         created.setPos(player.getX(), player.getY(), player.getZ());
         created.setOldPosAndRot();
         DUMMIES.put(player.getUUID(), created);

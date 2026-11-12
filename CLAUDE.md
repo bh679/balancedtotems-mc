@@ -20,10 +20,15 @@ through the approval gates (plan, test, merge) with full human oversight at each
   "Totem of X"; Void and Feather keep "X Totem". Curses stack, level up, and survive death.
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's
   rescue target to the train. Works standalone: the Void Totem then uses the last safe ground.
-- **Mod Loader:** NeoForge 1.21.1 (`neo_version` 21.1.228), Java 21. No mod dependencies.
+- **Mod Loader (this branch, `mc26.3`):** NeoForge 26.3 (`neo_version` 26.3.0.102), Java 25, deobfuscated
+  names (no Parchment). `main` stays NeoForge 1.21.1 for Dungeon Train; `mc1.20.1` is Forge 47. Port
+  gameplay changes between the version branches by hand. No mod dependencies; PlayerMob and Dungeon
+  Train compat stays soft and inactive here (neither exists for 26.3).
 - **Repo:** `bh679/balancedtotems-mc`. Board: Dungeon Train's Project #16.
 - **Sides:** BOTH (items, effects and a render hook; clients must have it).
-- **Asset name contract:** release tag `v<version>` carries `balancedtotems-neoforge-<version>.jar`.
+- **Jar name on this branch:** `balancedtotems-neoforge-<version>+mc26.3.jar` (main's bare
+  `balancedtotems-neoforge-<version>.jar` is the one Dungeon Train resolves).
+- **Asset name contract (main):** release tag `v<version>` carries `balancedtotems-neoforge-<version>.jar`.
   Dungeon Train resolves that asset by name, so never rename the jar.
 
 ### Code map
@@ -35,11 +40,13 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn |
 | `curse/DeadlineCurses` | Zombified, Rage, Lonely: cures and death on expiry |
 | `curse/Curses`, `CurseMemory` | Applying a curse (stacking, levels), keeping curses through death |
+| `curse/CurseGuard` | 26.x has no effect cures: no totem pop lifts a curse, milk leaves the uncurable ones (`MobEffectEvent.Remove`) |
 | `curse/Tallies`, `Targets`, `LonelyFriends` | Rage kills / Lonely friends; who counts (PlayerMobs, villagers without PlayerMob and Dungeon Train) |
 | `curse/VowOfPeace` | Pacifism: any damage you deal under the vow kills you next tick |
 | `curse/RuleCurses` | Melon Diet (food other than melon) and Restrained (chests, barrels, ender chests) |
 | `compat/PlayerMobGifts` | PlayerMob gifts both ways = a friend; chains PlayerMob's single gift observer by reflection |
 | `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
+| `gametest/` | `@BtGameTest` methods, registered by `BtGameTestRegistry` (26.x has no `@GameTest`) |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
 | `api/BalancedTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 
