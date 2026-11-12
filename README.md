@@ -12,6 +12,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Zombification | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rampage | Kill 3 players (or PlayerMobs) within 15 minutes, or die |
 | Void Totem | Only saves you from death to the void, and pulls you back to safety |
+| Feather Totem | Only saves you from falling |
 
 Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance) when held in either
 hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zombified or Rampage curses.

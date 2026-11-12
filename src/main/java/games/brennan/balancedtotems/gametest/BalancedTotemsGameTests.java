@@ -4,6 +4,7 @@ import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.api.BalancedTotemsApi;
 import games.brennan.balancedtotems.curse.CurseMemory;
+import games.brennan.balancedtotems.curse.Curses;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
@@ -141,6 +142,26 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = holding(helper, Curse.VOID);
         player.hurt(player.damageSources().fall(), LETHAL);
         check(helper, !player.isAlive(), "a lethal fall is not a void death");
+        helper.succeed();
+    }
+
+    // ---- feather ----
+
+    @GameTest(template = EMPTY)
+    public static void featherTotemSavesFromLethalFalls(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FEATHER);
+        player.hurt(player.damageSources().fall(), LETHAL);
+        check(helper, player.isAlive(), "player should survive the fall");
+        check(helper, player.getMainHandItem().isEmpty(), "totem should be used up");
+        check(helper, player.getActiveEffects().stream().noneMatch(e -> Curses.curseOf(e) != null), "no curse from a feather");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void featherTotemIgnoresOtherDeaths(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FEATHER);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, !player.isAlive(), "only a fall is saved");
         helper.succeed();
     }
 

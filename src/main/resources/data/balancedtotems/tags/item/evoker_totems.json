@@ -8,6 +8,7 @@
     "balancedtotems:morphing_totem",
     "balancedtotems:zombified_totem",
     "balancedtotems:rampage_totem",
-    "balancedtotems:void_totem"
+    "balancedtotems:void_totem",
+    "balancedtotems:feather_totem"
   ]
 }

@@ -11,10 +11,12 @@ through the approval gates (plan, test, merge) with full human oversight at each
 
 - **Project:** Balanced Totems (`balancedtotems`): Totems of Undying that save you like the vanilla
   totem (same pop and buffs) but leave a curse. One `Curse` enum row per totem:
-  Weakness (20 min), Fatigue (Mining Fatigue, 20 min), Heartbreak (-2 hearts, 20 min),
-  Blindness (20 s), Morphing (random animal form, 20 s), Zombified (zombie form; golden apple or
-  potion of weakness within 10 min or die), Rampage (kill 3 players/PlayerMobs within 15 min or die),
-  Void (void deaths only; chorus hop to the rescue target, no curse).
+  Weakness (20 min), Fatigue (Mining Fatigue II, 20 min, more pops add time), Heartbreak (-2 hearts
+  per level, 20 min, never below half a heart), Blindness (20 s), Morphing (random animal form, 20 s),
+  Zombified (zombie form; golden apple while weakened within 10 min or die), Rampage (kill 3
+  players/PlayerMobs per level within 15 min or die), Void (void deaths only; chorus hop to the
+  rescue target, no curse), Feather (deadly falls only, no curse). Curse totems are named
+  "Totem of X"; Void and Feather keep "X Totem". Curses stack, level up, and survive death.
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's
   rescue target to the train. Works standalone: the Void Totem then uses the last safe ground.
 - **Mod Loader:** NeoForge 1.21.1 (`neo_version` 21.1.228), Java 21. No mod dependencies.

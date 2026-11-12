@@ -8,7 +8,8 @@ The jar is NeoForge's moddev "client-extra-aka-minecraft-resources" jar for
 in any NeoForge project). The totems are hand-authored grids over the vanilla
 totem's shape (totems.py); the curse effect icons combine vanilla sprites:
 health-bar hearts, effect icons and mob faces (icons.py). Some totems also
-borrow a vanilla sprite (the Mining Fatigue spoon, the zombie villager skin).
+borrow a vanilla sprite (the Mining Fatigue spoon, the zombie villager skin,
+the Allay's wings).
 
 Also writes art/alternates/, designs kept for later but not used by the mod.
 """

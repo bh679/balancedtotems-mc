@@ -1,5 +1,6 @@
 package games.brennan.balancedtotems;
 
+import net.minecraft.world.damagesource.DamageTypes;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -23,10 +24,14 @@ class CurseTest {
     }
 
     @Test
-    void onlyTheVoidTotemIsVoidOnly() {
+    void onlyVoidAndFeatherSaveFromOneThing() {
         for (Curse curse : Curse.values()) {
-            assertEquals(curse == Curse.VOID, curse.savesFromVoidOnly(), curse.name());
+            boolean narrow = curse == Curse.VOID || curse == Curse.FEATHER;
+            assertEquals(narrow, curse.onlySaves() != null, curse.name());
+            assertEquals(narrow, curse.effect() == null, curse.name() + " should leave a curse unless it is narrow");
         }
+        assertEquals(DamageTypes.FELL_OUT_OF_WORLD, Curse.VOID.onlySaves());
+        assertEquals(DamageTypes.FALL, Curse.FEATHER.onlySaves());
     }
 
     @Test

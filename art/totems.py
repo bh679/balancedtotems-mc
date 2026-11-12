@@ -1,10 +1,10 @@
-"""The eight totems (16x16). Each is a grid over the vanilla totem's shape.
+"""The nine totems (16x16). Each is a grid over the vanilla totem's shape.
 
 Grid keys: '0'..'6' are body tones darkest to lightest (the vanilla totem's own
 seven), 'g'/'h' its light/dark eye pixels, '.' transparent, and any other letter
 a colour named in that totem's palette.
 """
-from PIL import Image
+from PIL import Image, ImageOps
 
 from pixel import Vanilla, cols, hexc, luminance_ramp, over, ramp, render, scaled
 
@@ -175,6 +175,17 @@ def void(vanilla: Vanilla) -> Image.Image:
     return render(VANILLA, palette)
 
 
+def feather(vanilla: Vanilla) -> Image.Image:
+    """White totem with the vanilla Allay's wings behind it."""
+    wing = ImageOps.mirror(vanilla.load("entity/allay/allay.png").crop((16, 22, 24, 27)))
+    wings = Image.new("RGBA", (16, 16))
+    wings.alpha_composite(wing, (0, 3))
+    wings.alpha_composite(ImageOps.mirror(wings))
+    palette = {**ramp("6a6a78", "9a9aa8", "c4c4d0", "d4d4de", "e8e8f0", "f2f2f8", "ffffff"),
+               **cols(g="7ab8e8", h="3a6a9a")}
+    return over(wings, render(VANILLA, palette))
+
+
 def pig_head_alternate(vanilla: Vanilla) -> Image.Image:
     """Unused alternate Morphing design: big-snout pig head on the gold body."""
     head = [
@@ -199,4 +210,5 @@ TOTEMS = {
     "zombified_totem": zombified,
     "rampage_totem": rampage,
     "void_totem": void,
+    "feather_totem": feather,
 }

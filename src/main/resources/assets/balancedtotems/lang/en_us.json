@@ -15,6 +15,8 @@
   "item.balancedtotems.rampage_totem.curse": "Saves you, then kill 3 players within 15 minutes, or die",
   "item.balancedtotems.void_totem": "Void Totem",
   "item.balancedtotems.void_totem.curse": "Only saves you from death to the void",
+  "item.balancedtotems.feather_totem": "Feather Totem",
+  "item.balancedtotems.feather_totem.curse": "Only saves you from falling",
 
   "effect.balancedtotems.heartbreak": "Heartbreak",
   "effect.balancedtotems.morphed": "Morphed",

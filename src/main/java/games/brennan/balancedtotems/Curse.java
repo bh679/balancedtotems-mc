@@ -2,6 +2,9 @@ package games.brennan.balancedtotems;
 
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.Holder;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffects;
 
@@ -23,7 +26,9 @@ public enum Curse {
     ZOMBIFIED("zombified_totem", () -> BtRegistries.ZOMBIFIED, Ticks.MINUTE * 10),
     RAMPAGE("rampage_totem", () -> BtRegistries.RAMPAGE, Ticks.MINUTE * 15),
     /** Saves you only from falling out of the world, and leaves no curse. */
-    VOID("void_totem", null, 0);
+    VOID("void_totem", null, 0),
+    /** Saves you only from a deadly fall, and leaves no curse. */
+    FEATHER("feather_totem", null, 0);
 
     private final String itemName;
     @Nullable private final Supplier<Holder<MobEffect>> effect;
@@ -73,8 +78,14 @@ public enum Curse {
         return this == FATIGUE;
     }
 
-    public boolean savesFromVoidOnly() {
-        return this == VOID;
+    /** The one kind of death this totem saves you from, or null for any death a vanilla totem saves. */
+    @Nullable
+    public ResourceKey<DamageType> onlySaves() {
+        return switch (this) {
+            case VOID -> DamageTypes.FELL_OUT_OF_WORLD;
+            case FEATHER -> DamageTypes.FALL;
+            default -> null;
+        };
     }
 
     /** Tick constants, kept here so the table above reads in minutes and seconds. */
