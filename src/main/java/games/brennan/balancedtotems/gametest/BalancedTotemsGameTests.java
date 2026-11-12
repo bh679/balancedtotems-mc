@@ -3,6 +3,7 @@ package games.brennan.balancedtotems.gametest;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.api.BalancedTotemsApi;
+import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.BlockPos;
@@ -17,16 +18,26 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Evoker;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Server-side behaviour of every totem, against a mock player in a real level.
@@ -39,6 +50,7 @@ public final class BalancedTotemsGameTests {
     private static final String EMPTY = "empty";
     private static final float LETHAL = 1000.0F;
     private static final int SPAWN_INVULNERABLE_TICKS = 61;
+    private static final int LOOT_ROLLS = 50;
 
     private BalancedTotemsGameTests() {}
 
@@ -247,6 +259,55 @@ public final class BalancedTotemsGameTests {
         player.removeEffectsCuredBy(net.neoforged.neoforge.common.EffectCures.MILK);
         check(helper, player.hasEffect(BtRegistries.RAMPAGE), "milk should not lift rampage");
         check(helper, !player.hasEffect(BtRegistries.HEARTBREAK), "milk does lift heartbreak");
+        helper.succeed();
+    }
+
+    // ---- loot ----
+
+    @GameTest(template = EMPTY)
+    public static void evokersDropBalancedTotems(GameTestHelper helper) {
+        ServerPlayer killer = player(helper);
+        Evoker evoker = helper.spawn(EntityType.EVOKER, 2, 1, 2);
+        LootParams params = new LootParams.Builder(helper.getLevel())
+            .withParameter(LootContextParams.THIS_ENTITY, evoker)
+            .withParameter(LootContextParams.ORIGIN, evoker.position())
+            .withParameter(LootContextParams.DAMAGE_SOURCE, killer.damageSources().playerAttack(killer))
+            .withParameter(LootContextParams.ATTACKING_ENTITY, killer)
+            .withParameter(LootContextParams.DIRECT_ATTACKING_ENTITY, killer)
+            .withParameter(LootContextParams.LAST_DAMAGE_PLAYER, killer)
+            .create(LootContextParamSets.ENTITY);
+        LootTable table = helper.getLevel().getServer().reloadableRegistries()
+            .getLootTable(EntityType.EVOKER.getDefaultLootTable());
+        Set<Item> seen = new HashSet<>();
+        boolean emerald = false;
+        for (int roll = 0; roll < LOOT_ROLLS; roll++) {
+            int totems = 0;
+            for (ItemStack stack : table.getRandomItems(params)) {
+                check(helper, !stack.is(Items.TOTEM_OF_UNDYING), "evoker dropped a vanilla totem");
+                if (stack.is(EvokerTotemLootModifier.EVOKER_TOTEMS)) {
+                    totems += stack.getCount();
+                    seen.add(stack.getItem());
+                }
+                emerald |= stack.is(Items.EMERALD);
+            }
+            check(helper, totems == 1, "roll " + roll + " dropped " + totems + " balanced totems, expected 1");
+        }
+        check(helper, seen.size() > 1, "every roll gave the same totem: " + seen);
+        check(helper, emerald, "the emerald pool should still drop");
+        evoker.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void killedEvokerDropsABalancedTotem(GameTestHelper helper) {
+        ServerPlayer killer = player(helper);
+        Evoker evoker = helper.spawn(EntityType.EVOKER, 2, 1, 2);
+        evoker.hurt(killer.damageSources().playerAttack(killer), LETHAL);
+        check(helper, !evoker.isAlive(), "evoker should die");
+        List<ItemEntity> drops = helper.getLevel().getEntitiesOfClass(ItemEntity.class, evoker.getBoundingBox().inflate(2));
+        check(helper, drops.stream().noneMatch(drop -> drop.getItem().is(Items.TOTEM_OF_UNDYING)), "dropped a vanilla totem");
+        check(helper, drops.stream().anyMatch(drop -> drop.getItem().is(EvokerTotemLootModifier.EVOKER_TOTEMS)),
+            "no balanced totem among " + drops.stream().map(drop -> drop.getItem().toString()).toList());
         helper.succeed();
     }
 
