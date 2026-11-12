@@ -9,7 +9,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.neoforged.neoforge.common.EffectCures;
+import games.brennan.balancedtotems.curse.CurseMarks;
 import games.brennan.balancedtotems.net.BtNetwork;
 
 /**
@@ -30,7 +30,7 @@ public final class TotemPop {
         player.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
 
         player.setHealth(1.0F);
-        player.removeEffectsCuredBy(EffectCures.PROTECTED_BY_TOTEM);
+        CurseMarks.clearForTotem(player);
         player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
         player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
@@ -39,7 +39,7 @@ public final class TotemPop {
         BtNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));
     }
 
-    /** Earlier curses survive the clear above (curses carry no totem cure), so this one stacks on them. */
+    /** Earlier curses survive the clear above (see {@link CurseMarks}), so this one stacks on them. */
     private static void applyCurse(ServerPlayer player, Curse curse) {
         if (curse.effect() != null) Curses.pop(player, curse);
     }

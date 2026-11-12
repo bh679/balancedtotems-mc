@@ -42,7 +42,7 @@ public final class ClientPayloads {
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) return;
         if (!(level.getEntity(payload.entityId()) instanceof Player player)) return;
-        player.setData(BtRegistries.FORM, payload.form());
+        BtRegistries.FORM.set(player, payload.form());
         player.refreshDimensions();
         MorphRenderer.forget(player);
         if (player == Minecraft.getInstance().player) followMorphWithCamera(player, payload.form());
@@ -51,7 +51,7 @@ public final class ClientPayloads {
     /** Morphing turns your camera to third person so you can see what you became; it goes back after. */
     private static void followMorphWithCamera(Player player, String form) {
         Minecraft mc = Minecraft.getInstance();
-        if (!form.isEmpty() && player.hasEffect(BtRegistries.MORPHED)) {
+        if (!form.isEmpty() && player.hasEffect(BtRegistries.MORPHED.get())) {
             if (cameraBeforeMorph == null) cameraBeforeMorph = mc.options.getCameraType();
             mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
         } else if (form.isEmpty() && cameraBeforeMorph != null) {
@@ -63,6 +63,6 @@ public final class ClientPayloads {
     public static void onCurseCount(CurseCountPayload payload) {
         Player player = Minecraft.getInstance().player;
         if (player == null) return;
-        player.setData(payload.curse().equals("LONELINESS") ? BtRegistries.LONELY_FRIENDS : BtRegistries.RAMPAGE_KILLS, payload.count());
+        (payload.curse().equals("LONELINESS") ? BtRegistries.LONELY_FRIENDS : BtRegistries.RAMPAGE_KILLS).set(player, payload.count());
     }
 }

@@ -1,4 +1,4 @@
-// Balanced Totems: NeoForge 1.21.1 gameplay mod.
+// Balanced Totems: Forge 1.20.1 gameplay mod (branch mc1.20.1; main is NeoForge 1.21.1).
 //
 // Totems of Undying that save you like the vanilla one but leave a curse behind
 // (weakness, fatigue, heartbreak, blindness, morphing, zombified), plus a Void
@@ -8,7 +8,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'idea'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev.legacyforge' version '2.0.141'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -18,14 +18,14 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
-// Jar name contract: build/libs/balancedtotems-neoforge-<version>.jar. Dungeon Train's ivy
-// repository resolves exactly that asset name from the GitHub release tagged v<version>.
+// Jar name: build/libs/balancedtotems-forge-<version>+mc1.20.1.jar.
 base {
-    archivesName = "${mod_id}-neoforge"
+    archivesName = "${mod_id}-forge"
 }
+version = "${mod_version}+mc${minecraft_version}"
 
-// Mojang ships Java 21 to end users in 1.21.1, so mods target Java 21.
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// Minecraft 1.20.1 runs on Java 17.
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 sourceSets.main.resources {
     exclude '**/CLAUDE.md'   // authoring docs — never a MC resource
@@ -35,8 +35,8 @@ repositories {
     mavenCentral()
 }
 
-neoForge {
-    version = project.neo_version
+legacyForge {
+    version = "${minecraft_version}-${forge_version}"
 
     parchment {
         mappingsVersion = project.parchment_mappings_version
@@ -46,7 +46,7 @@ neoForge {
     runs {
         client {
             client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
         }
 
         server {
@@ -57,7 +57,7 @@ neoForge {
         // ./gradlew runGameTestServer: runs gametest/BalancedTotemsGameTests and exits.
         gameTestServer {
             type = 'gameTestServer'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
         }
 
         configureEach {
@@ -72,10 +72,6 @@ neoForge {
         }
     }
 
-    unitTest {
-        enable()
-        testedMod = mods.named(mod_id)
-    }
 }
 
 dependencies {
@@ -85,6 +81,11 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// ModDevGradle's legacy Forge plugin has no unitTest support: put Minecraft on the test classpath
+// directly. Unit tests stay pure logic, so nothing needs the game running.
+sourceSets.test.compileClasspath += sourceSets.main.compileClasspath
+sourceSets.test.runtimeClasspath += sourceSets.main.runtimeClasspath
+
 tasks.named('test', Test).configure {
     useJUnitPlatform()
     testLogging {
@@ -92,12 +93,12 @@ tasks.named('test', Test).configure {
     }
 }
 
-// Generate neoforge.mods.toml from its template.
+// Generate mods.toml from its template.
 tasks.register('generateModMetadata', ProcessResources) {
     var replaceProperties = [
         minecraft_version       : minecraft_version,
         minecraft_version_range : minecraft_version_range,
-        neo_version             : neo_version,
+        forge_version           : forge_version,
         loader_version_range    : loader_version_range,
         mod_id                  : mod_id,
         mod_name                : mod_name,
@@ -112,7 +113,7 @@ tasks.register('generateModMetadata', ProcessResources) {
     into "${layout.buildDirectory.get()}/generated/sources/modMetadata"
 }
 sourceSets.main.resources.srcDir tasks.named('generateModMetadata')
-neoForge.ideSyncTask tasks.named('generateModMetadata')
+legacyForge.ideSyncTask tasks.named('generateModMetadata')
 
 tasks.named('jar', Jar).configure {
     manifest {

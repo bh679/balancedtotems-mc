@@ -1,7 +1,6 @@
 package games.brennan.balancedtotems;
 
 import games.brennan.balancedtotems.registry.BtRegistries;
-import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -21,33 +20,33 @@ public enum Curse {
     WEAKNESS("weakness_totem", () -> MobEffects.WEAKNESS, Ticks.MINUTE * 20),
     /** Mining Fatigue II: level I is only 30% slower and barely noticed. */
     FATIGUE("fatigue_totem", () -> MobEffects.DIG_SLOWDOWN, Ticks.MINUTE * 20, 1),
-    HEARTBREAK("heartbreak_totem", () -> BtRegistries.HEARTBREAK, Ticks.MINUTE * 20),
+    HEARTBREAK("heartbreak_totem", () -> BtRegistries.HEARTBREAK.get(), Ticks.MINUTE * 20),
     BLINDNESS("blindness_totem", () -> MobEffects.BLINDNESS, Ticks.SECOND * 30),
-    MORPHING("morphing_totem", () -> BtRegistries.MORPHED, Ticks.SECOND * 30),
-    ZOMBIFIED("zombified_totem", () -> BtRegistries.ZOMBIFIED, Ticks.MINUTE * 10),
-    RAMPAGE("rampage_totem", () -> BtRegistries.RAMPAGE, Ticks.MINUTE * 15),
-    LONELINESS("loneliness_totem", () -> BtRegistries.LONELY, Ticks.MINUTE * 10),
+    MORPHING("morphing_totem", () -> BtRegistries.MORPHED.get(), Ticks.SECOND * 30),
+    ZOMBIFIED("zombified_totem", () -> BtRegistries.ZOMBIFIED.get(), Ticks.MINUTE * 10),
+    RAMPAGE("rampage_totem", () -> BtRegistries.RAMPAGE.get(), Ticks.MINUTE * 15),
+    LONELINESS("loneliness_totem", () -> BtRegistries.LONELY.get(), Ticks.MINUTE * 10),
     /** Hurt anything while it lasts and you die. */
-    PACIFISM("pacifism_totem", () -> BtRegistries.VOW_OF_PEACE, Ticks.MINUTE * 20),
+    PACIFISM("pacifism_totem", () -> BtRegistries.VOW_OF_PEACE.get(), Ticks.MINUTE * 20),
     /** Eat anything but melon while it lasts and you die. */
-    MELON("melon_totem", () -> BtRegistries.MELON_DIET, Ticks.MINUTE * 20),
+    MELON("melon_totem", () -> BtRegistries.MELON_DIET.get(), Ticks.MINUTE * 20),
     /** Open a chest, barrel or ender chest while it lasts and you die. */
-    RESTRAINT("restraint_totem", () -> BtRegistries.RESTRAINED, Ticks.MINUTE * 20),
+    RESTRAINT("restraint_totem", () -> BtRegistries.RESTRAINED.get(), Ticks.MINUTE * 20),
     /** Saves you only from falling out of the world, and leaves no curse. */
     VOID("void_totem", null, 0),
     /** Saves you only from a deadly fall, and leaves no curse. */
     FEATHER("feather_totem", null, 0);
 
     private final String itemName;
-    @Nullable private final Supplier<Holder<MobEffect>> effect;
+    @Nullable private final Supplier<MobEffect> effect;
     private final int durationTicks;
     private final int baseAmplifier;
 
-    Curse(String itemName, @Nullable Supplier<Holder<MobEffect>> effect, int durationTicks) {
+    Curse(String itemName, @Nullable Supplier<MobEffect> effect, int durationTicks) {
         this(itemName, effect, durationTicks, 0);
     }
 
-    Curse(String itemName, @Nullable Supplier<Holder<MobEffect>> effect, int durationTicks, int baseAmplifier) {
+    Curse(String itemName, @Nullable Supplier<MobEffect> effect, int durationTicks, int baseAmplifier) {
         this.itemName = itemName;
         this.effect = effect;
         this.durationTicks = durationTicks;
@@ -60,8 +59,13 @@ public enum Curse {
 
     /** The curse effect, or null for the Void Totem. */
     @Nullable
-    public Holder<MobEffect> effect() {
+    public MobEffect effect() {
         return effect == null ? null : effect.get();
+    }
+
+    /** Whether this totem leaves a curse; false for Void and Feather. Safe before registries load. */
+    public boolean leavesCurse() {
+        return effect != null;
     }
 
     public int durationTicks() {
@@ -74,9 +78,9 @@ public enum Curse {
 
     /** The curse whose effect this is, or null. */
     @Nullable
-    public static Curse forEffect(Holder<MobEffect> effect) {
+    public static Curse forEffect(MobEffect effect) {
         for (Curse curse : values()) {
-            if (curse.effect != null && curse.effect().is(effect)) return curse;
+            if (curse.effect != null && curse.effect() == effect) return curse;
         }
         return null;
     }

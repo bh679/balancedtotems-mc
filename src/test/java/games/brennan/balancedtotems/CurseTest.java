@@ -1,6 +1,5 @@
 package games.brennan.balancedtotems;
 
-import net.minecraft.world.damagesource.DamageTypes;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -27,15 +26,13 @@ class CurseTest {
         assertEquals(20 * 60 * 20, Curse.RESTRAINT.durationTicks());
     }
 
+    /** Which death each narrow totem saves from needs the game's registries: see the GameTest of the same name. */
     @Test
-    void onlyVoidAndFeatherSaveFromOneThing() {
+    void onlyVoidAndFeatherLeaveNoCurse() {
         for (Curse curse : Curse.values()) {
             boolean narrow = curse == Curse.VOID || curse == Curse.FEATHER;
-            assertEquals(narrow, curse.onlySaves() != null, curse.name());
-            assertEquals(narrow, curse.effect() == null, curse.name() + " should leave a curse unless it is narrow");
+            assertEquals(narrow, !curse.leavesCurse(), curse.name() + " should leave a curse unless it is narrow");
         }
-        assertEquals(DamageTypes.FELL_OUT_OF_WORLD, Curse.VOID.onlySaves());
-        assertEquals(DamageTypes.FALL, Curse.FEATHER.onlySaves());
     }
 
     @Test

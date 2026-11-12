@@ -4,7 +4,7 @@ import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.fml.ModList;
+import net.minecraftforge.fml.ModList;
 
 /**
  * Who Rage and Lonely count. With PlayerMob installed, PlayerMobs (and, for Rage, players). Without it,

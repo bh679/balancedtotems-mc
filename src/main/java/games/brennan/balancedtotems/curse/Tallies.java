@@ -6,24 +6,23 @@ import games.brennan.balancedtotems.compat.PlayerMobGifts;
 import games.brennan.balancedtotems.net.BtNetwork;
 import games.brennan.balancedtotems.net.CurseCountPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
+import games.brennan.balancedtotems.registry.PlayerData;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.attachment.AttachmentType;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 
 import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * The counted curses: Rage counts kills, Lonely counts friends. Each needs
  * {@link BtRegistries#RAMPAGE_KILLS_NEEDED} per level; reaching it lifts the curse. The count lives
  * on the player and is mirrored to their client for the hover text.
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class Tallies {
 
     private Tallies() {}
@@ -38,12 +37,12 @@ public final class Tallies {
     }
 
     public static int count(Player player, Curse curse) {
-        return player.getData(counter(curse));
+        return counter(curse).get(player);
     }
 
     /** Sets the count and tells the player's client. */
     public static void set(ServerPlayer player, Curse curse, int count) {
-        player.setData(counter(curse), count);
+        counter(curse).set(player, count);
         BtNetwork.sendTo(player, new CurseCountPayload(curse.name(), count));
     }
 
@@ -51,7 +50,7 @@ public final class Tallies {
     public static void reset(ServerPlayer player, Curse curse) {
         set(player, curse, 0);
         if (curse == Curse.LONELINESS) {
-            player.setData(BtRegistries.LONELY_FRIEND_IDS, List.of());
+            BtRegistries.LONELY_FRIEND_IDS.set(player, List.of());
             PlayerMobGifts.forget(player);
         }
     }
@@ -78,7 +77,7 @@ public final class Tallies {
         for (Curse curse : List.of(Curse.RAMPAGE, Curse.LONELINESS)) set(player, curse, count(player, curse));
     }
 
-    private static Supplier<AttachmentType<Integer>> counter(Curse curse) {
+    private static PlayerData<Integer> counter(Curse curse) {
         return curse == Curse.LONELINESS ? BtRegistries.LONELY_FRIENDS : BtRegistries.RAMPAGE_KILLS;
     }
 }

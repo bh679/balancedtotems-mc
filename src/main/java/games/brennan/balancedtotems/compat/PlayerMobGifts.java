@@ -5,10 +5,10 @@ import games.brennan.balancedtotems.curse.LonelyFriends;
 import games.brennan.balancedtotems.curse.Targets;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.server.ServerStartedEvent;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * first, then records the gift. If PlayerMob's classes change, it logs and PlayerMob gifts stop
  * counting; nothing else breaks.</p>
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class PlayerMobGifts {
 
     private static final String HOOKS = "games.brennan.playermob.compat.PlayerMobSocialHooks";
@@ -80,7 +80,7 @@ public final class PlayerMobGifts {
 
     /** Notes one direction of a gift; once both directions happened with the same mob, it is a friend. */
     static void record(ServerPlayer player, UUID mob, Map<UUID, Set<UUID>> direction, Map<UUID, Set<UUID>> other) {
-        if (!player.hasEffect(BtRegistries.LONELY)) return;
+        if (!player.hasEffect(BtRegistries.LONELY.get())) return;
         direction.computeIfAbsent(player.getUUID(), id -> ConcurrentHashMap.newKeySet()).add(mob);
         if (other.getOrDefault(player.getUUID(), Set.of()).contains(mob)) LonelyFriends.befriend(player, mob);
     }

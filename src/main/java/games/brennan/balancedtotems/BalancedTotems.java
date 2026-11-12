@@ -5,9 +5,9 @@ import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.net.BtNetwork;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.resources.ResourceLocation;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 
 /**
@@ -23,14 +23,15 @@ public final class BalancedTotems {
     public static final String MOD_ID = "balancedtotems";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public BalancedTotems(IEventBus modBus, ModContainer container) {
+    public BalancedTotems() {
+        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         BtRegistries.register(modBus);
         EvokerTotemLootModifier.register(modBus);
-        modBus.addListener(BtNetwork::register);
+        BtNetwork.register();
         LOGGER.info("Balanced Totems loaded");
     }
 
     public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+        return new ResourceLocation(MOD_ID, path);
     }
 }

@@ -18,12 +18,12 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
-import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
+import net.minecraftforge.event.TickEvent;
 
 import java.util.Map;
 import java.util.UUID;
@@ -43,7 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Lifting a curse removes its effect; running out kills you on the next tick (deferred so the kill
  * never lands inside the effect-tick loop that reported the expiry).
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class DeadlineCurses {
 
     private static final Map<UUID, ResourceKey<DamageType>> PENDING_DEATHS = new ConcurrentHashMap<>();
@@ -54,9 +54,9 @@ public final class DeadlineCurses {
     public static void onExpired(MobEffectEvent.Expired event) {
         MobEffectInstance instance = event.getEffectInstance();
         if (instance == null || !(event.getEntity() instanceof ServerPlayer player)) return;
-        if (instance.is(BtRegistries.ZOMBIFIED)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.ZOMBIFICATION);
-        if (instance.is(BtRegistries.RAMPAGE)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.RAMPAGE_FAILED);
-        if (instance.is(BtRegistries.LONELY)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.LONELINESS);
+        if (instance.getEffect() == BtRegistries.ZOMBIFIED.get()) PENDING_DEATHS.put(player.getUUID(), BtRegistries.ZOMBIFICATION);
+        if (instance.getEffect() == BtRegistries.RAMPAGE.get()) PENDING_DEATHS.put(player.getUUID(), BtRegistries.RAMPAGE_FAILED);
+        if (instance.getEffect() == BtRegistries.LONELY.get()) PENDING_DEATHS.put(player.getUUID(), BtRegistries.LONELINESS);
     }
 
     /** Kills the player on their next tick with {@code cause}, outside whatever event is running now. */
@@ -65,8 +65,8 @@ public final class DeadlineCurses {
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) return;
         ResourceKey<DamageType> cause = PENDING_DEATHS.remove(player.getUUID());
         if (cause == null || !player.isAlive()) return;
         Holder<DamageType> type = player.level().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(cause);
@@ -78,9 +78,9 @@ public final class DeadlineCurses {
     @SubscribeEvent
     public static void onFinishUsing(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        if (!player.hasEffect(BtRegistries.ZOMBIFIED)) return;
+        if (!player.hasEffect(BtRegistries.ZOMBIFIED.get())) return;
         if (isGoldenApple(event.getItem()) && player.hasEffect(MobEffects.WEAKNESS)) {
-            cure(player, BtRegistries.ZOMBIFIED, "zombified");
+            cure(player, BtRegistries.ZOMBIFIED.get(), "zombified");
         }
     }
 
@@ -93,17 +93,17 @@ public final class DeadlineCurses {
     @SubscribeEvent
     public static void onKill(LivingDeathEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
-        if (!killer.hasEffect(BtRegistries.RAMPAGE)) return;
+        if (!killer.hasEffect(BtRegistries.RAMPAGE.get())) return;
         LivingEntity victim = event.getEntity();
         if (victim != killer && Targets.countsForRage(victim)) Tallies.add(killer, Curse.RAMPAGE, victim.getDisplayName());
     }
 
     /** Lifts {@code curse}: no more deadline, a message and a sound. */
-    static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
+    static void cure(ServerPlayer player, MobEffect curse, String name) {
         player.removeEffect(curse);
         // Only this curse's own deadline: a broken vow in the same tick still kills.
-        ResourceKey<DamageType> deadline = curse.is(BtRegistries.ZOMBIFIED) ? BtRegistries.ZOMBIFICATION
-            : curse.is(BtRegistries.RAMPAGE) ? BtRegistries.RAMPAGE_FAILED : BtRegistries.LONELINESS;
+        ResourceKey<DamageType> deadline = curse == BtRegistries.ZOMBIFIED.get() ? BtRegistries.ZOMBIFICATION
+            : curse == BtRegistries.RAMPAGE.get() ? BtRegistries.RAMPAGE_FAILED : BtRegistries.LONELINESS;
         PENDING_DEATHS.remove(player.getUUID(), deadline);
         player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), false);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);

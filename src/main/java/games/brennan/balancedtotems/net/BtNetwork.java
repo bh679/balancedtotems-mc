@@ -1,49 +1,61 @@
 package games.brennan.balancedtotems.net;
 
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import games.brennan.balancedtotems.BalancedTotems;
+import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.network.simple.SimpleChannel;
 
-/**
- * Registers every payload. Handlers reach the client code only inside the lambda body, so a
- * dedicated server never loads a client class.
- */
+import java.util.Optional;
+
+/** The mod's one channel: server-to-client packets for totem pops, forms and curse counts. */
 public final class BtNetwork {
 
     private static final String PROTOCOL_VERSION = "2";
 
+    private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
+        BalancedTotems.id("main"), () -> PROTOCOL_VERSION, PROTOCOL_VERSION::equals, PROTOCOL_VERSION::equals);
+
     private BtNetwork() {}
 
-    /** Mod-bus listener, added in {@link games.brennan.balancedtotems.BalancedTotems}. */
-    public static void register(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar(PROTOCOL_VERSION);
-        registrar.playToClient(TotemPopPayload.TYPE, TotemPopPayload.STREAM_CODEC,
-            (payload, context) -> context.enqueueWork(
-                () -> games.brennan.balancedtotems.client.ClientPayloads.onTotemPop(payload)));
-        registrar.playToClient(MorphSyncPayload.TYPE, MorphSyncPayload.STREAM_CODEC,
-            (payload, context) -> context.enqueueWork(
-                () -> games.brennan.balancedtotems.client.ClientPayloads.onMorphSync(payload)));
-        registrar.playToClient(CurseCountPayload.TYPE, CurseCountPayload.STREAM_CODEC,
-            (payload, context) -> context.enqueueWork(
-                () -> games.brennan.balancedtotems.client.ClientPayloads.onCurseCount(payload)));
+    /** Called from the {@link BalancedTotems} constructor. */
+    public static void register() {
+        int id = 0;
+        CHANNEL.registerMessage(id++, TotemPopPayload.class, TotemPopPayload::encode, TotemPopPayload::decode,
+            (payload, context) -> {
+                context.get().enqueueWork(() -> games.brennan.balancedtotems.client.ClientPayloads.onTotemPop(payload));
+                context.get().setPacketHandled(true);
+            }, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(id++, MorphSyncPayload.class, MorphSyncPayload::encode, MorphSyncPayload::decode,
+            (payload, context) -> {
+                context.get().enqueueWork(() -> games.brennan.balancedtotems.client.ClientPayloads.onMorphSync(payload));
+                context.get().setPacketHandled(true);
+            }, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        CHANNEL.registerMessage(id, CurseCountPayload.class, CurseCountPayload::encode, CurseCountPayload::decode,
+            (payload, context) -> {
+                context.get().enqueueWork(() -> games.brennan.balancedtotems.client.ClientPayloads.onCurseCount(payload));
+                context.get().setPacketHandled(true);
+            }, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
     }
 
     /**
      * Sends to {@code player} and everyone who can see them, skipping any connection without our
-     * channel (a vanilla client, or a GameTest mock player): NeoForge throws on those.
+     * channel (a vanilla client, or a GameTest mock player).
      */
-    public static void sendToTrackingAndSelf(ServerPlayer player, CustomPacketPayload payload) {
+    public static void sendToTrackingAndSelf(ServerPlayer player, Object payload) {
         sendTo(player, payload);
-        for (ServerPlayer watcher : player.serverLevel().getChunkSource().chunkMap.getPlayersWatching(player)) {
+        for (ServerPlayer watcher : player.serverLevel().getChunkSource().chunkMap.getPlayers(player.chunkPosition(), false)) {
             if (watcher != player) sendTo(watcher, payload);
         }
     }
 
-    public static void sendTo(ServerPlayer player, CustomPacketPayload payload) {
-        if (player.connection != null && player.connection.hasChannel(payload)) {
-            PacketDistributor.sendToPlayer(player, payload);
+    public static void sendTo(ServerPlayer player, Object payload) {
+        Connection connection = player.connection == null ? null : player.connection.connection;
+        // A GameTest mock player's connection has no netty channel at all.
+        if (connection != null && connection.channel() != null && CHANNEL.isRemotePresent(connection)) {
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), payload);
         }
     }
 }
