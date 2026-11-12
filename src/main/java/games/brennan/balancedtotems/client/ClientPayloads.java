@@ -4,6 +4,7 @@ import games.brennan.balancedtotems.net.MorphSyncPayload;
 import games.brennan.balancedtotems.net.RampageKillsPayload;
 import games.brennan.balancedtotems.net.TotemPopPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.ParticleTypes;
@@ -11,10 +12,16 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
+import javax.annotation.Nullable;
+
 /** Client side of every payload. Only ever reached from a payload handler on the client. */
 public final class ClientPayloads {
 
     private static final int POP_PARTICLE_TICKS = 30;
+
+    /** Your view before a morph put you in third person, restored when the form ends; null when we did not switch. */
+    @Nullable
+    private static CameraType cameraBeforeMorph;
 
     private ClientPayloads() {}
 
@@ -38,6 +45,19 @@ public final class ClientPayloads {
         player.setData(BtRegistries.FORM, payload.form());
         player.refreshDimensions();
         MorphRenderer.forget(player);
+        if (player == Minecraft.getInstance().player) followMorphWithCamera(player, payload.form());
+    }
+
+    /** Morphing turns your camera to third person so you can see what you became; it goes back after. */
+    private static void followMorphWithCamera(Player player, String form) {
+        Minecraft mc = Minecraft.getInstance();
+        if (!form.isEmpty() && player.hasEffect(BtRegistries.MORPHED)) {
+            if (cameraBeforeMorph == null) cameraBeforeMorph = mc.options.getCameraType();
+            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+        } else if (form.isEmpty() && cameraBeforeMorph != null) {
+            mc.options.setCameraType(cameraBeforeMorph);
+            cameraBeforeMorph = null;
+        }
     }
 
     public static void onRampageKills(RampageKillsPayload payload) {
