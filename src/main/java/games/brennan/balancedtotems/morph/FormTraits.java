@@ -5,23 +5,31 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BiomeTags;
+import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.living.LivingFallEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,6 +41,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>Water forms breathe in water and dry out on land like the mob: fish, squid and tadpoles
  *       in 15 seconds, dolphins in 2 minutes, axolotls in 5; after that they take damage.</li>
  *   <li>Snow golems leave snow where they walk and melt in warm biomes, rain and water.</li>
+ *   <li>Falls hurt as they hurt the mob: cats, chickens, golems and flyers take none (the vanilla
+ *       {@code fall_damage_immune} tag), frogs and goats fall further first, horses take half.</li>
+ *   <li>Horses gallop: sprinting as a horse is much faster than a player's sprint.</li>
  * </ul>
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
@@ -49,6 +60,39 @@ public final class FormTraits {
         List.of(MobEffects.SLOW_FALLING, MobEffects.DOLPHINS_GRACE, MobEffects.FIRE_RESISTANCE);
 
     private static final Map<UUID, Integer> DRY_TICKS = new ConcurrentHashMap<>();
+
+    /** {@code Frog#calculateFallDamage} and {@code Goat#calculateFallDamage}: blocks fallen before it hurts. */
+    private static final float FROG_SAFE_FALL = 5.0F;
+    private static final float GOAT_SAFE_FALL = 10.0F;
+    private static final Set<EntityType<?>> HORSES = Set.of(EntityType.HORSE, EntityType.DONKEY, EntityType.MULE,
+        EntityType.SKELETON_HORSE, EntityType.ZOMBIE_HORSE, EntityType.CAMEL, EntityType.LLAMA, EntityType.TRADER_LLAMA);
+    /** Extra speed while sprinting (on top of the player's own sprint): horses gallop, the rest trot. */
+    private static final double GALLOP = 0.8;
+    private static final double TROT = 0.3;
+    private static final ResourceLocation GALLOP_ID = BalancedTotems.id("morph.gallop");
+
+    @SubscribeEvent
+    public static void onFall(LivingFallEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        if (form == null) return;
+        if (form.is(EntityTypeTags.FALL_DAMAGE_IMMUNE)) event.setCanceled(true);
+        else if (form == EntityType.FROG) event.setDistance(Math.max(0.0F, event.getDistance() - FROG_SAFE_FALL));
+        else if (form == EntityType.GOAT) event.setDistance(Math.max(0.0F, event.getDistance() - GOAT_SAFE_FALL));
+        else if (HORSES.contains(form)) event.setDistance(event.getDistance() * 0.5F); // AbstractHorse halves it
+    }
+
+    /** Sprinting as a horse adds its gallop; anything else (or walking) takes it away. */
+    private static void gallop(ServerPlayer player, @Nullable EntityType<?> form) {
+        AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (speed == null) return;
+        double wanted = !player.isSprinting() || form == null || !HORSES.contains(form) ? 0.0
+            : form == EntityType.HORSE || form == EntityType.SKELETON_HORSE || form == EntityType.ZOMBIE_HORSE || form == EntityType.CAMEL ? GALLOP : TROT;
+        AttributeModifier current = speed.getModifier(GALLOP_ID);
+        if (current == null ? wanted == 0.0 : current.amount() == wanted) return;
+        speed.removeModifier(GALLOP_ID);
+        if (wanted > 0.0) speed.addTransientModifier(new AttributeModifier(GALLOP_ID, wanted, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+    }
 
     private FormTraits() {}
 
@@ -83,6 +127,7 @@ public final class FormTraits {
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player) || !player.isAlive()) return;
         EntityType<?> form = Morphs.formOf(player).orElse(null);
+        gallop(player, form);
         if (isWaterForm(form)) breathe(player, form);
         if (form == EntityType.SNOW_GOLEM) beSnowGolem(player);
     }

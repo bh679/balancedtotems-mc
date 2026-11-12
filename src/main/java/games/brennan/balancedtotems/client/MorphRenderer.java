@@ -32,6 +32,8 @@ public final class MorphRenderer {
 
     /** One dummy per morphed player, rebuilt when their form changes. */
     private static final Map<UUID, LivingEntity> DUMMIES = new ConcurrentHashMap<>();
+    /** How far a form without an eat pose lowers its head to eat. */
+    private static final float EATING_PITCH = 60.0F;
 
     private MorphRenderer() {}
 
@@ -109,8 +111,9 @@ public final class MorphRenderer {
     private static void poseLike(LivingEntity dummy, Player player) {
         dummy.setYRot(player.getYRot());
         dummy.yRotO = player.yRotO;
-        dummy.setXRot(player.getXRot());
-        dummy.xRotO = player.xRotO;
+        float pitch = FormAnimator.headDown(player.getUUID()) ? EATING_PITCH : player.getXRot();
+        dummy.setXRot(pitch);
+        dummy.xRotO = FormAnimator.headDown(player.getUUID()) ? EATING_PITCH : player.xRotO;
         dummy.yBodyRot = player.yBodyRot;
         dummy.yBodyRotO = player.yBodyRotO;
         dummy.yHeadRot = player.yHeadRot;

@@ -6,9 +6,11 @@ import games.brennan.balancedtotems.morph.MorphFlight;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.Sheep;
+import net.minecraft.world.entity.animal.armadillo.Armadillo;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Map;
@@ -29,6 +31,7 @@ final class FormAnimator {
     private static final int HORSE_REAR_TICKS = 10;
     private static final int RAM_TICKS = 10;
     private static final int EAT_TICKS = 20;
+    private static final float ARMADILLO_WALK_SCALE = 0.35F;
 
     private static final Map<UUID, Boolean> WAS_ON_GROUND = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> REARING = new ConcurrentHashMap<>();
@@ -47,7 +50,12 @@ final class FormAnimator {
         follow(standIn, player);
         runOwnTick(standIn);
         follow(standIn, player);
-        standIn.calculateEntityAnimation(MorphFlight.flies(standIn.getType()));
+        if (standIn instanceof Armadillo) {
+            walkCalmly(standIn); // its walk is tuned for a slow mob and flails at player speed
+        } else {
+            standIn.calculateEntityAnimation(MorphFlight.flies(standIn.getType()));
+        }
+        animateEating(standIn, player);
 
         if (jumped) onJump(standIn, id);
         if (standIn instanceof Strider strider) strider.setSuffocating(!player.isInLava()); // shivers off lava
@@ -82,12 +90,42 @@ final class FormAnimator {
             case SWING -> standIn.handleEntityEvent((byte) 4); // iron golem swings
             case GRAZE -> {
                 if (standIn instanceof Sheep) standIn.handleEntityEvent((byte) 10);
-                if (standIn instanceof AbstractHorse horse) {
-                    horse.setEating(true);
-                    EATING.put(player, EAT_TICKS);
-                }
+                if (standIn instanceof AbstractHorse horse) horse.setEating(true);
+                EATING.put(player, EAT_TICKS);
+            }
+            case ROLL_UP -> {
+                if (standIn instanceof Armadillo armadillo) armadillo.switchToState(Armadillo.ArmadilloState.ROLLING);
+            }
+            case UNROLL -> {
+                if (standIn instanceof Armadillo armadillo) armadillo.switchToState(Armadillo.ArmadilloState.IDLE);
             }
         }
+    }
+
+    /** Whether the stand-in should hang its head to eat (mobs with no eat pose of their own, like the cow). */
+    static boolean headDown(UUID player) {
+        return EATING.containsKey(player);
+    }
+
+    /**
+     * Eating food shows the mob's own eat animation: a sheep's graze, a horse's lowered head; any other
+     * form hangs its head while it eats.
+     */
+    private static void animateEating(LivingEntity standIn, Player player) {
+        boolean eating = player.isUsingItem() && player.getUseItem().getUseAnimation() == UseAnim.EAT;
+        if (!eating) return;
+        UUID id = player.getUUID();
+        if (standIn instanceof Sheep && !EATING.containsKey(id)) standIn.handleEntityEvent((byte) 10);
+        if (standIn instanceof AbstractHorse horse) horse.setEating(true);
+        EATING.put(id, Math.max(EATING.getOrDefault(id, 0), 2));
+    }
+
+    /** {@code calculateEntityAnimation}, at a fraction of the speed. */
+    private static void walkCalmly(LivingEntity standIn) {
+        double dx = standIn.getX() - standIn.xo;
+        double dz = standIn.getZ() - standIn.zo;
+        float speed = Math.min((float) Math.sqrt(dx * dx + dz * dz) * 4.0F, 1.0F);
+        standIn.walkAnimation.update(speed * ARMADILLO_WALK_SCALE, 0.4F);
     }
 
     static void forget(UUID player) {

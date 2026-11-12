@@ -10,6 +10,7 @@ import games.brennan.balancedtotems.curse.Tallies;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.FormAttacks;
 import games.brennan.balancedtotems.morph.FormTraits;
+import games.brennan.balancedtotems.morph.FormUse;
 import games.brennan.balancedtotems.morph.MorphForm;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
@@ -352,6 +353,44 @@ public final class BalancedTotemsGameTests {
         tick(player, 200);
         DamageSource last = player.getLastDamageSource();
         check(helper, last != null && last.is(DamageTypes.DROWN), "a fish out of water too long takes damage, last was " + last);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void catFormTakesNoFallDamage(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAT);
+        float before = player.getHealth();
+        player.causeFallDamage(20.0F, 1.0F, player.damageSources().fall());
+        check(helper, player.getHealth() == before, "a cat lands on its feet");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void camelCantJumpAndHorsesGallop(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAMEL);
+        check(helper, player.getAttributeValue(Attributes.JUMP_STRENGTH) == 0.0, "camels can't jump");
+        Morphs.setForm(player, EntityType.HORSE);
+        double walking = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+        player.setSprinting(true);
+        tick(player, 1);
+        check(helper, player.getAttributeValue(Attributes.MOVEMENT_SPEED) > walking * 1.6, "a sprinting horse should gallop");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void chickenLaysAndArmadilloRolls(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CHICKEN);
+        FormUse.use(player);
+        check(helper, !helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(2),
+            item -> item.getItem().is(Items.EGG)).isEmpty(), "a chicken should lay an egg");
+        Morphs.setForm(player, EntityType.ARMADILLO);
+        FormUse.use(player);
+        check(helper, FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0, "a rolled armadillo can't move");
+        Morphs.setForm(player, EntityType.COW);
+        check(helper, !FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) > 0.0, "changing form unrolls");
         helper.succeed();
     }
 

@@ -28,6 +28,12 @@ public final class BtNetwork {
         registrar.playToClient(CurseCountPayload.TYPE, CurseCountPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.balancedtotems.client.ClientPayloads.onCurseCount(payload)));
+        registrar.playToServer(FormUsePayload.TYPE, FormUsePayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(() -> {
+                if (context.player() instanceof net.minecraft.server.level.ServerPlayer player) {
+                    games.brennan.balancedtotems.morph.FormUse.use(player);
+                }
+            }));
         registrar.playToClient(MorphActionPayload.TYPE, MorphActionPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.balancedtotems.client.ClientPayloads.onMorphAction(payload)));

@@ -7,5 +7,9 @@ public enum FormAction {
     /** An iron golem swinging its arms. */
     SWING,
     /** A sheep or horse grazing. */
-    GRAZE
+    GRAZE,
+    /** An armadillo rolling into its shell. */
+    ROLL_UP,
+    /** An armadillo coming back out. */
+    UNROLL
 }

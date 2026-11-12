@@ -8,7 +8,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Fatigue | Mining Fatigue II for 20 minutes |
 | Totem of Heartbreak | 2 fewer hearts for 20 minutes |
 | Totem of Blindness | Blindness for 30 seconds |
-| Totem of Morphing | You become a random animal for 30 seconds, seen in third person, with its size, speed, health, jump, animations and attack: goats ram, golems throw, bees sting once and may then die, llamas spit, grazers eat grass. Monsters leave you alone. Bees, parrots, bats and allays fly and can't land; chickens flutter down. Die underwater and you become a fish, squid, dolphin, axolotl or tadpole, which dries out on land; die in lava and you become a strider |
+| Totem of Morphing | You become a random animal for 30 seconds, seen in third person, with its size, speed, health, jump, animations and attack: goats ram, golems throw, bees sting once and may then die, llamas spit, sheep, cows and horses graze grass; chickens lay eggs and armadillos roll into their shell (use with an empty hand); horses gallop; camels can't jump; cats and other fall-proof mobs take no fall damage. Monsters leave you alone. Bees, parrots, bats and allays fly and can't land; chickens flutter down. Die underwater and you become a fish, squid, dolphin, axolotl or tadpole, which dries out on land; die in lava and you become a strider |
 | Totem of Zombification | You become a zombie: iron and snow golems hunt you. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
 | Totem of Pacifism | Vow of Peace: hurt anything within 20 minutes and you die |

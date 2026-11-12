@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * A form attacks the way its mob does. Goats ram, iron golems throw the target up, llamas spit,
  * pufferfish poison, bees
  * sting once (poison) and then may die like a stung bee unless the morph ends first, and forms with no
- * attack do no damage. Sheep and horses graze instead: hitting grass eats it.
+ * attack do no damage. Sheep, cows and horses graze instead: hitting grass eats it.
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class FormAttacks {
@@ -56,7 +56,8 @@ public final class FormAttacks {
     /** {@code Pufferfish#touch} at full puff. */
     private static final int PUFFERFISH_POISON_TICKS = 120;
 
-    private static final Set<EntityType<?>> GRAZERS = Set.of(EntityType.SHEEP, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE);
+    private static final Set<EntityType<?>> GRAZERS = Set.of(EntityType.SHEEP, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE,
+        EntityType.COW, EntityType.MOOSHROOM);
 
     /** Ticks since each stung bee-player stung; the stinger is gone, and so, soon, is the bee. */
     private static final Map<UUID, Integer> STUNG = new ConcurrentHashMap<>();
@@ -141,7 +142,7 @@ public final class FormAttacks {
         player.level().playSound(null, player.blockPosition(), SoundEvents.LLAMA_SPIT, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 
-    /** Hitting grass as a sheep or horse eats it: the block turns to dirt, the tuft is gone. */
+    /** Hitting grass as a sheep, cow or horse eats it: the block turns to dirt, the tuft is gone. */
     @SubscribeEvent
     public static void onHitBlock(PlayerInteractEvent.LeftClickBlock event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
