@@ -10,7 +10,7 @@
   "item.balancedtotems.morphing_totem": "Morphing Totem",
   "item.balancedtotems.morphing_totem.curse": "Saves you, then turns you into a random animal for 20 seconds",
   "item.balancedtotems.zombified_totem": "Zombified Totem",
-  "item.balancedtotems.zombified_totem.curse": "Saves you, then turns you into a zombie. Eat a golden apple or take a potion of weakness within 10 minutes, or die",
+  "item.balancedtotems.zombified_totem.curse": "Saves you, then turns you into a zombie. Get Weakness, then eat a golden apple within 10 minutes, or die",
   "item.balancedtotems.rampage_totem": "Rampage Totem",
   "item.balancedtotems.rampage_totem.curse": "Saves you, then kill 3 players within 15 minutes, or die",
   "item.balancedtotems.void_totem": "Void Totem",
@@ -21,7 +21,7 @@
   "effect.balancedtotems.zombified": "Zombified",
   "effect.balancedtotems.rampage": "Rampage",
   "effect.balancedtotems.zombified.deadline": "You have %s to be cured",
-  "effect.balancedtotems.zombified.cure": "Eat a golden apple or take a potion of weakness",
+  "effect.balancedtotems.zombified.cure": "Get Weakness, then eat a golden apple",
   "effect.balancedtotems.rampage.deadline": "Kill %s more players in %s to survive",
 
   "message.balancedtotems.rampage.progress": "Rampage: %s of %s",

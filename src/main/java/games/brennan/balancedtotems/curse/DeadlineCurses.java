@@ -20,8 +20,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.core.component.DataComponents;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -37,8 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The two curses you must lift before they run out, or die:
  * <ul>
- *   <li><b>Zombified</b> (10 min): eat a golden apple, or take a potion of weakness (drunk, splashed
- *       or lingering).</li>
+ *   <li><b>Zombified</b> (10 min): eat a golden apple while you have Weakness, like curing a zombie
+ *       villager. Any Weakness counts: a potion, a splash, or a Weakness Totem's curse.</li>
  *   <li><b>Rampage</b> (15 min): kill {@link BtRegistries#RAMPAGE_KILLS_NEEDED} players or entities
  *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs) per level.</li>
  * </ul>
@@ -75,28 +73,13 @@ public final class DeadlineCurses {
     public static void onFinishUsing(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (!player.hasEffect(BtRegistries.ZOMBIFIED)) return;
-        if (curesZombified(event.getItem())) cure(player, BtRegistries.ZOMBIFIED, "zombified");
-    }
-
-    /**
-     * Splash and lingering potions, and tipped arrows, apply weakness with a source entity. Drinking
-     * (handled above) and a Weakness Totem's own curse apply it with none, so a totem never cures.
-     */
-    @SubscribeEvent
-    public static void onEffectAdded(MobEffectEvent.Added event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        if (event.getEffectSource() == null || !event.getEffectInstance().is(MobEffects.WEAKNESS)) return;
-        if (player.hasEffect(BtRegistries.ZOMBIFIED)) cure(player, BtRegistries.ZOMBIFIED, "zombified");
-    }
-
-    static boolean curesZombified(ItemStack stack) {
-        if (stack.is(Items.GOLDEN_APPLE) || stack.is(Items.ENCHANTED_GOLDEN_APPLE)) return true;
-        PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
-        if (contents == null) return false;
-        for (MobEffectInstance effect : contents.getAllEffects()) {
-            if (effect.is(MobEffects.WEAKNESS)) return true;
+        if (isGoldenApple(event.getItem()) && player.hasEffect(MobEffects.WEAKNESS)) {
+            cure(player, BtRegistries.ZOMBIFIED, "zombified");
         }
-        return false;
+    }
+
+    static boolean isGoldenApple(ItemStack stack) {
+        return stack.is(Items.GOLDEN_APPLE) || stack.is(Items.ENCHANTED_GOLDEN_APPLE);
     }
 
     // ---- Rampage ----

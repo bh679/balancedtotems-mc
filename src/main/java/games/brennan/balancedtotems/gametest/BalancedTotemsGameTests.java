@@ -183,36 +183,36 @@ public final class BalancedTotemsGameTests {
     // ---- zombified ----
 
     @GameTest(template = EMPTY)
-    public static void zombifiedIsCuredByAGoldenApple(GameTestHelper helper) {
+    public static void zombifiedIsCuredByAGoldenAppleWhileWeakened(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.ZOMBIFIED);
         player.hurt(player.damageSources().generic(), LETHAL);
         check(helper, Morphs.formOf(player).orElse(null) == EntityType.ZOMBIE, "player should be a zombie");
-        ItemStack apple = new ItemStack(Items.GOLDEN_APPLE);
-        EventHooks.onItemUseFinish(player, apple, 0, ItemStack.EMPTY);
-        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "golden apple should cure");
+        var witch = helper.spawn(EntityType.WITCH, new BlockPos(1, 2, 1));
+        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 400), witch); // a splash
+        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "weakness alone should not cure");
+        eatGoldenApple(player);
+        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "golden apple while weakened should cure");
         check(helper, Morphs.formOf(player).isEmpty(), "form should be gone");
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
-    public static void zombifiedIsCuredBySplashWeakness(GameTestHelper helper) {
+    public static void goldenAppleWithoutWeaknessDoesNotCure(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.ZOMBIFIED);
         player.hurt(player.damageSources().generic(), LETHAL);
-        var witch = helper.spawn(EntityType.WITCH, new BlockPos(1, 2, 1));
-        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 400), witch);
-        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "splashed weakness should cure");
+        eatGoldenApple(player);
+        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "a golden apple alone should not cure");
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
-    public static void weaknessTotemDoesNotCureZombified(GameTestHelper helper) {
-        ServerPlayer player = holding(helper, Curse.ZOMBIFIED);
-        player.hurt(player.damageSources().generic(), LETHAL);
-        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(BtRegistries.TOTEMS.get(Curse.WEAKNESS).get()));
-        player.invulnerableTime = 0; // vanilla ignores a second hit this soon
-        player.hurt(player.damageSources().generic(), LETHAL);
-        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "a totem's weakness is no cure");
-        check(helper, player.hasEffect(MobEffects.WEAKNESS), "weakness applied");
+    public static void weaknessTotemCurseCountsAsWeakness(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.ZOMBIFIED);
+        pop(player, Curse.WEAKNESS);
+        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "a totem's weakness alone is no cure");
+        eatGoldenApple(player);
+        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "golden apple with the Weakness curse should cure");
         helper.succeed();
     }
 
@@ -431,6 +431,10 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(BtRegistries.TOTEMS.get(curse).get()));
         return player;
+    }
+
+    private static void eatGoldenApple(ServerPlayer player) {
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.GOLDEN_APPLE), 0, ItemStack.EMPTY);
     }
 
     /** Pops {@code curse}'s totem on the player. */

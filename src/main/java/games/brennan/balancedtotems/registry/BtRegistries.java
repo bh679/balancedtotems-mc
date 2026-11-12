@@ -46,7 +46,7 @@ public final class BtRegistries {
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x7A5CC8, false));
 
     /**
-     * You are a zombie until you eat a golden apple or take a potion of weakness, or die when it
+     * You are a zombie until you eat a golden apple while weakened, or die when it
      * runs out. Milk does not cure it. Other mods find it by id ({@code balancedtotems:zombified}).
      */
     public static final DeferredHolder<MobEffect, MobEffect> ZOMBIFIED = EFFECTS.register("zombified",

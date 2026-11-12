@@ -9,7 +9,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Heartbreak Totem | 2 fewer hearts for 20 minutes |
 | Blindness Totem | Blindness for 20 seconds |
 | Morphing Totem | You become a random animal for 20 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
-| Zombified Totem | You become a zombie. Eat a golden apple or take a potion of weakness within 10 minutes, or die |
+| Zombified Totem | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Rampage Totem | Kill 3 players (or PlayerMobs) within 15 minutes, or die |
 | Void Totem | Saves you only from the void and deadly falls, and pulls you back to safety |
 
