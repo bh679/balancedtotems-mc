@@ -1,7 +1,7 @@
 {
   "slug": "dungeontotems",
   "title": "Dungeon Totems",
-  "summary": "Eight Totems of Undying that still save your life, but leave a curse behind: weakness, lost hearts, a zombie body, a rampage and more. Evokers drop them.",
+  "summary": "Totems of Undying that still save your life, but leave a curse behind: lost hearts, a zombie body, a rampage, a melon diet and more. Evokers drop them.",
   "categories": [
     "equipment",
     "game-mechanics"
@@ -15,8 +15,8 @@
   "screenshots": [
     {
       "file": "screenshots/01-totem-wall.png",
-      "title": "Eight totems",
-      "description": "Weakness, Fatigue, Heartbreak, Blindness, Morphing, Zombified, Rampage and Void.",
+      "title": "The totems",
+      "description": "Weakness, Fatigue, Heartbreak, Blindness, Morphing, Zombification, Rage and Void.",
       "featured": true,
       "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/9ad3b3bb9271d273612e662f8ccedc2d22e313b4_350.webp"
     },
@@ -72,13 +72,13 @@
     {
       "file": "screenshots/03-evoker-drop.png",
       "title": "A random totem",
-      "description": "Each evoker drops one of the eight in place of the vanilla totem.",
+      "description": "Each evoker drops a random one in place of the vanilla totem.",
       "featured": false,
       "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/5736b30dd796201ed35ae4c8b2b6cc51cbb8870e_350.webp"
     },
     {
       "file": "screenshots/11-hotbar.png",
-      "title": "All eight",
+      "title": "In your hotbar",
       "description": "Hold one in either hand.",
       "featured": false,
       "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/a382d5b2611d6d2ceed9116ae53e46c319bfdb58_350.webp"
