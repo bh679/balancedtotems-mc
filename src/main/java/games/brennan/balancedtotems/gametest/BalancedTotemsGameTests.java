@@ -24,6 +24,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Evoker;
 import net.minecraft.world.entity.npc.Villager;
@@ -80,6 +81,7 @@ public final class BalancedTotemsGameTests {
         check(helper, player.getMainHandItem().isEmpty(), "totem should be used up");
         check(helper, player.hasEffect(MobEffects.REGENERATION), "vanilla regeneration");
         check(helper, player.hasEffect(MobEffects.ABSORPTION), "vanilla absorption");
+        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a curse totem still gives Fire Resistance");
         expectEffect(helper, player, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
         helper.succeed();
     }
@@ -193,6 +195,35 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
+    // ---- boom ----
+
+    @GameTest(template = EMPTY)
+    public static void boomTotemSavesFromExplosions(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.BOOM);
+        player.hurt(player.damageSources().explosion(null, null), LETHAL);
+        check(helper, player.isAlive(), "player should survive the explosion");
+        check(helper, !player.hasEffect(MobEffects.FIRE_RESISTANCE), "a single-purpose totem gives no Fire Resistance");
+        check(helper, player.hasEffect(MobEffects.REGENERATION), "the pop still heals");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void boomTotemIgnoresOtherDeaths(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.BOOM);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, !player.isAlive(), "only an explosion is saved");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void featherTotemGivesNoFireResistance(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FEATHER);
+        player.hurt(player.damageSources().fall(), LETHAL);
+        check(helper, player.isAlive(), "player should survive the fall");
+        check(helper, !player.hasEffect(MobEffects.FIRE_RESISTANCE), "a single-purpose totem gives no Fire Resistance");
+        helper.succeed();
+    }
+
     // ---- morph ----
 
     @GameTest(template = EMPTY)
@@ -262,6 +293,17 @@ public final class BalancedTotemsGameTests {
         check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "a totem's weakness alone is no cure");
         eatGoldenApple(player);
         check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "golden apple with the Weakness curse should cure");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void snowGolemsHuntAZombifiedPlayer(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.ZOMBIFIED);
+        SnowGolem golem = helper.spawn(EntityType.SNOW_GOLEM, 2, 1, 2);
+        tick(player, 21);
+        check(helper, golem.getTarget() == player, "a snow golem should target a zombie player, targets " + golem.getTarget());
+        golem.discard();
         helper.succeed();
     }
 

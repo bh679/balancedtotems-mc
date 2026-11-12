@@ -33,7 +33,8 @@ public final class TotemPop {
         player.removeEffectsCuredBy(EffectCures.PROTECTED_BY_TOTEM);
         player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
-        player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
+        // A single-purpose totem (void, fall, explosion) gives no Fire Resistance.
+        if (!curse.isNarrow()) player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
         applyCurse(player, curse);
 
         BtNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));

@@ -25,6 +25,6 @@ public class TotemItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("item.balancedtotems." + curse.itemName() + ".curse")
-            .withStyle(curse.onlySaves() != null ? ChatFormatting.DARK_AQUA : ChatFormatting.RED));
+            .withStyle(curse.isNarrow() ? ChatFormatting.DARK_AQUA : ChatFormatting.RED));
     }
 }
