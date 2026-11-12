@@ -21,8 +21,8 @@ public enum Curse {
     /** Mining Fatigue II: level I is only 30% slower and barely noticed. */
     FATIGUE("fatigue_totem", () -> MobEffects.DIG_SLOWDOWN, Ticks.MINUTE * 20, 1),
     HEARTBREAK("heartbreak_totem", () -> BtRegistries.HEARTBREAK, Ticks.MINUTE * 20),
-    BLINDNESS("blindness_totem", () -> MobEffects.BLINDNESS, Ticks.SECOND * 20),
-    MORPHING("morphing_totem", () -> BtRegistries.MORPHED, Ticks.SECOND * 20),
+    BLINDNESS("blindness_totem", () -> MobEffects.BLINDNESS, Ticks.SECOND * 30),
+    MORPHING("morphing_totem", () -> BtRegistries.MORPHED, Ticks.SECOND * 30),
     ZOMBIFIED("zombified_totem", () -> BtRegistries.ZOMBIFIED, Ticks.MINUTE * 10),
     RAMPAGE("rampage_totem", () -> BtRegistries.RAMPAGE, Ticks.MINUTE * 15),
     /** Saves you only from falling out of the world, and leaves no curse. */

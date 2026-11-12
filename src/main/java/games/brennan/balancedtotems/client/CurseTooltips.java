@@ -2,6 +2,7 @@ package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.curse.DeadlineCurses;
+import games.brennan.balancedtotems.effect.HeartbreakEffect;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -9,6 +10,9 @@ import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffectUtil;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -22,8 +26,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Hover text for the deadline curses in the inventory's effect list: how long is left and what lifts
- * them. Vanilla only shows effect tooltips on the narrow (icon-only) list, so on the wide list,
+ * Hover text for curses in the inventory's effect list: hearts Heartbreak takes, how to cure Zombified,
+ * and what Rage still wants. Vanilla only shows effect tooltips on the narrow (icon-only) list, so on the wide list,
  * which has no tooltip of its own, this draws one for the curse under the mouse.
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID, value = Dist.CLIENT)
@@ -74,13 +78,23 @@ public final class CurseTooltips {
     static List<Component> lines(MobEffectInstance effect, Player player) {
         List<Component> lines = new ArrayList<>();
         Component left = MobEffectUtil.formatDuration(effect, 1.0F, player.level().tickRateManager().tickrate());
-        if (effect.is(BtRegistries.ZOMBIFIED)) {
-            lines.add(Component.translatable("effect.balancedtotems.zombified.deadline", left).withStyle(ChatFormatting.GRAY));
+        if (effect.is(BtRegistries.HEARTBREAK)) {
+            lines.add(Component.translatable("effect.balancedtotems.heartbreak.hearts", heartsTaken(effect, player)).withStyle(ChatFormatting.GRAY));
+        } else if (effect.is(BtRegistries.ZOMBIFIED)) {
             lines.add(Component.translatable("effect.balancedtotems.zombified.cure").withStyle(ChatFormatting.GRAY));
         } else if (effect.is(BtRegistries.RAMPAGE)) {
             int kills = Math.max(0, DeadlineCurses.killsNeeded(effect) - player.getData(BtRegistries.RAMPAGE_KILLS));
             lines.add(Component.translatable("effect.balancedtotems.rampage.deadline", kills, left).withStyle(ChatFormatting.GRAY));
         }
         return lines;
+    }
+
+    /** Hearts Heartbreak takes right now (its last level may take less), as "2" or "9.5". */
+    private static String heartsTaken(MobEffectInstance effect, Player player) {
+        AttributeInstance maxHealth = player.getAttribute(Attributes.MAX_HEALTH);
+        AttributeModifier modifier = maxHealth == null ? null : maxHealth.getModifier(HeartbreakEffect.MODIFIER_ID);
+        double health = modifier != null ? -modifier.amount() : HeartbreakEffect.HEALTH_PER_LEVEL * (effect.getAmplifier() + 1);
+        double hearts = health / 2.0;
+        return hearts == Math.floor(hearts) ? Integer.toString((int) hearts) : Double.toString(hearts);
     }
 }

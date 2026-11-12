@@ -7,21 +7,21 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Weakness | Weakness for 20 minutes |
 | Totem of Fatigue | Mining Fatigue II for 20 minutes |
 | Totem of Heartbreak | 2 fewer hearts for 20 minutes |
-| Totem of Blindness | Blindness for 20 seconds |
-| Totem of Morphing | You become a random animal for 20 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
+| Totem of Blindness | Blindness for 30 seconds |
+| Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
 | Totem of Zombification | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
-| Totem of Rampage | Kill 3 players (or PlayerMobs) within 15 minutes, or die |
+| Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
 | Void Totem | Only saves you from death to the void, and pulls you back to safety |
 | Feather Totem | Only saves you from falling |
 
 Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance) when held in either
-hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zombified or Rampage curses.
+hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zombified or Rage curses.
 
 Curses stack: a later pop never clears an earlier curse. The same curse again goes up a level with a
-fresh timer (Rampage needs 3 more kills per level; Morphing picks a new animal; Heartbreak stops at
+fresh timer (Rage needs 3 more kills per level; Morphing picks a new animal; Heartbreak stops at
 half a heart). Fatigue never levels up: another Fatigue pop adds 20 minutes instead. Curses survive
-death and come back on respawn with a full timer. Hover Zombified or Rampage in the inventory to see
-the time left and what lifts it.
+death and come back on respawn with a full timer. Hover Heartbreak, Zombified or Rage in the inventory to see
+the hearts taken, the cure, or the kills and time left.
 
 Evokers drop one of these at random instead of the vanilla totem. The pool is the item tag
 `balancedtotems:evoker_totems`, so a datapack can change it.
@@ -33,7 +33,7 @@ back on the train, but it works on its own.
 
 - `games.brennan.balancedtotems.api.BalancedTotemsApi.setRescueTarget(player -> Optional<Vec3>)`
   picks where the Void Totem sends a player.
-- Curses are plain mob effects: `balancedtotems:heartbreak`, `morphed`, `zombified`, `rampage`.
+- Curses are plain mob effects: `balancedtotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage).
 - Datapacks can change `balancedtotems:morph_pool` and `balancedtotems:rampage_targets` (entity type tags).
 
 Licence: PolyForm Shield 1.0.0.

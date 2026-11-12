@@ -17,8 +17,8 @@ class CurseTest {
         assertEquals(20 * 60 * 20, Curse.WEAKNESS.durationTicks());
         assertEquals(20 * 60 * 20, Curse.FATIGUE.durationTicks());
         assertEquals(20 * 60 * 20, Curse.HEARTBREAK.durationTicks());
-        assertEquals(20 * 20, Curse.BLINDNESS.durationTicks());
-        assertEquals(20 * 20, Curse.MORPHING.durationTicks());
+        assertEquals(30 * 20, Curse.BLINDNESS.durationTicks());
+        assertEquals(30 * 20, Curse.MORPHING.durationTicks());
         assertEquals(10 * 60 * 20, Curse.ZOMBIFIED.durationTicks());
         assertEquals(15 * 60 * 20, Curse.RAMPAGE.durationTicks());
     }
