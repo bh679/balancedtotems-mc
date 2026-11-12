@@ -1,0 +1,88 @@
+{
+  "slug": "dungeontotems",
+  "title": "Dungeon Totems",
+  "summary": "Eight Totems of Undying that still save your life, but leave a curse behind: weakness, lost hearts, a zombie body, a rampage and more. Evokers drop them.",
+  "categories": [
+    "equipment",
+    "game-mechanics"
+  ],
+  "license_id": "LicenseRef-PolyForm-Shield-1.0.0",
+  "license_url": "https://polyformproject.org/licenses/shield/1.0.0",
+  "source_url": "https://github.com/bh679/balancedtotems-mc",
+  "issues_url": "https://dungeon.training/issues#dungeontotems",
+  "discord_url": "https://discord.gg/hnj5G7duHU",
+  "icon": "icon.png",
+  "screenshots": [
+    {
+      "file": "screenshots/01-totem-wall.png",
+      "title": "Eight totems",
+      "description": "Weakness, Fatigue, Heartbreak, Blindness, Morphing, Zombified, Rampage and Void.",
+      "featured": true,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/9ad3b3bb9271d273612e662f8ccedc2d22e313b4_350.webp"
+    },
+    {
+      "file": "screenshots/04-heartbreak-pop.png",
+      "title": "It still saves you",
+      "description": "A Heartbreak Totem pops just like the vanilla totem.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/630a15f8e485b482852fcddb8f8e06653ee2c37c_350.webp"
+    },
+    {
+      "file": "screenshots/05-heartbreak-hearts.png",
+      "title": "Then the curse",
+      "description": "Heartbreak takes 2 of your hearts for 20 minutes.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/79cedd62ab0084722004841430342793d980a952_350.webp"
+    },
+    {
+      "file": "screenshots/06-morph-polar-bear.png",
+      "title": "Morphing",
+      "description": "Turn into a random animal for 20 seconds, with its size, speed and health.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/48e0386a68c5bf4c544665d57bb08db426ab8d26_350.webp"
+    },
+    {
+      "file": "screenshots/09-morph-panda.png",
+      "title": "A different animal each time",
+      "description": "Monsters leave you alone until you change back.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/ad7f4bfb4716356b8f266fa67ec5b901cdd47c57_350.webp"
+    },
+    {
+      "file": "screenshots/08-morph-iron-golem.png",
+      "title": "Even an iron golem",
+      "description": "Fourteen animals are in the pool, from chickens to iron golems.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/86d1183b821a5d505b97349b37b02bdb1b7a2ce6_350.webp"
+    },
+    {
+      "file": "screenshots/10-zombified.png",
+      "title": "Zombified",
+      "description": "Zombies treat you as one of them. Cure yourself within 10 minutes.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/3d06925803997351613069ab404f5349ea812489_350.webp"
+    },
+    {
+      "file": "screenshots/02-evoker.png",
+      "title": "Evokers",
+      "description": "The only place to find them.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/fff5fa6ec8cd56feb5533504d982ceed37f5da49_350.webp"
+    },
+    {
+      "file": "screenshots/03-evoker-drop.png",
+      "title": "A random totem",
+      "description": "Each evoker drops one of the eight in place of the vanilla totem.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/5736b30dd796201ed35ae4c8b2b6cc51cbb8870e_350.webp"
+    },
+    {
+      "file": "screenshots/11-hotbar.png",
+      "title": "All eight",
+      "description": "Hold one in either hand.",
+      "featured": false,
+      "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/a382d5b2611d6d2ceed9116ae53e46c319bfdb58_350.webp"
+    }
+  ],
+  "curseforge_project_id": 1800270
+}
