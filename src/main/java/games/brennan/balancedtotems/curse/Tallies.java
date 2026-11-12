@@ -68,7 +68,7 @@ public final class Tallies {
             DeadlineCurses.cure(player, curse.effect(), name);
             reset(player, curse);
         } else {
-            player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".progress", who, count, needed), false);
+            player.sendSystemMessage(Component.translatable("message.balancedtotems." + name + ".progress", who, count, needed));
         }
     }
 

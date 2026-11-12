@@ -2,8 +2,8 @@ package games.brennan.balancedtotems;
 
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffects;
@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 public enum Curse {
     WEAKNESS("weakness_totem", () -> MobEffects.WEAKNESS, Ticks.MINUTE * 20),
     /** Mining Fatigue II: level I is only 30% slower and barely noticed. */
-    FATIGUE("fatigue_totem", () -> MobEffects.DIG_SLOWDOWN, Ticks.MINUTE * 20, 1),
+    FATIGUE("fatigue_totem", () -> MobEffects.MINING_FATIGUE, Ticks.MINUTE * 20, 1),
     HEARTBREAK("heartbreak_totem", () -> BtRegistries.HEARTBREAK, Ticks.MINUTE * 20),
     BLINDNESS("blindness_totem", () -> MobEffects.BLINDNESS, Ticks.SECOND * 30),
     MORPHING("morphing_totem", () -> BtRegistries.MORPHED, Ticks.SECOND * 30),
@@ -36,7 +36,9 @@ public enum Curse {
     /** Saves you only from falling out of the world, and leaves no curse. */
     VOID("void_totem", null, 0),
     /** Saves you only from a deadly fall, and leaves no curse. */
-    FEATHER("feather_totem", null, 0);
+    FEATHER("feather_totem", null, 0),
+    /** Saves you only from explosions, and leaves no curse. */
+    BOOM("boom_totem", null, 0);
 
     private final String itemName;
     @Nullable private final Supplier<Holder<MobEffect>> effect;
@@ -86,13 +88,18 @@ public enum Curse {
         return this == FATIGUE || this == PACIFISM || this == MELON || this == RESTRAINT;
     }
 
-    /** The one kind of death this totem saves you from, or null for any death a vanilla totem saves. */
-    @Nullable
-    public ResourceKey<DamageType> onlySaves() {
+    /** Saves you from one kind of death only, leaves no curse, and gives no Fire Resistance. */
+    public boolean isNarrow() {
+        return this == VOID || this == FEATHER || this == BOOM;
+    }
+
+    /** For a narrow totem, whether this is the death it saves you from. */
+    public boolean narrowlySaves(DamageSource source) {
         return switch (this) {
-            case VOID -> DamageTypes.FELL_OUT_OF_WORLD;
-            case FEATHER -> DamageTypes.FALL;
-            default -> null;
+            case VOID -> source.is(DamageTypes.FELL_OUT_OF_WORLD);
+            case FEATHER -> source.is(DamageTypes.FALL);
+            case BOOM -> source.is(DamageTypeTags.IS_EXPLOSION);
+            default -> false;
         };
     }
 

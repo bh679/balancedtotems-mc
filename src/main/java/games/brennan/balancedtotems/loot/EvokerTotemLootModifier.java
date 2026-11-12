@@ -43,8 +43,8 @@ public final class EvokerTotemLootModifier extends LootModifier {
     public static final Supplier<MapCodec<EvokerTotemLootModifier>> SERIALIZER =
         SERIALIZERS.register("evoker_totems", () -> CODEC);
 
-    public EvokerTotemLootModifier(LootItemCondition[] conditions) {
-        super(conditions);
+    public EvokerTotemLootModifier(Optional<Holder<LootItemCondition>> condition, int priority) {
+        super(condition, priority);
     }
 
     public static void register(IEventBus modBus) {
@@ -53,7 +53,7 @@ public final class EvokerTotemLootModifier extends LootModifier {
 
     @Override
     protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context) {
-        Optional<HolderSet.Named<Item>> pool = BuiltInRegistries.ITEM.getTag(EVOKER_TOTEMS);
+        Optional<HolderSet.Named<Item>> pool = BuiltInRegistries.ITEM.get(EVOKER_TOTEMS);
         if (pool.isEmpty() || pool.get().size() == 0) {
             return generatedLoot;
         }

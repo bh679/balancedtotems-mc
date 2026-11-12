@@ -9,7 +9,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Heartbreak | 2 fewer hearts for 20 minutes |
 | Totem of Blindness | Blindness for 30 seconds |
 | Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
-| Totem of Zombification | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
+| Totem of Zombification | You become a zombie: iron and snow golems hunt you. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
 | Totem of Pacifism | Vow of Peace: hurt anything within 20 minutes and you die |
 | Totem of Melon Diet | Melon Diet: eat anything but melon within 20 minutes and you die |
@@ -17,9 +17,10 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Loneliness | Lonely: make 3 friends within 10 minutes, or die. A friend is a PlayerMob you swap gifts with |
 | Void Totem | Only saves you from void death: it teleports you like a chorus fruit, onto ground near where you last stood. In Dungeon Train it puts you back on the train |
 | Feather Totem | Only saves you from falling |
+| Boom Totem | Only saves you from explosions |
 
-Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance) when held in either
-hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zombified or Rage curses.
+Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance; the Void, Feather and
+Boom Totems skip Fire Resistance) when held in either hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zombified or Rage curses.
 
 Curses stack: a later pop never clears an earlier curse. The same curse again goes up a level with a
 fresh timer (Rage needs 3 more kills per level; Morphing picks a new animal; Heartbreak stops at

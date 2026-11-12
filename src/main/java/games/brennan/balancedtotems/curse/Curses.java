@@ -7,7 +7,8 @@ import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EntityType;
-import net.neoforged.neoforge.common.EffectCures;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.LivingEntity;
 
 import javax.annotation.Nullable;
 
@@ -44,17 +45,16 @@ public final class Curses {
         if (Tallies.counted(curse) && !player.hasEffect(curse.effect())) Tallies.reset(player, curse);
         // showIcon true, visible particles off: a curse is a status, not a potion cloud.
         MobEffectInstance instance = new MobEffectInstance(curse.effect(), duration, amplifier, false, false, true);
-        instance.getCures().remove(EffectCures.PROTECTED_BY_TOTEM);
         // force: replaces a running instance outright, so its level and timer are exactly these.
         player.forceAddEffect(instance, null);
+        CurseGuard.mark(player, curse);
         if (curse == Curse.MORPHING) Morphs.startRandomMorph(player);
-        if (curse == Curse.ZOMBIFIED) Morphs.setForm(player, EntityType.ZOMBIE);
+        if (curse == Curse.ZOMBIFIED) Morphs.setForm(player, EntityTypes.ZOMBIE);
     }
 
-    /** The curse this effect instance is, or null when it is not one (no curse, or a totem would clear it). */
+    /** The curse this effect instance is on {@code entity}, or null when it is not one (see {@link CurseGuard}). */
     @Nullable
-    public static Curse curseOf(MobEffectInstance instance) {
-        if (instance.getCures().contains(EffectCures.PROTECTED_BY_TOTEM)) return null;
-        return Curse.forEffect(instance.getEffect());
+    public static Curse curseOf(LivingEntity entity, MobEffectInstance instance) {
+        return CurseGuard.curseOf(entity, instance.getEffect());
     }
 }

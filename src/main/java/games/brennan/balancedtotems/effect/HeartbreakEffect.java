@@ -1,7 +1,7 @@
 package games.brennan.balancedtotems.effect;
 
 import games.brennan.balancedtotems.BalancedTotems;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -15,7 +15,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  */
 public class HeartbreakEffect extends CurseEffect {
 
-    public static final ResourceLocation MODIFIER_ID = BalancedTotems.id("effect.heartbreak");
+    public static final Identifier MODIFIER_ID = BalancedTotems.id("effect.heartbreak");
     /** Max health taken per level: two hearts. */
     public static final double HEALTH_PER_LEVEL = 4.0;
     /** The least max health Heartbreak leaves you: half a heart. */

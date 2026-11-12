@@ -2,7 +2,7 @@ package games.brennan.balancedtotems.curse;
 
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.fml.ModList;
 
@@ -29,7 +29,7 @@ public final class Targets {
 
     /** A kill that feeds Rage: a player, a Rage target (PlayerMob), or a villager when they stand in. */
     public static boolean countsForRage(LivingEntity victim) {
-        if (victim instanceof Player || victim.getType().is(BtRegistries.RAMPAGE_TARGETS)) return true;
+        if (victim instanceof Player || victim.getType().builtInRegistryHolder().is(BtRegistries.RAMPAGE_TARGETS)) return true;
         return victim instanceof Villager && villagersStandIn();
     }
 }

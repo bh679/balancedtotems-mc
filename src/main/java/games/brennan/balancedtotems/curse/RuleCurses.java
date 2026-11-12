@@ -2,11 +2,12 @@ package games.brennan.balancedtotems.curse;
 
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.registry.BtRegistries;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.CakeBlock;
@@ -38,8 +39,8 @@ public final class RuleCurses {
     }
 
     static boolean breaksMelonDiet(ItemStack stack, ServerPlayer player) {
-        if (stack.is(Items.MELON_SLICE) || stack.getUseAnimation() != UseAnim.EAT) return false;
-        return stack.getFoodProperties(player) != null;
+        if (stack.is(Items.MELON_SLICE) || stack.getUseAnimation() != ItemUseAnimation.EAT) return false;
+        return stack.has(DataComponents.FOOD);
     }
 
     @SubscribeEvent

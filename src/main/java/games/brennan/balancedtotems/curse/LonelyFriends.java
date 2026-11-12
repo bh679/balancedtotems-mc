@@ -3,12 +3,13 @@ package games.brennan.balancedtotems.curse;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.registry.BtRegistries;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.gossip.GossipType;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -42,7 +43,7 @@ public final class LonelyFriends {
         List<String> updated = new ArrayList<>(known);
         updated.add(id);
         player.setData(BtRegistries.LONELY_FRIEND_IDS, List.copyOf(updated));
-        Entity entity = player.serverLevel().getEntity(friend);
+        Entity entity = player.level().getEntity(friend);
         Component who = entity != null ? entity.getDisplayName() : Component.translatable("message.balancedtotems.lonely.someone");
         Tallies.add(player, Curse.LONELINESS, who);
     }
@@ -60,7 +61,7 @@ public final class LonelyFriends {
     public static void onItemGone(EntityLeaveLevelEvent event) {
         if (!(event.getEntity() instanceof ItemEntity item) || item.getRemovalReason() != Entity.RemovalReason.DISCARDED) return;
         if (!(item.getOwner() instanceof ServerPlayer player) || !player.hasEffect(BtRegistries.LONELY)) return;
-        if (!Villager.FOOD_POINTS.containsKey(item.getItem().getItem()) || !Targets.villagersStandIn()) return;
+        if (!item.getItem().has(DataComponents.VILLAGER_FOOD) || !Targets.villagersStandIn()) return;
         if (!event.getLevel().getEntitiesOfClass(Player.class, item.getBoundingBox().inflate(PICKUP_REACH)).isEmpty()) return;
         event.getLevel().getEntitiesOfClass(Villager.class, item.getBoundingBox().inflate(PICKUP_REACH)).stream()
             .findFirst().ifPresent(villager -> befriend(player, villager.getUUID()));

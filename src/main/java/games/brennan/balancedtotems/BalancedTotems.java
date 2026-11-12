@@ -1,10 +1,11 @@
 package games.brennan.balancedtotems;
 
 import com.mojang.logging.LogUtils;
+import games.brennan.balancedtotems.gametest.BtGameTestRegistry;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.net.BtNetwork;
 import games.brennan.balancedtotems.registry.BtRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -27,10 +28,11 @@ public final class BalancedTotems {
         BtRegistries.register(modBus);
         EvokerTotemLootModifier.register(modBus);
         modBus.addListener(BtNetwork::register);
+        BtGameTestRegistry.register(modBus);
         LOGGER.info("Balanced Totems loaded");
     }
 
-    public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    public static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 }

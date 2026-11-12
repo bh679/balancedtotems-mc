@@ -18,7 +18,7 @@ public final class VowOfPeace {
 
     @SubscribeEvent
     public static void onDamage(LivingDamageEvent.Post event) {
-        if (event.getNewDamage() <= 0.0F) return;
+        if (event.getHealthDamage() <= 0.0F) return;
         if (!(event.getSource().getEntity() instanceof ServerPlayer attacker) || attacker == event.getEntity()) return;
         if (attacker.hasEffect(BtRegistries.VOW_OF_PEACE)) DeadlineCurses.doom(attacker, BtRegistries.BROKEN_VOW);
     }

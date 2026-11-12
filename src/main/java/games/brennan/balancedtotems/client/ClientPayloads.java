@@ -22,6 +22,8 @@ public final class ClientPayloads {
     /** Your view before a morph put you in third person, restored when the form ends; null when we did not switch. */
     @Nullable
     private static CameraType cameraBeforeMorph;
+    /** The view a morph switches you to. */
+    private static final CameraType MORPH_CAMERA = CameraType.THIRD_PERSON_BACK;
 
     private ClientPayloads() {}
 
@@ -35,7 +37,7 @@ public final class ClientPayloads {
         mc.particleEngine.createTrackingEmitter(entity, ParticleTypes.TOTEM_OF_UNDYING, POP_PARTICLE_TICKS);
         level.playLocalSound(entity.getX(), entity.getY(), entity.getZ(), SoundEvents.TOTEM_USE,
             entity.getSoundSource(), 1.0F, 1.0F, false);
-        if (entity == mc.player) mc.gameRenderer.displayItemActivation(payload.totem());
+        if (entity == mc.player) mc.player.displayItemActivation(payload.totem());
     }
 
     public static void onMorphSync(MorphSyncPayload payload) {
@@ -48,14 +50,17 @@ public final class ClientPayloads {
         if (player == Minecraft.getInstance().player) followMorphWithCamera(player, payload.form());
     }
 
-    /** Morphing turns your camera to third person so you can see what you became; it goes back after. */
+    /**
+     * Morphing turns your camera to third person so you can see what you became. When it wears off the
+     * camera goes back to what it was, unless you changed it yourself in the meantime.
+     */
     private static void followMorphWithCamera(Player player, String form) {
         Minecraft mc = Minecraft.getInstance();
         if (!form.isEmpty() && player.hasEffect(BtRegistries.MORPHED)) {
             if (cameraBeforeMorph == null) cameraBeforeMorph = mc.options.getCameraType();
-            mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+            mc.options.setCameraType(MORPH_CAMERA);
         } else if (form.isEmpty() && cameraBeforeMorph != null) {
-            mc.options.setCameraType(cameraBeforeMorph);
+            if (mc.options.getCameraType() == MORPH_CAMERA) mc.options.setCameraType(cameraBeforeMorph);
             cameraBeforeMorph = null;
         }
     }
