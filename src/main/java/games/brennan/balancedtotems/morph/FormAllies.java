@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.morph;
 
 import games.brennan.balancedtotems.BalancedTotems;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -18,7 +19,9 @@ import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -37,7 +40,7 @@ import javax.annotation.Nullable;
  *   <li>Zombified piglins never turn on one of their own, and join in when something hurts it.</li>
  *   <li>An axolotl playing dead is ignored.</li>
  *   <li>A dolphin gives Dolphin's Grace to players swimming nearby.</li>
- *   <li>A strider walks on lava (sneak to sink).</li>
+ *   <li>A strider stands and walks on lava (sneak to sink); see {@link FormTraits#standsOn}.</li>
  *   <li>Another player with a bowl can milk a mooshroom for mushroom stew.</li>
  * </ul>
  */
@@ -48,7 +51,7 @@ public final class FormAllies {
     private static final double PACK_RADIUS = 20.0;
     private static final double DOLPHIN_GRACE_RADIUS = 10.0;
     private static final int DOLPHIN_GRACE_TICKS = 100;
-    private static final double LAVA_FLOAT = 0.12;
+    private static final double LAVA_RISE = 0.1;
 
     private FormAllies() {}
 
@@ -115,15 +118,19 @@ public final class FormAllies {
     }
 
     /**
-     * {@code Strider#floatStrider}: in lava, rise to the surface and stay on it. Runs on both sides,
-     * because the player's own client moves them.
+     * {@code Strider#floatStrider}: a strider that sank into lava bobs back up to stand on it (sneak to
+     * stay under). Runs on both sides, because the player's own client moves them.
      */
     private static void walkOnLava(Player player) {
         if (!player.isInLava() || player.isShiftKeyDown()) return;
-        Vec3 motion = player.getDeltaMovement();
-        boolean deep = player.getFluidHeight(FluidTags.LAVA) > player.getBbHeight() * 0.25;
-        player.setDeltaMovement(motion.x, deep ? Math.max(motion.y, LAVA_FLOAT) : Math.max(motion.y, 0.0), motion.z);
-        if (!deep) player.setOnGround(true);
+        CollisionContext context = CollisionContext.of(player);
+        BlockPos at = player.blockPosition();
+        if (context.isAbove(LiquidBlock.STABLE_SHAPE, at, true) && !player.level().getFluidState(at.above()).is(FluidTags.LAVA)) {
+            player.setOnGround(true);
+        } else { // under the surface: rise until it can stand on it (gravity would outpull vanilla's 0.05)
+            Vec3 motion = player.getDeltaMovement().scale(0.5).add(0.0, 0.05, 0.0);
+            player.setDeltaMovement(motion.x, Math.max(motion.y, LAVA_RISE), motion.z);
+        }
         player.resetFallDistance();
     }
 

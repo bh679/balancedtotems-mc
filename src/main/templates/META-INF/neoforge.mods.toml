@@ -24,3 +24,7 @@ displayURL="https://github.com/bh679/balancedtotems-mc"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+
+# Morph forms: a strider stands on lava, fire-immune forms don't burn (mixin/).
+[[mixins]]
+config="balancedtotems.mixins.json"

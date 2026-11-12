@@ -21,8 +21,7 @@ public final class MobGaits {
      * A mob's walk and run multipliers. {@code ridden} runs at the ridden speed (the mob's movement
      * speed taken as a player's, plus {@code riddenSprintBonus}, a camel's dash). {@code measuredWalk}
      * and {@code measuredRun} (blocks per second) replace the formula for mobs whose own movement code
-     * sets their pace: turtles slow themselves on land, frogs and rabbits hop, and a strider off lava
-     * shivers along at two thirds of its speed.
+     * sets their pace: turtles slow themselves on land, frogs and rabbits hop.
      */
     public record Gait(double walk, double run, boolean ridden, double riddenSprintBonus, double measuredWalk, double measuredRun) {
         static Gait of(double walk, double run) {
@@ -70,7 +69,7 @@ public final class MobGaits {
         Map.entry(EntityType.SKELETON_HORSE, Gait.ridden(0.7, 0.0)),
         Map.entry(EntityType.SNIFFER, Gait.of(1.0, 2.0)),
         Map.entry(EntityType.SNOW_GOLEM, Gait.of(1.0, 1.25)),
-        Map.entry(EntityType.STRIDER, Gait.measured(1.0, 1.65, 0.59, 1.59)),
+        Map.entry(EntityType.STRIDER, Gait.of(1.0, 1.65)), // on lava; off it, FormTraits slows it as vanilla does
         Map.entry(EntityType.TRADER_LLAMA, Gait.ridden(0.7, 0.0)),
         Map.entry(EntityType.TURTLE, Gait.measured(1.0, 1.2, 0.29, 0.34)),
         Map.entry(EntityType.WOLF, Gait.of(1.0, 1.5)),

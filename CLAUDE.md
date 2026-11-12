@@ -40,6 +40,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `curse/RuleCurses` | Melon Diet (food other than melon) and Restrained (chests, barrels, ender chests) |
 | `compat/PlayerMobGifts` | PlayerMob gifts both ways = a friend; chains PlayerMob's single gift observer by reflection |
 | `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
+| `mixin/` | `LivingEntityMixin`: a strider-form player stands on lava; `EntityMixin`: fire-immune forms don't burn |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
 | `api/BalancedTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 

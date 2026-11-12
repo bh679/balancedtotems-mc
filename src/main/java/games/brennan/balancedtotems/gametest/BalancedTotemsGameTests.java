@@ -59,6 +59,7 @@ import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -479,10 +480,11 @@ public final class BalancedTotemsGameTests {
                 MobGaits.Gait gait = MobGaits.of(form);
                 if (gait != null) {
                     double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).getBaseValue(Attributes.MOVEMENT_SPEED);
-                    double walk = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+                    double chill = form == EntityType.STRIDER ? FormTraits.STRIDER_COLD * FormTraits.STRIDER_COLD : 1.0; // on stone, it's cold
+                    double walk = player.getAttributeValue(Attributes.MOVEMENT_SPEED) / chill;
                     player.setSprinting(true);
                     tick(player, 1);
-                    double run = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+                    double run = player.getAttributeValue(Attributes.MOVEMENT_SPEED) / chill;
                     player.setSprinting(false);
                     tick(player, 1);
                     if (Math.abs(walk - MobGaits.walkSpeed(gait, mobSpeed)) > 1.0E-6) wrong.add(name + " walks at " + walk + ", its mob at " + MobGaits.walkSpeed(gait, mobSpeed));
@@ -510,9 +512,8 @@ public final class BalancedTotemsGameTests {
     /** Long enough that a running fox (about 9 blocks a second) is still on it when timing ends. */
     private static final int LANE_LENGTH = 130;
     /** Far enough apart that lanes don't bother each other (an armadillo curls up near undead mobs). */
-    private static final int LANE_SPACING = 8;
+    private static final int LANE_SPACING = 12;
     private static final int LANES_PER_BATCH = 10;
-    private static final int LANES_LOAD_TICKS = 40;
     private static final int STROLL_TICKS = 60;
     /** How far a measured mob may be from {@link MobGaits}' prediction. */
     private static final double GAIT_TOLERANCE = 0.1;
@@ -520,7 +521,7 @@ public final class BalancedTotemsGameTests {
     /**
      * Every land form's real mob strolls, and runs, at its own AI's multipliers down its own stone lane
      * high above the grid; its ground speed must match
-     * {@link MobGaits}, what the form is given, within 10%. Lanes run {@value #LANES_PER_BATCH} at a time
+     * {@link MobGaits}, what the form is given, within 10%. The strider walks on lava, where it's warm. Lanes run {@value #LANES_PER_BATCH} at a time
      * on one force-loaded patch. Ridden mobs' runs are the player's input on them, so only their walk is
      * measured.
      */
@@ -528,7 +529,9 @@ public final class BalancedTotemsGameTests {
     @SuppressWarnings("unchecked")
     public static void mobsWalkAtTheirOwnPace(GameTestHelper helper) {
         List<GaitLane> lanes = new ArrayList<>();
-        for (Map.Entry<EntityType<?>, MobGaits.Gait> entry : MobGaits.GAITS.entrySet()) {
+        List<Map.Entry<EntityType<?>, MobGaits.Gait>> gaits = MobGaits.GAITS.entrySet().stream() // the same batches every run
+            .sorted(java.util.Comparator.comparing(entry -> BuiltInRegistries.ENTITY_TYPE.getKey(entry.getKey()).toString())).toList();
+        for (Map.Entry<EntityType<?>, MobGaits.Gait> entry : gaits) {
             MobGaits.Gait gait = entry.getValue();
             double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) entry.getKey()).getBaseValue(Attributes.MOVEMENT_SPEED);
             lanes.add(new GaitLane(entry.getKey(), false, gait.walk(), MobGaits.toBlocksPerSecond(MobGaits.walkSpeed(gait, mobSpeed))));
@@ -536,6 +539,7 @@ public final class BalancedTotemsGameTests {
         }
         for (int x = 0; x < LANES_PER_BATCH * LANE_SPACING; x++) {
             for (int z = -1; z <= LANE_LENGTH; z++) {
+                helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 58, z)), Blocks.STONE.defaultBlockState());
                 helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 59, z)), Blocks.STONE.defaultBlockState());
             }
         }
@@ -546,10 +550,10 @@ public final class BalancedTotemsGameTests {
         List<Vec3> last = new ArrayList<>();
         List<List<Double>> steps = new ArrayList<>();
         int batchTicks = STROLL_WARM_UP + STROLL_TICKS + 1;
-        int[] tick = {-LANES_LOAD_TICKS}; // the patch's chunks start ticking a moment after they're forced
+        int[] tick = {-1};
         helper.onEachTick(() -> {
+            if (tick[0] < 0 && !lanesTicking(helper)) return; // forced chunks take a moment to start ticking
             tick[0]++;
-            if (tick[0] < 0) return;
             int batch = tick[0] / batchTicks;
             int t = tick[0] % batchTicks;
             int first = batch * LANES_PER_BATCH;
@@ -559,6 +563,15 @@ public final class BalancedTotemsGameTests {
                 mobs.clear();
                 last.clear();
                 steps.clear();
+                for (int i = 0; i < LANES_PER_BATCH; i++) { // a strider walks on lava, the rest on stone
+                    boolean lava = i < current.size() && current.get(i).form() == EntityType.STRIDER;
+                    for (int x = i * LANE_SPACING; x < i * LANE_SPACING + 3; x++) {
+                        for (int z = 0; z < LANE_LENGTH; z++) {
+                            helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 59, z)),
+                                (lava ? Blocks.LAVA : Blocks.STONE).defaultBlockState());
+                        }
+                    }
+                }
                 for (int i = 0; i < current.size(); i++) {
                     Mob mob = (Mob) current.get(i).form().create(helper.getLevel());
                     Vec3 at = helper.absoluteVec(new Vec3(i * LANE_SPACING + 1.5, 60, 0.5));
@@ -601,6 +614,11 @@ public final class BalancedTotemsGameTests {
                 mobs.get(i).discard();
             }
             if (first + LANES_PER_BATCH < lanes.size()) return;
+            for (int x = 0; x < LANES_PER_BATCH * LANE_SPACING; x++) { // no lava left lying about
+                for (int z = 0; z < LANE_LENGTH; z++) {
+                    helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 59, z)), Blocks.STONE.defaultBlockState());
+                }
+            }
             forced.forEach(chunk -> helper.getLevel().setChunkForced(chunk.x, chunk.z, false));
             BalancedTotems.LOGGER.info("Mob gaits:\n{}", String.join("\n", rows));
             check(helper, wrong.isEmpty(), wrong.size() + " gaits off: " + String.join("; ", wrong));
@@ -610,6 +628,16 @@ public final class BalancedTotemsGameTests {
 
     /** One measured stroll or run: which mob, at what multiplier, and the blocks a second the form is given. */
     private record GaitLane(EntityType<?> form, boolean run, double modifier, double expected) {}
+
+    /** Whether every chunk under the lanes ticks its entities yet. */
+    private static boolean lanesTicking(GameTestHelper helper) {
+        for (int x = 0; x <= LANES_PER_BATCH * LANE_SPACING; x += 16) {
+            for (int z = 0; z <= LANE_LENGTH; z += 16) {
+                if (!helper.getLevel().isPositionEntityTicking(helper.absolutePos(new BlockPos(x, 60, z)))) return false;
+            }
+        }
+        return true;
+    }
 
     /** Force-loads the chunks under {@code lanes} lanes 4 blocks apart, so every lane's mob ticks. */
     private static List<net.minecraft.world.level.ChunkPos> forceLanes(GameTestHelper helper, int lanes) {
@@ -751,10 +779,16 @@ public final class BalancedTotemsGameTests {
     public static void striderFloatsOnLava(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         Morphs.setForm(player, EntityType.STRIDER);
+        check(helper, player.canStandOnFluid(Fluids.LAVA.defaultFluidState()), "a strider stands on lava");
+        check(helper, !player.canStandOnFluid(Fluids.WATER.defaultFluidState()), "but not on water");
         submerge(helper, player, Blocks.LAVA);
         player.setDeltaMovement(0.0, -0.5, 0.0);
-        tick(player, 1);
-        check(helper, player.isAlive() && player.getDeltaMovement().y > 0.0, "a strider should rise in lava, was " + player.getDeltaMovement());
+        tick(player, 10);
+        check(helper, player.isAlive() && player.getDeltaMovement().y > 0.0, "a sunk strider should bob up, was " + player.getDeltaMovement());
+        check(helper, FormTraits.isWarmStrider(player), "a strider in lava is warm");
+        check(helper, !player.isOnFire(), "a strider in lava doesn't burn");
+        Morphs.setForm(player, EntityType.PIG);
+        check(helper, !player.canStandOnFluid(Fluids.LAVA.defaultFluidState()), "a pig doesn't stand on lava");
         helper.succeed();
     }
 

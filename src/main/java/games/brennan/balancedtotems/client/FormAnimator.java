@@ -2,6 +2,7 @@ package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.morph.FormAction;
+import games.brennan.balancedtotems.morph.FormTraits;
 import games.brennan.balancedtotems.morph.MorphFlight;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
@@ -98,7 +99,7 @@ final class FormAnimator {
             if (standIn instanceof Camel camel) camel.setDashing(false);
         });
         tickTimed(id);
-        if (standIn instanceof Strider strider) strider.setSuffocating(!player.isInLava()); // shivers off lava
+        if (standIn instanceof Strider strider) strider.setSuffocating(!FormTraits.isWarmStrider(player)); // shivers off lava
         countDown(REARING, id, () -> {
             if (standIn instanceof AbstractHorse horse) horse.setStanding(false);
         });

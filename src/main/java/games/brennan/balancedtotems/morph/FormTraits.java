@@ -7,6 +7,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BiomeTags;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
@@ -23,6 +25,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.FluidState;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingFallEvent;
@@ -103,7 +106,36 @@ public final class FormTraits {
         if (wanted != 0.0) speed.addTransientModifier(new AttributeModifier(RUN_ID, wanted, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
     }
 
+    /** {@code Strider#SUFFOCATING_MODIFIER}: a strider off lava moves at two thirds of its speed. */
+    public static final double STRIDER_COLD = 0.66;
+    private static final ResourceLocation STRIDER_COLD_ID = BalancedTotems.id("morph.strider_cold");
+
     private FormTraits() {}
+
+    /** Whether the player stands on this fluid: a strider on lava, unless sneaking to sink. */
+    public static boolean standsOn(Player player, FluidState fluid) {
+        return fluid.is(FluidTags.LAVA) && !player.isShiftKeyDown() && Morphs.formOf(player).orElse(null) == EntityType.STRIDER;
+    }
+
+    /** {@code Strider#tick}: warm on or in lava (or another strider-warm block), cold, and shivering, anywhere else. */
+    public static boolean isWarmStrider(Player player) {
+        return player.level().getBlockState(player.blockPosition()).is(BlockTags.STRIDER_WARM_BLOCKS)
+            || player.level().getBlockState(player.blockPosition().below()).is(BlockTags.STRIDER_WARM_BLOCKS)
+            || player.getFluidHeight(FluidTags.LAVA) > 0.0;
+    }
+
+    /**
+     * A cold strider is slowed as the mob is. Ground speed grows with the square of a mob's speed
+     * ({@link MobGaits#likeAMob}), so the player's speed takes the slowdown squared.
+     */
+    private static void chill(ServerPlayer player, @Nullable EntityType<?> form) {
+        AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (speed == null) return;
+        boolean cold = form == EntityType.STRIDER && !isWarmStrider(player);
+        if (cold == speed.hasModifier(STRIDER_COLD_ID)) return;
+        if (cold) speed.addTransientModifier(new AttributeModifier(STRIDER_COLD_ID, STRIDER_COLD * STRIDER_COLD - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        else speed.removeModifier(STRIDER_COLD_ID);
+    }
 
     /** From {@link Morphs#setForm}: swap the hidden effects to the new form's. */
     static void onFormChanged(ServerPlayer player, @Nullable EntityType<?> form) {
@@ -142,6 +174,7 @@ public final class FormTraits {
         if (!(event.getEntity() instanceof ServerPlayer player) || !player.isAlive()) return;
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         run(player, form);
+        chill(player, form);
         if (isWaterForm(form)) breathe(player, form);
         if (form == EntityType.SNOW_GOLEM) beSnowGolem(player);
     }
