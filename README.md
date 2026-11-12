@@ -1,4 +1,4 @@
-# Balanced Totems
+# Dungeon Totems
 
 Totems of Undying that still save your life, but leave a curse behind. NeoForge 1.21.1.
 
@@ -29,17 +29,17 @@ death and come back on respawn with a full timer. Hover Heartbreak, Zombified or
 the hearts taken, the cure, or the kills and time left.
 
 Evokers drop one of these at random instead of the vanilla totem. The pool is the item tag
-`balancedtotems:evoker_totems`, so a datapack can change it.
+`dungeontotems:evoker_totems`, so a datapack can change it.
 
 Built for [Dungeon Train](https://modrinth.com/mod/dungeon-train), where the Void Totem lands you
 back on the train, but it works on its own.
 
 ## For mod authors
 
-- `games.brennan.balancedtotems.api.BalancedTotemsApi.setRescueTarget(player -> Optional<Vec3>)`
+- `games.brennan.dungeontotems.api.DungeonTotemsApi.setRescueTarget(player -> Optional<Vec3>)`
   picks where the Void Totem sends a player.
-- Curses are plain mob effects: `balancedtotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage).
-- Datapacks can change `balancedtotems:morph_pool` and `balancedtotems:rampage_targets` (entity type tags).
+- Curses are plain mob effects: `dungeontotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage).
+- Datapacks can change `dungeontotems:morph_pool` and `dungeontotems:rampage_targets` (entity type tags).
 
 Without PlayerMob, villagers stand in: Rage counts villager kills, and Lonely counts a villager you
 trade with, feed, or cure. Under Dungeon Train villagers never count.
