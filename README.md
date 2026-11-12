@@ -11,6 +11,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
 | Totem of Zombification | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
+| Totem of Pacifism | Vow of Peace: hurt anything within 20 minutes and you die |
 | Totem of Loneliness | Lonely: make 3 friends within 10 minutes, or die. A friend is a PlayerMob you swap gifts with |
 | Void Totem | Only saves you from void death, and pulls you back to safety |
 | Feather Totem | Only saves you from falling |
@@ -20,7 +21,7 @@ hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zomb
 
 Curses stack: a later pop never clears an earlier curse. The same curse again goes up a level with a
 fresh timer (Rage needs 3 more kills per level; Morphing picks a new animal; Heartbreak stops at
-half a heart). Fatigue never levels up: another Fatigue pop adds 20 minutes instead. Curses survive
+half a heart). Fatigue and Pacifism never level up: another pop adds 20 minutes instead. Curses survive
 death and come back on respawn with a full timer. Hover Heartbreak, Zombified or Rage in the inventory to see
 the hearts taken, the cure, or the kills and time left.
 

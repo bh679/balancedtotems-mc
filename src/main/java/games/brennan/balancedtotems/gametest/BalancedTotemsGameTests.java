@@ -458,6 +458,43 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
+    // ---- pacifism ----
+
+    @GameTest(template = EMPTY)
+    public static void hurtingAnythingBreaksTheVow(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.PACIFISM);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        pig.hurt(player.damageSources().playerAttack(player), 1.0F);
+        tick(player, 2);
+        check(helper, !player.isAlive(), "hurting a pig under the vow should kill");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void takingDamageKeepsTheVow(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.PACIFISM);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        player.invulnerableTime = 0;
+        player.hurt(player.damageSources().mobAttack(pig), 1.0F);
+        tick(player, 2);
+        check(helper, player.isAlive(), "being hurt does not break the vow");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void pacifismAddsTimeNotLevels(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.PACIFISM);
+        tick(player, 20);
+        pop(player, Curse.PACIFISM);
+        MobEffectInstance vow = player.getEffect(BtRegistries.VOW_OF_PEACE);
+        check(helper, vow != null && vow.getAmplifier() == 0, "the vow has no levels, was " + vow);
+        expectEffect(helper, player, BtRegistries.VOW_OF_PEACE, 2 * Curse.PACIFISM.durationTicks() - 20);
+        helper.succeed();
+    }
+
     // ---- loot ----
 
     @GameTest(template = EMPTY)

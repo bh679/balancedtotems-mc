@@ -59,6 +59,11 @@ public final class DeadlineCurses {
         if (instance.is(BtRegistries.LONELY)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.LONELINESS);
     }
 
+    /** Kills the player on their next tick with {@code cause}, outside whatever event is running now. */
+    public static void doom(ServerPlayer player, ResourceKey<DamageType> cause) {
+        PENDING_DEATHS.put(player.getUUID(), cause);
+    }
+
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
@@ -96,7 +101,10 @@ public final class DeadlineCurses {
     /** Lifts {@code curse}: no more deadline, a message and a sound. */
     static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
         player.removeEffect(curse);
-        PENDING_DEATHS.remove(player.getUUID());
+        // Only this curse's own deadline: a broken vow in the same tick still kills.
+        ResourceKey<DamageType> deadline = curse.is(BtRegistries.ZOMBIFIED) ? BtRegistries.ZOMBIFICATION
+            : curse.is(BtRegistries.RAMPAGE) ? BtRegistries.RAMPAGE_FAILED : BtRegistries.LONELINESS;
+        PENDING_DEATHS.remove(player.getUUID(), deadline);
         player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), true);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);
     }

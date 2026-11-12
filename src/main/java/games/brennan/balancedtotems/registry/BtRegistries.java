@@ -61,6 +61,10 @@ public final class BtRegistries {
     public static final DeferredHolder<MobEffect, MobEffect> LONELY = EFFECTS.register("lonely",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xE68C9C, false));
 
+    /** Hurt anything while it lasts and you die (see {@code curse/VowOfPeace}). Milk does not lift it. */
+    public static final DeferredHolder<MobEffect, MobEffect> VOW_OF_PEACE = EFFECTS.register("vow_of_peace",
+        () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xE4E4EC, false));
+
     /** Kills (Rage) or friends (Lonely) needed per level. */
     public static final int RAMPAGE_KILLS_NEEDED = 3;
 
@@ -94,6 +98,8 @@ public final class BtRegistries {
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("rampage_failed"));
     public static final ResourceKey<DamageType> LONELINESS =
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("loneliness"));
+    public static final ResourceKey<DamageType> BROKEN_VOW =
+        ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("broken_vow"));
 
     private BtRegistries() {}
 

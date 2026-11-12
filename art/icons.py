@@ -57,10 +57,16 @@ def lonely(vanilla: Vanilla) -> Image.Image:
     return vanilla.load(HEART + "container.png").resize((18, 18), Image.NEAREST)
 
 
+def vow_of_peace(vanilla: Vanilla) -> Image.Image:
+    """The vanilla poppy."""
+    return over(Image.new("RGBA", (18, 18)), vanilla.load("block/poppy.png"), (1, 1))
+
+
 ICONS = {
     "heartbreak": heartbreak,
     "morphed": morphed,
     "zombified": zombified,
     "rampage": rampage,
     "lonely": lonely,
+    "vow_of_peace": vow_of_peace,
 }

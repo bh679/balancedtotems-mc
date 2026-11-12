@@ -1,4 +1,4 @@
-"""The ten totems (16x16). Each is a grid over the vanilla totem's shape.
+"""The eleven totems (16x16). Each is a grid over the vanilla totem's shape.
 
 Grid keys: '0'..'6' are body tones darkest to lightest (the vanilla totem's own
 seven), 'g'/'h' its light/dark eye pixels, '.' transparent, and any other letter
@@ -178,6 +178,16 @@ def loneliness(vanilla: Vanilla) -> Image.Image:
     return over(render(grid, palette), vanilla.load("gui/sprites/hud/heart/container.png"), (3, 7))
 
 
+def pacifism(vanilla: Vanilla) -> Image.Image:
+    """White, eyes closed, a big vanilla poppy over the chest."""
+    grid = list(VANILLA)
+    grid[5] = "....06333360...."
+    grid[6] = "....0hh65hh0...."
+    palette = {**ramp("6a6a78", "9a9aa8", "c4c4d0", "d4d4de", "e8e8f0", "f2f2f8", "ffffff"), **cols(h="6a6a78")}
+    poppy = vanilla.load("block/poppy.png").resize((14, 14), Image.NEAREST)
+    return over(render(grid, palette), poppy, (4, 2))
+
+
 def void(vanilla: Vanilla) -> Image.Image:
     """Plain dark, dim purple eyes."""
     palette = {**ramp("06060a", "0e0e14", "16161e", "1c1c26", "242430", "2c2c3a", "363648"),
@@ -220,6 +230,7 @@ TOTEMS = {
     "zombified_totem": zombified,
     "rampage_totem": rampage,
     "loneliness_totem": loneliness,
+    "pacifism_totem": pacifism,
     "void_totem": void,
     "feather_totem": feather,
 }

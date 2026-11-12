@@ -86,6 +86,8 @@ public final class CurseTooltips {
         } else if (effect.is(BtRegistries.RAMPAGE)) {
             int kills = Math.max(0, Tallies.needed(effect) - Tallies.count(player, Curse.RAMPAGE));
             lines.add(Component.translatable("effect.balancedtotems.rampage.deadline", kills, left).withStyle(ChatFormatting.GRAY));
+        } else if (effect.is(BtRegistries.VOW_OF_PEACE)) {
+            lines.add(Component.translatable("effect.balancedtotems.vow_of_peace.rule").withStyle(ChatFormatting.GRAY));
         } else if (effect.is(BtRegistries.LONELY)) {
             int friends = Math.max(0, Tallies.needed(effect) - Tallies.count(player, Curse.LONELINESS));
             lines.add(Component.translatable("effect.balancedtotems.lonely.deadline", friends, left).withStyle(ChatFormatting.GRAY));

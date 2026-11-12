@@ -2,6 +2,7 @@
   "values": [
     "balancedtotems:zombification",
     "balancedtotems:rampage_failed",
-    "balancedtotems:loneliness"
+    "balancedtotems:loneliness",
+    "balancedtotems:broken_vow"
   ]
 }

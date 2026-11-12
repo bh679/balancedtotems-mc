@@ -15,7 +15,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
   per level, 20 min, never below half a heart), Blindness (30 s), Morphing (random animal form, 30 s),
   Zombified (zombie form; golden apple while weakened within 10 min or die), Rage (id `rampage`; kill 3
   players/PlayerMobs per level within 15 min or die), Void (void deaths only; chorus hop to the
-  rescue target, no curse), Feather (deadly falls only, no curse), Loneliness (make 3 friends per level within 10 min or die). Curse totems are named
+  rescue target, no curse), Feather (deadly falls only, no curse), Loneliness (make 3 friends per level within 10 min or die), Pacifism (Vow of Peace: hurt anything within 20 min and die). Curse totems are named
   "Totem of X"; Void and Feather keep "X Totem". Curses stack, level up, and survive death.
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's
   rescue target to the train. Works standalone: the Void Totem then uses the last safe ground.
@@ -35,6 +35,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `curse/DeadlineCurses` | Zombified, Rage, Lonely: cures and death on expiry |
 | `curse/Curses`, `CurseMemory` | Applying a curse (stacking, levels), keeping curses through death |
 | `curse/Tallies`, `Targets`, `LonelyFriends` | Rage kills / Lonely friends; who counts (PlayerMobs, villagers without PlayerMob and Dungeon Train) |
+| `curse/VowOfPeace` | Pacifism: any damage you deal under the vow kills you next tick |
 | `compat/PlayerMobGifts` | PlayerMob gifts both ways = a friend; chains PlayerMob's single gift observer by reflection |
 | `voidtotem/VoidRescue` | Chorus hop; rescue target → last safe ground → world spawn |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
