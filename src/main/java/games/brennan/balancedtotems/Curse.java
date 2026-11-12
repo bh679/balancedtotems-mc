@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 /**
  * What each totem leaves behind after it saves you. Durations are in ticks; the base amplifier is the
  * level a first pop gives (0 is level I). Popping the same totem again raises the level and resets the
- * timer, except Fatigue, Pacifism, Melons and Restraint, which add their duration to the time
+ * timer, except Fatigue, Pacifism, Melon Diet and Restraint, which add their duration to the time
  * left instead.
  */
 public enum Curse {
