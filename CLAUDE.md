@@ -37,7 +37,10 @@ through the approval gates (plan, test, merge) with full human oversight at each
 
 Other mods find curses by effect id (`balancedtotems:zombified` etc.), with no compile dependency.
 Data: `tags/entity_type/morph_pool.json` (morph forms), `rampage_targets.json` (PlayerMob, optional).
-Textures come from `art/make_textures.py` (recolours the vanilla totem; pass its path).
+Textures come from `art/make_textures.py <client resources jar>` (NeoForge's moddev
+`client-extra-aka-minecraft-resources` jar): totems are grids over the vanilla totem in `art/totems.py`,
+effect icons combine vanilla sprites in `art/icons.py`. Build effect icons from vanilla sprites where they exist.
+`art/alternates/` holds designs kept for later, not used by the mod.
 
 ---
 
