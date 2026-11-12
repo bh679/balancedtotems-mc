@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * The two curses you must lift before they run out, or die:
  * <ul>
  *   <li><b>Zombified</b> (10 min): eat a golden apple while you have Weakness, like curing a zombie
- *       villager. Any Weakness counts: a potion, a splash, or a Weakness Totem's curse.</li>
+ *       villager. Any Weakness counts: a potion, a splash, or a Totem of Weakness's curse.</li>
  *   <li><b>Rampage</b> (15 min): kill {@link BtRegistries#RAMPAGE_KILLS_NEEDED} players or entities
  *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs) per level.</li>
  * </ul>
