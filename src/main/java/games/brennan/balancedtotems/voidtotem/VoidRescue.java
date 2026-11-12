@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -22,13 +23,19 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The Void Totem's chorus-fruit hop. Goes to the {@link BalancedTotemsApi} rescue target (the
- * train, under Dungeon Train), else the last safe ground the player stood on, else world spawn.
+ * The Void Totem's rescue. With a {@link BalancedTotemsApi} rescue target (the train, under Dungeon
+ * Train) it goes straight there. Otherwise it acts like a chorus fruit: from the last safe ground the
+ * player stood on (else world spawn), a random hop onto ground within 8 blocks, as many tries as the
+ * fruit takes; if none lands, the player stays on that safe ground.
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class VoidRescue {
 
     private static final int TRACK_EVERY_TICKS = 20;
+    /** {@code ChorusFruitItem}: 16 tries, 8 blocks each way. */
+    private static final int HOP_TRIES = 16;
+    private static final double HOP_RANGE = 16.0;
+    private static final int HOP_HEIGHT = 16;
 
     private record SafeSpot(ResourceKey<Level> dimension, Vec3 pos) {}
 
@@ -41,8 +48,9 @@ public final class VoidRescue {
         ServerLevel level = player.serverLevel();
         ServerLevel toLevel = level;
         Vec3 to = BalancedTotemsApi.rescueTarget(player).orElse(null);
+        boolean hop = to == null;
 
-        if (to == null) {
+        if (hop) {
             SafeSpot spot = LAST_SAFE.get(player.getUUID());
             ServerLevel spotLevel = spot == null ? null : player.server.getLevel(spot.dimension());
             if (spotLevel != null) {
@@ -58,10 +66,28 @@ public final class VoidRescue {
         level.playSound(null, from.x, from.y, from.z, SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.PLAYERS, 1.0F, 1.0F);
         player.stopRiding();
         player.teleportTo(toLevel, to.x, to.y, to.z, player.getYRot(), player.getXRot());
+        if (hop) hopNearby(player, toLevel);
         player.setDeltaMovement(Vec3.ZERO);
         player.resetFallDistance();
         toLevel.broadcastEntityEvent(player, (byte) 46); // portal particles, as a chorus fruit hop
-        toLevel.playSound(null, to.x, to.y, to.z, SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.PLAYERS, 1.0F, 1.0F);
+        toLevel.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.PLAYERS, 1.0F, 1.0F);
+    }
+
+    /** A chorus fruit's random hop from where the player now stands; stays put if no try lands. */
+    private static void hopNearby(ServerPlayer player, ServerLevel level) {
+        int floor = level.getMinBuildHeight();
+        int ceiling = floor + level.getLogicalHeight() - 1;
+        for (int i = 0; i < HOP_TRIES; i++) {
+            double x = player.getX() + (player.getRandom().nextDouble() - 0.5) * HOP_RANGE;
+            double y = Mth.clamp(player.getY() + (player.getRandom().nextInt(HOP_HEIGHT) - HOP_HEIGHT / 2), floor, ceiling);
+            double z = player.getZ() + (player.getRandom().nextDouble() - 0.5) * HOP_RANGE;
+            if (player.randomTeleport(x, y, z, false)) return;
+        }
+    }
+
+    /** Test seam: as if the player had last stood safely at {@code pos}. */
+    public static void rememberSafeSpot(ServerPlayer player, Vec3 pos) {
+        LAST_SAFE.put(player.getUUID(), new SafeSpot(player.level().dimension(), pos));
     }
 
     /** Remembers where the player last stood on solid ground, once a second. */

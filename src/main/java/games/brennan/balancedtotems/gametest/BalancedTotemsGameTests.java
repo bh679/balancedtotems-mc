@@ -10,6 +10,7 @@ import games.brennan.balancedtotems.curse.Tallies;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
+import games.brennan.balancedtotems.voidtotem.VoidRescue;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -146,6 +147,21 @@ public final class BalancedTotemsGameTests {
         } finally {
             BalancedTotemsApi.setRescueTarget(p -> Optional.empty());
         }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void voidTotemHopsLikeAChorusFruitNearSafeGround(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.VOID);
+        Vec3 safe = player.position();
+        VoidRescue.rememberSafeSpot(player, safe);
+        player.teleportTo(player.getX(), player.level().getMinBuildHeight() - 70, player.getZ());
+        player.hurt(player.damageSources().fellOutOfWorld(), LETHAL);
+        check(helper, player.isAlive(), "player should survive the void");
+        double dx = player.getX() - safe.x;
+        double dz = player.getZ() - safe.z;
+        check(helper, Math.abs(dx) <= 8.5 && Math.abs(dz) <= 8.5, "hop should land near safe ground, was " + player.position());
+        check(helper, player.getY() > player.level().getMinBuildHeight(), "hop should land in the world");
         helper.succeed();
     }
 

@@ -14,8 +14,8 @@ through the approval gates (plan, test, merge) with full human oversight at each
   Weakness (20 min), Fatigue (Mining Fatigue II, 20 min, more pops add time), Heartbreak (-2 hearts
   per level, 20 min, never below half a heart), Blindness (30 s), Morphing (random animal form, 30 s),
   Zombified (zombie form; golden apple while weakened within 10 min or die), Rage (id `rampage`; kill 3
-  players/PlayerMobs per level within 15 min or die), Void (void deaths only; chorus hop to the
-  rescue target, no curse), Feather (deadly falls only, no curse), Loneliness (make 3 friends per level within 10 min or die), Pacifism (Vow of Peace: hurt anything within 20 min and die), Melon Diet (eat anything but
+  players/PlayerMobs per level within 15 min or die), Void (void deaths only; chorus-fruit hop near the last safe ground, or the API rescue target,
+  no curse), Feather (deadly falls only, no curse), Loneliness (make 3 friends per level within 10 min or die), Pacifism (Vow of Peace: hurt anything within 20 min and die), Melon Diet (eat anything but
   melon within 20 min and die), Restraint (open a chest, barrel or ender chest within 20 min and die). Curse totems are named
   "Totem of X"; Void and Feather keep "X Totem". Curses stack, level up, and survive death.
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's
@@ -39,7 +39,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `curse/VowOfPeace` | Pacifism: any damage you deal under the vow kills you next tick |
 | `curse/RuleCurses` | Melon Diet (food other than melon) and Restrained (chests, barrels, ender chests) |
 | `compat/PlayerMobGifts` | PlayerMob gifts both ways = a friend; chains PlayerMob's single gift observer by reflection |
-| `voidtotem/VoidRescue` | Chorus hop; rescue target → last safe ground → world spawn |
+| `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
 | `api/BalancedTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 

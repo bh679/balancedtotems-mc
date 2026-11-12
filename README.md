@@ -15,7 +15,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Melon Diet | Melon Diet: eat anything but melon within 20 minutes and you die |
 | Totem of Restraint | Restrained: open a chest, barrel or ender chest within 20 minutes and you die |
 | Totem of Loneliness | Lonely: make 3 friends within 10 minutes, or die. A friend is a PlayerMob you swap gifts with |
-| Void Totem | Only saves you from void death, and pulls you back to safety |
+| Void Totem | Only saves you from void death: it teleports you like a chorus fruit, onto ground near where you last stood. In Dungeon Train it puts you back on the train |
 | Feather Totem | Only saves you from falling |
 
 Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance) when held in either
