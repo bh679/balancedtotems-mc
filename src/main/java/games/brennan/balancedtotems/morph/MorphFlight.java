@@ -3,8 +3,6 @@ package games.brennan.balancedtotems.morph;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Player;
@@ -15,9 +13,9 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import javax.annotation.Nullable;
 
 /**
- * How a form moves through the air. A flying form ({@link BtRegistries#FLYING_FORMS}: bee, parrot, bat)
- * is always airborne: creative-style flight that never lands, so no walking or jumping. A chicken
- * flutters: hidden Slow Falling while the form lasts, which also stops fall damage.
+ * How a form moves through the air. A flying form ({@link BtRegistries#FLYING_FORMS}: bee, parrot, bat,
+ * allay) is always airborne: creative-style flight that never lands, so no walking or jumping. (A
+ * chicken's flutter is a {@link FormTraits} effect.)
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class MorphFlight {
@@ -28,7 +26,7 @@ public final class MorphFlight {
         return form != null && form.is(BtRegistries.FLYING_FORMS);
     }
 
-    /** From {@link Morphs#setForm}: start or stop flight and fluttering for the new form. */
+    /** From {@link Morphs#setForm}: start or stop flight for the new form. */
     static void onFormChanged(ServerPlayer player, @Nullable EntityType<?> previous, @Nullable EntityType<?> form) {
         Abilities abilities = player.getAbilities();
         if (flies(form)) {
@@ -39,13 +37,6 @@ public final class MorphFlight {
             // Back to what the game mode gives: creative and spectator players keep their flight.
             player.gameMode.getGameModeForPlayer().updatePlayerAbilities(abilities);
             player.onUpdateAbilities();
-        }
-        boolean flutters = form == EntityType.CHICKEN;
-        MobEffectInstance slowFalling = player.getEffect(MobEffects.SLOW_FALLING);
-        if (flutters && slowFalling == null) {
-            player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, MobEffectInstance.INFINITE_DURATION, 0, true, false, false));
-        } else if (!flutters && slowFalling != null && slowFalling.isInfiniteDuration()) {
-            player.removeEffect(MobEffects.SLOW_FALLING);
         }
     }
 

@@ -1,0 +1,122 @@
+package games.brennan.balancedtotems.morph;
+
+import games.brennan.balancedtotems.BalancedTotems;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.BiomeTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * What a form is like to live in, beyond its stats and flight:
+ * <ul>
+ *   <li>Chickens fall slowly; water forms swim fast; striders shrug off fire and lava. Each is a
+ *       hidden, endless effect that lasts exactly as long as the form.</li>
+ *   <li>Water forms breathe in water and dry out on land like the mob: fish, squid and tadpoles
+ *       in 15 seconds, dolphins in 2 minutes, axolotls in 5; after that they take damage.</li>
+ *   <li>Snow golems leave snow where they walk and melt in warm biomes, rain and water.</li>
+ * </ul>
+ */
+@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+public final class FormTraits {
+
+    private static final int FISH_DRY_TICKS = 300;
+    private static final int DOLPHIN_DRY_TICKS = 2400;
+    private static final int AXOLOTL_DRY_TICKS = 6000;
+    private static final int DRY_DAMAGE_EVERY_TICKS = 20;
+    private static final float DRY_DAMAGE = 2.0F;
+
+    /** Every hidden effect a form can bring; at most one at a time (see {@link #effectFor}). */
+    private static final List<Holder<MobEffect>> FORM_EFFECTS =
+        List.of(MobEffects.SLOW_FALLING, MobEffects.DOLPHINS_GRACE, MobEffects.FIRE_RESISTANCE);
+
+    private static final Map<UUID, Integer> DRY_TICKS = new ConcurrentHashMap<>();
+
+    private FormTraits() {}
+
+    /** From {@link Morphs#setForm}: swap the hidden effects to the new form's. */
+    static void onFormChanged(ServerPlayer player, @Nullable EntityType<?> form) {
+        DRY_TICKS.remove(player.getUUID());
+        for (Holder<MobEffect> effect : FORM_EFFECTS) {
+            boolean wanted = effect == effectFor(form);
+            MobEffectInstance current = player.getEffect(effect);
+            if (wanted && current == null) {
+                player.addEffect(new MobEffectInstance(effect, MobEffectInstance.INFINITE_DURATION, 0, true, false, false));
+            } else if (!wanted && current != null && current.isInfiniteDuration() && current.isAmbient()) {
+                player.removeEffect(effect);
+            }
+        }
+    }
+
+    @Nullable
+    private static Holder<MobEffect> effectFor(@Nullable EntityType<?> form) {
+        if (form == null) return null;
+        if (form == EntityType.CHICKEN) return MobEffects.SLOW_FALLING;
+        if (form == EntityType.STRIDER) return MobEffects.FIRE_RESISTANCE;
+        if (isWaterForm(form)) return MobEffects.DOLPHINS_GRACE;
+        return null;
+    }
+
+    public static boolean isWaterForm(@Nullable EntityType<?> form) {
+        return form != null && Morphs.formData(form).filter(data -> data.pool() == MorphForm.Pool.WATER).isPresent();
+    }
+
+    @SubscribeEvent
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || !player.isAlive()) return;
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        if (isWaterForm(form)) breathe(player, form);
+        if (form == EntityType.SNOW_GOLEM) beSnowGolem(player);
+    }
+
+    /** In water: full air. Out of it: air runs down over the form's time, then the form takes damage. */
+    private static void breathe(ServerPlayer player, EntityType<?> form) {
+        boolean moistAnywhere = form == EntityType.DOLPHIN || form == EntityType.AXOLOTL;
+        boolean wet = moistAnywhere ? player.isInWaterRainOrBubble() : player.isInWater();
+        if (wet) {
+            DRY_TICKS.remove(player.getUUID());
+            player.setAirSupply(player.getMaxAirSupply());
+            return;
+        }
+        int limit = form == EntityType.DOLPHIN ? DOLPHIN_DRY_TICKS : form == EntityType.AXOLOTL ? AXOLOTL_DRY_TICKS : FISH_DRY_TICKS;
+        int dry = DRY_TICKS.merge(player.getUUID(), 1, Integer::sum);
+        player.setAirSupply(Mth.clamp(player.getMaxAirSupply() * (limit - dry) / limit, 0, player.getMaxAirSupply()));
+        if (dry > limit && dry % DRY_DAMAGE_EVERY_TICKS == 0) {
+            DamageSource source = moistAnywhere ? player.damageSources().dryOut() : player.damageSources().drown();
+            player.hurt(source, DRY_DAMAGE);
+        }
+    }
+
+    /** {@code SnowGolem#aiStep}: melt where it's warm or wet, and leave snow underfoot. */
+    private static void beSnowGolem(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        if (level.getBiome(player.blockPosition()).is(BiomeTags.SNOW_GOLEM_MELTS)) player.hurt(player.damageSources().onFire(), 1.0F);
+        if (player.isInWaterRainOrBubble()) player.hurt(player.damageSources().drown(), 1.0F);
+        if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
+        BlockState snow = Blocks.SNOW.defaultBlockState();
+        for (int i = 0; i < 4; i++) {
+            int x = Mth.floor(player.getX() + (i % 2 * 2 - 1) * 0.25F);
+            int z = Mth.floor(player.getZ() + (i / 2 % 2 * 2 - 1) * 0.25F);
+            BlockPos pos = new BlockPos(x, Mth.floor(player.getY()), z);
+            if (level.getBlockState(pos).isAir() && snow.canSurvive(level, pos)) level.setBlockAndUpdate(pos, snow);
+        }
+    }
+}

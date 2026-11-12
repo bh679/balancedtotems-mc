@@ -7,6 +7,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.DoubleUnaryOperator;
+import java.util.function.ToIntFunction;
 
 /**
  * The morph engine shared by the Morphing and Zombified totems: a player's form is an entity type
@@ -45,19 +47,57 @@ public final class Morphs {
 
     private Morphs() {}
 
-    /** Turns the player into a random mob from the morph pool that fits where they stand. */
+    /**
+     * Turns the player into a random form from the pool for where they are (in lava, underwater, or
+     * anywhere else; an empty lava or water pool falls back to land), weighted by the
+     * {@link MorphForm#DATA_MAP}, among the forms that fit where they stand.
+     */
     public static void startRandomMorph(ServerPlayer player) {
-        List<EntityType<?>> fitting = new ArrayList<>();
-        for (Holder<EntityType<?>> holder : BuiltInRegistries.ENTITY_TYPE.getTagOrEmpty(BtRegistries.MORPH_POOL)) {
-            EntityType<?> type = holder.value();
-            if (DefaultAttributes.hasSupplier(type) && fits(player, type)) fitting.add(type);
-        }
+        MorphForm.Pool pool = poolFor(player);
+        List<EntityType<?>> fitting = fitting(player, pool);
+        if (fitting.isEmpty() && pool != MorphForm.Pool.LAND) fitting = fitting(player, MorphForm.Pool.LAND);
         if (fitting.isEmpty()) {
             BalancedTotems.LOGGER.debug("No morph fits around {}; staying a player", player.getScoreboardName());
             return;
         }
-        RandomSource random = player.getRandom();
-        setForm(player, fitting.get(random.nextInt(fitting.size())));
+        setForm(player, pick(fitting, Morphs::weightOf, player.getRandom()));
+    }
+
+    static MorphForm.Pool poolFor(Player player) {
+        if (player.isInLava()) return MorphForm.Pool.LAVA;
+        if (player.isEyeInFluid(FluidTags.WATER)) return MorphForm.Pool.WATER;
+        return MorphForm.Pool.LAND;
+    }
+
+    /** The pool's forms with weight above 0 that fit around the player. */
+    private static List<EntityType<?>> fitting(ServerPlayer player, MorphForm.Pool pool) {
+        List<EntityType<?>> fitting = new ArrayList<>();
+        BuiltInRegistries.ENTITY_TYPE.getDataMap(MorphForm.DATA_MAP).forEach((key, form) -> {
+            if (form.pool() != pool || form.weight() <= 0) return;
+            EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(key);
+            if (type != null && DefaultAttributes.hasSupplier(type) && fits(player, type)) fitting.add(type);
+        });
+        return fitting;
+    }
+
+    /** The form's pool and weight, if it has one. */
+    public static Optional<MorphForm> formData(EntityType<?> type) {
+        return Optional.ofNullable(BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(type).getData(MorphForm.DATA_MAP));
+    }
+
+    private static int weightOf(EntityType<?> type) {
+        return formData(type).map(MorphForm::weight).orElse(0);
+    }
+
+    /** A weighted random pick; every item needs a weight above 0. */
+    static <T> T pick(List<T> items, ToIntFunction<T> weight, RandomSource random) {
+        int total = items.stream().mapToInt(weight).sum();
+        int roll = random.nextInt(total);
+        for (T item : items) {
+            roll -= weight.applyAsInt(item);
+            if (roll < 0) return item;
+        }
+        return items.get(items.size() - 1);
     }
 
     /** Called when the Morphed or Zombified curse ends: falls back to whichever is still running. */
@@ -79,6 +119,7 @@ public final class Morphs {
         if (type != null) dropMonsterAggro(player);
         MorphFlight.onFormChanged(player, previous, type);
         FormAttacks.onFormChanged(player, type);
+        FormTraits.onFormChanged(player, type);
         BtNetwork.sendToTrackingAndSelf(player, new MorphSyncPayload(player.getId(), id));
     }
 

@@ -10,7 +10,7 @@ Dungeon Totems adds Totems of Undying that still save your life, but leave a cur
 | <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/fatigue_totem.png" width="32" alt="Totem of Fatigue"> | Totem of Fatigue | Mining Fatigue II for 20 minutes |
 | <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/heartbreak_totem.png" width="32" alt="Totem of Heartbreak"> | Totem of Heartbreak | 2 fewer hearts for 20 minutes |
 | <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/blindness_totem.png" width="32" alt="Totem of Blindness"> | Totem of Blindness | Blindness for 30 seconds |
-| <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/morphing_totem.png" width="32" alt="Totem of Morphing"> | Totem of Morphing | You become a random animal for 30 seconds, seen in third person, with its size, speed, health and jump. Monsters leave you alone. As a bee, parrot or bat you fly and can't land; as a chicken you flutter down slowly |
+| <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/morphing_totem.png" width="32" alt="Totem of Morphing"> | Totem of Morphing | You become a random animal for 30 seconds, seen in third person, with its size, speed, health, jump, animations and attack: goats ram, golems throw, bees sting once and may then die, llamas spit, grazers eat grass. Monsters leave you alone. Bees, parrots, bats and allays fly and can't land; chickens flutter down. Die underwater and you become a fish, squid, dolphin, axolotl or tadpole, which dries out on land; die in lava and you become a strider |
 | <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/zombified_totem.png" width="32" alt="Totem of Zombification"> | Totem of Zombification | You become a zombie. Get Weakness, then eat a golden apple within 10 minutes, like curing a zombie villager, or die |
 | <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/rampage_totem.png" width="32" alt="Totem of Rage"> | Totem of Rage | Kill 3 players or Player Mobs within 15 minutes, or die |
 | <img src="https://raw.githubusercontent.com/bh679/balancedtotems-mc/main/listing/totems/pacifism_totem.png" width="32" alt="Totem of Pacifism"> | Totem of Pacifism | Hurt anything within 20 minutes and you die |
@@ -31,7 +31,7 @@ Dungeon Totems adds Totems of Undying that still save your life, but leave a cur
 
 - NeoForge 1.21.1.
 - Install it on both the server and every client. The client draws the morph forms.
-- No config. Datapacks can change which totems evokers drop (item tag `balancedtotems:evoker_totems`), which animals you can turn into (`balancedtotems:morph_pool`) and which kills count for Rage (`balancedtotems:rampage_targets`).
+- No config. Datapacks can change which totems evokers drop (item tag `balancedtotems:evoker_totems`), which animals you can turn into and how often (data map `balancedtotems:morph_forms`) and which kills count for Rage (`balancedtotems:rampage_targets`).
 - It only talks to your own game: the server tells nearby players when a totem pops or someone changes form. Nothing is sent anywhere else.
 
 ## Licence

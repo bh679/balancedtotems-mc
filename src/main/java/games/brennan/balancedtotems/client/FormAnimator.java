@@ -7,6 +7,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
@@ -49,6 +50,7 @@ final class FormAnimator {
         standIn.calculateEntityAnimation(MorphFlight.flies(standIn.getType()));
 
         if (jumped) onJump(standIn, id);
+        if (standIn instanceof Strider strider) strider.setSuffocating(!player.isInLava()); // shivers off lava
         countDown(REARING, id, () -> {
             if (standIn instanceof AbstractHorse horse) horse.setStanding(false);
         });

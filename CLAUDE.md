@@ -44,7 +44,11 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `api/BalancedTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 
 Other mods find curses by effect id (`balancedtotems:zombified` etc.), with no compile dependency.
-Data: `tags/entity_type/morph_pool.json` (morph forms), `rampage_targets.json` (PlayerMob, optional).
+Data: `data_maps/entity_type/morph_forms.json` (morph forms: pool land/water/lava + weight, generated from
+Brennan's weight table https://claude.ai/artifact/PVn2fag5iJMDGtEvi7bsDe; pull it before committing),
+`tags/entity_type/flying_forms.json`, `rampage_targets.json` (PlayerMob, optional).
+`client/FormAnimator` runs each stand-in mob's own tick for vanilla animations; `FormAttacks` and
+`FormTraits` give forms their mob's attack and traits.
 Textures come from `art/make_textures.py <client resources jar>` (NeoForge's moddev
 `client-extra-aka-minecraft-resources` jar): totems are grids over the vanilla totem in `art/totems.py`,
 effect icons combine vanilla sprites in `art/icons.py`. Build effect icons from vanilla sprites where they exist.

@@ -36,7 +36,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * A form attacks the way its mob does. Goats ram, iron golems throw the target up, llamas spit, bees
+ * A form attacks the way its mob does. Goats ram, iron golems throw the target up, llamas spit,
+ * pufferfish poison, bees
  * sting once (poison) and then may die like a stung bee unless the morph ends first, and forms with no
  * attack do no damage. Sheep and horses graze instead: hitting grass eats it.
  */
@@ -47,6 +48,8 @@ public final class FormAttacks {
     private static final double GOLEM_TOSS = 0.4;
     private static final int GRAZE_COOLDOWN_TICKS = 40;
     private static final int STING_DEATH_ODDS_CAP = 1200;
+    /** {@code Pufferfish#touch} at full puff. */
+    private static final int PUFFERFISH_POISON_TICKS = 120;
 
     private static final Set<EntityType<?>> GRAZERS = Set.of(EntityType.SHEEP, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE);
 
@@ -69,6 +72,12 @@ public final class FormAttacks {
         } else if (form == EntityType.BEE) {
             if (STUNG.containsKey(player.getUUID())) event.setCanceled(true); // no stinger left
             else sting(player, target);
+        } else if (form == EntityType.PUFFERFISH) {
+            event.setCanceled(true);
+            if (target instanceof LivingEntity living) {
+                living.addEffect(new MobEffectInstance(MobEffects.POISON, PUFFERFISH_POISON_TICKS, 0), player);
+                player.level().playSound(null, player.blockPosition(), SoundEvents.PUFFER_FISH_STING, SoundSource.PLAYERS, 1.0F, 1.0F);
+            }
         } else if (form == EntityType.LLAMA || form == EntityType.TRADER_LLAMA) {
             event.setCanceled(true);
             spit(player, target);

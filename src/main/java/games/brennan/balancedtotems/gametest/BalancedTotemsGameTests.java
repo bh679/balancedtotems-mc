@@ -9,6 +9,8 @@ import games.brennan.balancedtotems.curse.Curses;
 import games.brennan.balancedtotems.curse.Tallies;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.FormAttacks;
+import games.brennan.balancedtotems.morph.FormTraits;
+import games.brennan.balancedtotems.morph.MorphForm;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import games.brennan.balancedtotems.voidtotem.VoidRescue;
@@ -19,6 +21,8 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -35,6 +39,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -233,7 +238,8 @@ public final class BalancedTotemsGameTests {
         player.hurt(player.damageSources().generic(), LETHAL);
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         check(helper, form != null, "player should have a form");
-        check(helper, form.is(BtRegistries.MORPH_POOL), "form should come from the pool: " + form);
+        check(helper, Morphs.formData(form).filter(f -> f.pool() == MorphForm.Pool.LAND && f.weight() > 0).isPresent(),
+            "form should come from the land pool: " + form);
         check(helper, player.getBbHeight() == form.getDimensions().height(), "hitbox should be the form's");
         helper.succeed();
     }
@@ -311,6 +317,39 @@ public final class BalancedTotemsGameTests {
         NeoForge.EVENT_BUS.post(new PlayerInteractEvent.LeftClickBlock(player, grass, Direction.UP,
             PlayerInteractEvent.LeftClickBlock.Action.START));
         check(helper, helper.getLevel().getBlockState(grass).is(Blocks.DIRT), "a sheep should eat the grass");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void dyingUnderwaterGivesAWaterForm(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MORPHING);
+        submerge(helper, player, Blocks.WATER);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        check(helper, FormTraits.isWaterForm(form), "an underwater pop should give a water form, gave " + form);
+        check(helper, player.hasEffect(MobEffects.DOLPHINS_GRACE), "water forms swim fast");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void dyingInLavaGivesAStrider(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MORPHING);
+        submerge(helper, player, Blocks.LAVA);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.STRIDER, "a lava pop should give a strider");
+        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a strider can't burn");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void fishFormDriesOutOnLand(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COD);
+        tick(player, 150);
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "a fish on land runs out of air");
+        tick(player, 200);
+        DamageSource last = player.getLastDamageSource();
+        check(helper, last != null && last.is(DamageTypes.DROWN), "a fish out of water too long takes damage, last was " + last);
         helper.succeed();
     }
 
@@ -759,6 +798,15 @@ public final class BalancedTotemsGameTests {
     private static void trade(ServerPlayer player, Villager villager) {
         MerchantOffer offer = new MerchantOffer(new ItemCost(Items.EMERALD), new ItemStack(Items.BREAD), 1, 1, 0.0F);
         NeoForge.EVENT_BUS.post(new TradeWithVillagerEvent(player, offer, villager));
+    }
+
+    /** Fills the space around the player with {@code fluid} and lets them notice it. */
+    private static void submerge(GameTestHelper helper, ServerPlayer player, Block fluid) {
+        BlockPos at = player.blockPosition();
+        for (BlockPos pos : BlockPos.betweenClosed(at.offset(-1, 0, -1), at.offset(1, 2, 1))) {
+            helper.getLevel().setBlockAndUpdate(pos, fluid.defaultBlockState());
+        }
+        tick(player, 1);
     }
 
     /** Pops {@code curse}'s totem on the player. */

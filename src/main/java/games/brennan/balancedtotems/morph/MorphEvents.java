@@ -24,6 +24,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import games.brennan.balancedtotems.net.BtNetwork;
 
+import java.util.Set;
+
 /** Hitbox, mob reactions, zombie sunburn, and keeping the form in step with its curse. */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class MorphEvents {
@@ -31,6 +33,8 @@ public final class MorphEvents {
     private static final int ZOMBIE_CHECK_EVERY_TICKS = 20;
     private static final double GOLEM_RADIUS = 16.0;
     private static final int SUNBURN_SECONDS = 8;
+    private static final Set<EntityType<?>> UNDEAD_FORMS =
+        Set.of(EntityType.ZOMBIE, EntityType.SKELETON_HORSE, EntityType.ZOMBIE_HORSE);
 
     private MorphEvents() {}
 
@@ -92,13 +96,18 @@ public final class MorphEvents {
             new MorphSyncPayload(target.getId(), target.getData(BtRegistries.FORM))));
     }
 
-    /** A zombified player burns in daylight like a zombie and is hunted by the golems that hunt zombies. */
+    /**
+     * Undead forms (zombie, skeleton horse, zombie horse) burn in daylight; a zombified player is also
+     * hunted by the golems that hunt zombies.
+     */
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (player.tickCount % ZOMBIE_CHECK_EVERY_TICKS != 0) return;
-        if (Morphs.formOf(player).orElse(null) != EntityType.ZOMBIE) return;
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        if (form == null || !UNDEAD_FORMS.contains(form)) return;
         if (burnsInSun(player)) player.igniteForSeconds(SUNBURN_SECONDS);
+        if (form != EntityType.ZOMBIE) return;
         AABB area = player.getBoundingBox().inflate(GOLEM_RADIUS);
         for (IronGolem golem : player.level().getEntitiesOfClass(IronGolem.class, area, g -> g.getTarget() == null)) {
             golem.setTarget(player);

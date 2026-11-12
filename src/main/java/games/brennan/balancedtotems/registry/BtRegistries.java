@@ -94,8 +94,6 @@ public final class BtRegistries {
 
     public static final Map<Curse, DeferredItem<TotemItem>> TOTEMS = registerTotems();
 
-    public static final TagKey<EntityType<?>> MORPH_POOL =
-        TagKey.create(Registries.ENTITY_TYPE, BalancedTotems.id("morph_pool"));
     /** Forms that fly: always airborne, no walking or jumping (see {@code morph/MorphFlight}). */
     public static final TagKey<EntityType<?>> FLYING_FORMS =
         TagKey.create(Registries.ENTITY_TYPE, BalancedTotems.id("flying_forms"));
