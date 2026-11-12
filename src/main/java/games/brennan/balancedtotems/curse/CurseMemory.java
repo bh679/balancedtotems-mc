@@ -40,6 +40,6 @@ public final class CurseMemory {
     public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
         Map<Curse, Integer> curses = KEPT.remove(event.getEntity().getUUID());
         if (curses == null || !(event.getEntity() instanceof ServerPlayer player)) return;
-        curses.forEach((curse, amplifier) -> Curses.apply(player, curse, amplifier));
+        curses.forEach((curse, amplifier) -> Curses.apply(player, curse, amplifier, curse.durationTicks()));
     }
 }

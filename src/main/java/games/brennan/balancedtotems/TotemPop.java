@@ -3,10 +3,8 @@ package games.brennan.balancedtotems;
 import games.brennan.balancedtotems.curse.Curses;
 import games.brennan.balancedtotems.net.TotemPopPayload;
 import net.minecraft.advancements.CriteriaTriggers;
-import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
@@ -41,15 +39,8 @@ public final class TotemPop {
         BtNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));
     }
 
-    /**
-     * Earlier curses survive the clear above (curses carry no totem cure), so the same curse is
-     * still here when it pops again: then it goes up a level with a fresh timer.
-     */
+    /** Earlier curses survive the clear above (curses carry no totem cure), so this one stacks on them. */
     private static void applyCurse(ServerPlayer player, Curse curse) {
-        Holder<MobEffect> effect = curse.effect();
-        if (effect == null) return;
-        MobEffectInstance current = player.getEffect(effect);
-        int amplifier = current == null ? curse.baseAmplifier() : current.getAmplifier() + 1;
-        Curses.apply(player, curse, amplifier);
+        if (curse.effect() != null) Curses.pop(player, curse);
     }
 }

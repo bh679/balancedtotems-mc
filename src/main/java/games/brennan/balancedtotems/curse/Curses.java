@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.curse;
 
 import games.brennan.balancedtotems.Curse;
+import games.brennan.balancedtotems.effect.HeartbreakEffect;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,14 +20,32 @@ public final class Curses {
 
     private Curses() {}
 
-    /** Puts {@code curse} on the player at {@code amplifier} with a full timer, plus its form if it has one. */
-    public static void apply(ServerPlayer player, Curse curse, int amplifier) {
+    /**
+     * A totem of {@code curse} just popped. New curse: its base level and full time. Already cursed:
+     * Fatigue adds its time to what is left; Heartbreak at half a heart only refreshes the timer;
+     * anything else goes up a level with a fresh timer.
+     */
+    public static void pop(ServerPlayer player, Curse curse) {
+        MobEffectInstance current = player.getEffect(curse.effect());
+        if (current == null) {
+            apply(player, curse, curse.baseAmplifier(), curse.durationTicks());
+        } else if (curse.addsTimeNotLevels()) {
+            apply(player, curse, current.getAmplifier(), current.getDuration() + curse.durationTicks());
+        } else if (curse == Curse.HEARTBREAK && HeartbreakEffect.atHalfHeart(player)) {
+            apply(player, curse, current.getAmplifier(), curse.durationTicks());
+        } else {
+            apply(player, curse, current.getAmplifier() + 1, curse.durationTicks());
+        }
+    }
+
+    /** Puts {@code curse} on the player at {@code amplifier} for {@code duration} ticks, plus its form if it has one. */
+    public static void apply(ServerPlayer player, Curse curse, int amplifier, int duration) {
         if (curse.effect() == null) return;
         if (curse == Curse.RAMPAGE && !player.hasEffect(BtRegistries.RAMPAGE)) DeadlineCurses.setRampageKills(player, 0);
         // showIcon true, visible particles off: a curse is a status, not a potion cloud.
-        MobEffectInstance instance = new MobEffectInstance(curse.effect(), curse.durationTicks(), amplifier, false, false, true);
+        MobEffectInstance instance = new MobEffectInstance(curse.effect(), duration, amplifier, false, false, true);
         instance.getCures().remove(EffectCures.PROTECTED_BY_TOTEM);
-        // force: replaces a running instance outright, so a level up also resets the timer.
+        // force: replaces a running instance outright, so its level and timer are exactly these.
         player.forceAddEffect(instance, null);
         if (curse == Curse.MORPHING) Morphs.startRandomMorph(player);
         if (curse == Curse.ZOMBIFIED) Morphs.setForm(player, EntityType.ZOMBIE);

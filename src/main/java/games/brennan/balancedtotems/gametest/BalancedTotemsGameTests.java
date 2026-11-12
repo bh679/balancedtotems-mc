@@ -298,6 +298,29 @@ public final class BalancedTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void fatigueAddsTimeNotLevels(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.FATIGUE);
+        tick(player, 20);
+        pop(player, Curse.FATIGUE);
+        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
+        check(helper, fatigue != null && fatigue.getAmplifier() == 1, "fatigue should stay Mining Fatigue II, was " + fatigue);
+        expectEffect(helper, player, MobEffects.DIG_SLOWDOWN, 2 * Curse.FATIGUE.durationTicks() - 20);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void heartbreakStopsAtHalfAHeart(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        for (int i = 0; i < 6; i++) pop(player, Curse.HEARTBREAK);
+        check(helper, player.getMaxHealth() == 1.0F, "max health should stop at half a heart, was " + player.getMaxHealth());
+        MobEffectInstance heartbreak = player.getEffect(BtRegistries.HEARTBREAK);
+        check(helper, heartbreak != null && heartbreak.getAmplifier() == 4, "level should stop at V, was " + heartbreak);
+        expectEffect(helper, player, BtRegistries.HEARTBREAK, Curse.HEARTBREAK.durationTicks());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void secondRampageNeedsSixKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.RAMPAGE);

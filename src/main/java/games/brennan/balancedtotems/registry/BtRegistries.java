@@ -5,6 +5,7 @@ import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.TotemItem;
 import games.brennan.balancedtotems.effect.CurseEffect;
+import games.brennan.balancedtotems.effect.HeartbreakEffect;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -12,8 +13,6 @@ import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
@@ -38,11 +37,9 @@ public final class BtRegistries {
     private static final DeferredRegister<AttachmentType<?>> ATTACHMENTS =
         DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, BalancedTotems.MOD_ID);
 
-    /** Two fewer hearts: max health -4 while the effect lasts. */
+    /** Two fewer hearts per level, never below half a heart (see {@link HeartbreakEffect}). */
     public static final DeferredHolder<MobEffect, MobEffect> HEARTBREAK = EFFECTS.register("heartbreak",
-        () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xB0213A, true)
-            .addAttributeModifier(Attributes.MAX_HEALTH, BalancedTotems.id("effect.heartbreak"),
-                -4.0, AttributeModifier.Operation.ADD_VALUE));
+        () -> new HeartbreakEffect(0xB0213A));
 
     /** You are a random animal while it lasts (see {@code morph/}). Milk does not cure it. */
     public static final DeferredHolder<MobEffect, MobEffect> MORPHED = EFFECTS.register("morphed",
