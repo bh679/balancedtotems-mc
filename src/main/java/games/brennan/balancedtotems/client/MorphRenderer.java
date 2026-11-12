@@ -4,8 +4,12 @@ import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.morph.Morphs;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -22,8 +26,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Draws a morphed player as their form: the player model is cancelled and a client-only dummy of
- * the mob is drawn in its place, posed from the player every frame and animated every tick.
+ * Draws a morphed player as their form: the player's submit is cancelled and a client-only dummy of
+ * the mob is extracted to a render state and submitted in its place, posed from the player every frame
+ * and animated every tick.
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID, value = Dist.CLIENT)
 public final class MorphRenderer {
@@ -38,18 +43,28 @@ public final class MorphRenderer {
     }
 
     @SubscribeEvent
-    @SuppressWarnings("unchecked")
-    public static void onRenderPlayer(RenderPlayerEvent.Pre event) {
-        Player player = event.getEntity();
+    public static void onRenderPlayer(RenderPlayerEvent.Pre<?> event) {
+        AvatarRenderState playerState = event.getRenderState();
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level == null || !(level.getEntity(playerState.id) instanceof Player player)) return;
         LivingEntity dummy = dummyFor(player);
         if (dummy == null) return;
 
         event.setCanceled(true);
         poseLike(dummy, player);
-        EntityRenderer<Entity> renderer =
-            (EntityRenderer<Entity>) Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(dummy);
-        renderer.render(dummy, player.getYRot(), event.getPartialTick(), event.getPoseStack(),
-            event.getMultiBufferSource(), event.getPackedLight());
+        EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+        EntityRenderState formState = dispatcher.extractEntity(dummy, event.getPartialTick());
+        if (formState instanceof LivingEntityRenderState living) {
+            // The player's state, not the entity: the inventory preview turns the body in the state only.
+            living.bodyRot = playerState.bodyRot;
+            living.yRot = playerState.yRot;
+            living.xRot = playerState.xRot;
+        }
+        formState.lightCoords = playerState.lightCoords;
+        formState.outlineColor = playerState.outlineColor;
+        formState.shadowPieces.clear();
+        CameraRenderState camera = Minecraft.getInstance().gameRenderer.gameRenderState().levelRenderState.cameraRenderState;
+        dispatcher.getRenderer(formState).submit(formState, event.getPoseStack(), event.getSubmitNodeCollector(), camera);
     }
 
     /** A morphed player has no hands to show in first person. */
@@ -86,7 +101,7 @@ public final class MorphRenderer {
         }
         LivingEntity existing = DUMMIES.get(player.getUUID());
         if (existing != null && existing.getType() == form) return existing;
-        if (!(form.create(player.level()) instanceof LivingEntity created)) return null;
+        if (!(form.create(player.level(), EntitySpawnReason.LOAD) instanceof LivingEntity created)) return null;
         created.setPos(player.getX(), player.getY(), player.getZ());
         created.setOldPosAndRot();
         DUMMIES.put(player.getUUID(), created);

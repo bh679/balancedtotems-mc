@@ -78,19 +78,23 @@ public final class BtRegistries {
 
     /** The entity type a player is shown and played as, by id; empty for their own body. */
     public static final Supplier<AttachmentType<String>> FORM = ATTACHMENTS.register("form",
-        () -> AttachmentType.builder(() -> "").serialize(Codec.STRING).build());
+        () -> AttachmentType.builder(() -> "").serialize(Codec.STRING.fieldOf("value")).build());
 
     /** Rampage kills so far in the current rampage. */
     public static final Supplier<AttachmentType<Integer>> RAMPAGE_KILLS = ATTACHMENTS.register("rampage_kills",
-        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT).build());
+        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT.fieldOf("value")).build());
 
     /** Friends made so far while Lonely. */
     public static final Supplier<AttachmentType<Integer>> LONELY_FRIENDS = ATTACHMENTS.register("lonely_friends",
-        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT).build());
+        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT.fieldOf("value")).build());
 
     /** Who those friends are (entity UUIDs), so each one counts once. */
     public static final Supplier<AttachmentType<List<String>>> LONELY_FRIEND_IDS = ATTACHMENTS.register("lonely_friend_ids",
-        () -> AttachmentType.<List<String>>builder(() -> List.of()).serialize(Codec.STRING.listOf()).build());
+        () -> AttachmentType.<List<String>>builder(() -> List.of()).serialize(Codec.STRING.listOf().fieldOf("value")).build());
+
+    /** Vanilla effects (Weakness, Mining Fatigue, Blindness) the player has as a curse, by {@link Curse} name. */
+    public static final Supplier<AttachmentType<List<String>>> CURSE_MARKS = ATTACHMENTS.register("curse_marks",
+        () -> AttachmentType.<List<String>>builder(() -> List.of()).serialize(Codec.STRING.listOf().fieldOf("value")).build());
 
     public static final Map<Curse, DeferredItem<TotemItem>> TOTEMS = registerTotems();
 
@@ -125,8 +129,8 @@ public final class BtRegistries {
     private static Map<Curse, DeferredItem<TotemItem>> registerTotems() {
         Map<Curse, DeferredItem<TotemItem>> totems = new EnumMap<>(Curse.class);
         for (Curse curse : Curse.values()) {
-            totems.put(curse, ITEMS.register(curse.itemName(),
-                () -> new TotemItem(curse, new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON))));
+            totems.put(curse, ITEMS.registerItem(curse.itemName(),
+                props -> new TotemItem(curse, props), props -> props.stacksTo(1).rarity(Rarity.UNCOMMON)));
         }
         return Map.copyOf(totems);
     }

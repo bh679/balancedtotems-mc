@@ -14,19 +14,20 @@ import games.brennan.balancedtotems.voidtotem.VoidRescue;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
-import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Evoker;
-import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.monster.illager.Evoker;
+import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -46,9 +47,8 @@ import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -57,13 +57,10 @@ import java.util.UUID;
 
 /**
  * Server-side behaviour of every totem, against a mock player in a real level.
- * Run with {@code ./gradlew runGameTestServer}; never runs in a normal game.
+ * Run with {@code ./gradlew runGameTestServer}; never runs in a normal game. Registered by {@link BtGameTestRegistry}.
  */
-@GameTestHolder(BalancedTotems.MOD_ID)
-@PrefixGameTestTemplate(false)
 public final class BalancedTotemsGameTests {
 
-    private static final String EMPTY = "empty";
     private static final float LETHAL = 1000.0F;
     private static final int SPAWN_INVULNERABLE_TICKS = 61;
     private static final int LOOT_ROLLS = 50;
@@ -72,7 +69,7 @@ public final class BalancedTotemsGameTests {
 
     // ---- the pop ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void curseTotemSavesAndCurses(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.WEAKNESS);
         player.hurt(player.damageSources().generic(), LETHAL);
@@ -84,7 +81,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void everyCurseTotemAppliesItsEffect(GameTestHelper helper) {
         for (Curse curse : Curse.values()) {
             if (curse.effect() == null) continue;
@@ -96,7 +93,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void vanillaTotemIsUsedFirst(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.WEAKNESS);
         player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
@@ -108,7 +105,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void killCommandDamageIsNotSaved(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.WEAKNESS);
         player.hurt(player.damageSources().genericKill(), LETHAL);
@@ -116,7 +113,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void heartbreakTakesTwoHearts(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.HEARTBREAK);
         player.hurt(player.damageSources().generic(), LETHAL);
@@ -126,7 +123,7 @@ public final class BalancedTotemsGameTests {
 
     // ---- void ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void voidTotemIgnoresOrdinaryDeaths(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.VOID);
         player.hurt(player.damageSources().generic(), LETHAL);
@@ -134,13 +131,13 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void voidTotemHopsToTheRescueTarget(GameTestHelper helper) {
         Vec3 target = helper.absoluteVec(new Vec3(2.5, 2, 2.5));
         BalancedTotemsApi.setRescueTarget(p -> Optional.of(target));
         try {
             ServerPlayer player = holding(helper, Curse.VOID);
-            player.teleportTo(player.getX(), player.level().getMinBuildHeight() - 70, player.getZ());
+            player.teleportTo(player.getX(), player.level().getMinY() - 70, player.getZ());
             player.hurt(player.damageSources().fellOutOfWorld(), LETHAL);
             check(helper, player.isAlive(), "player should survive the void");
             check(helper, player.position().distanceTo(target) < 0.01, "player should be at the target, was " + player.position());
@@ -150,22 +147,22 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void voidTotemHopsLikeAChorusFruitNearSafeGround(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.VOID);
         Vec3 safe = player.position();
         VoidRescue.rememberSafeSpot(player, safe);
-        player.teleportTo(player.getX(), player.level().getMinBuildHeight() - 70, player.getZ());
+        player.teleportTo(player.getX(), player.level().getMinY() - 70, player.getZ());
         player.hurt(player.damageSources().fellOutOfWorld(), LETHAL);
         check(helper, player.isAlive(), "player should survive the void");
         double dx = player.getX() - safe.x;
         double dz = player.getZ() - safe.z;
         check(helper, Math.abs(dx) <= 8.5 && Math.abs(dz) <= 8.5, "hop should land near safe ground, was " + player.position());
-        check(helper, player.getY() > player.level().getMinBuildHeight(), "hop should land in the world");
+        check(helper, player.getY() > player.level().getMinY(), "hop should land in the world");
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void voidTotemIgnoresLethalFalls(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.VOID);
         player.hurt(player.damageSources().fall(), LETHAL);
@@ -175,17 +172,17 @@ public final class BalancedTotemsGameTests {
 
     // ---- feather ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void featherTotemSavesFromLethalFalls(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.FEATHER);
         player.hurt(player.damageSources().fall(), LETHAL);
         check(helper, player.isAlive(), "player should survive the fall");
         check(helper, player.getMainHandItem().isEmpty(), "totem should be used up");
-        check(helper, player.getActiveEffects().stream().noneMatch(e -> Curses.curseOf(e) != null), "no curse from a feather");
+        check(helper, player.getActiveEffects().stream().noneMatch(e -> Curses.curseOf(player, e) != null), "no curse from a feather");
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void featherTotemIgnoresOtherDeaths(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.FEATHER);
         player.hurt(player.damageSources().generic(), LETHAL);
@@ -195,21 +192,21 @@ public final class BalancedTotemsGameTests {
 
     // ---- morph ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void morphingTotemGivesAFittingForm(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.MORPHING);
         player.hurt(player.damageSources().generic(), LETHAL);
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         check(helper, form != null, "player should have a form");
-        check(helper, form.is(BtRegistries.MORPH_POOL), "form should come from the pool: " + form);
+        check(helper, form.builtInRegistryHolder().is(BtRegistries.MORPH_POOL), "form should come from the pool: " + form);
         check(helper, player.getBbHeight() == form.getDimensions().height(), "hitbox should be the form's");
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void formStatsComeAndGo(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        Morphs.setForm(player, EntityType.CHICKEN);
+        Morphs.setForm(player, EntityTypes.CHICKEN);
         check(helper, player.getMaxHealth() == 6.0F, "chicken max health floors at 6, was " + player.getMaxHealth());
         Morphs.setForm(player, null);
         check(helper, player.getMaxHealth() == 20.0F, "max health back to 20");
@@ -217,26 +214,26 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void monstersIgnoreAMorphedPlayer(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        Morphs.setForm(player, EntityType.COW);
-        var zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(1, 2, 1));
+        Morphs.setForm(player, EntityTypes.COW);
+        var zombie = helper.spawn(EntityTypes.ZOMBIE, new BlockPos(1, 2, 1));
         zombie.setTarget(player);
         check(helper, zombie.getTarget() == null, "zombie should not target a cow");
-        var pig = helper.spawn(EntityType.PIG, new BlockPos(3, 2, 3));
+        var pig = helper.spawn(EntityTypes.PIG, new BlockPos(3, 2, 3));
         check(helper, pig instanceof Pig, "sanity");
         helper.succeed();
     }
 
     // ---- zombified ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void zombifiedIsCuredByAGoldenAppleWhileWeakened(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.ZOMBIFIED);
         player.hurt(player.damageSources().generic(), LETHAL);
-        check(helper, Morphs.formOf(player).orElse(null) == EntityType.ZOMBIE, "player should be a zombie");
-        var witch = helper.spawn(EntityType.WITCH, new BlockPos(1, 2, 1));
+        check(helper, Morphs.formOf(player).orElse(null) == EntityTypes.ZOMBIE, "player should be a zombie");
+        var witch = helper.spawn(EntityTypes.WITCH, new BlockPos(1, 2, 1));
         player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 400), witch); // a splash
         check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "weakness alone should not cure");
         eatGoldenApple(player);
@@ -245,7 +242,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void goldenAppleWithoutWeaknessDoesNotCure(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.ZOMBIFIED);
         player.hurt(player.damageSources().generic(), LETHAL);
@@ -254,7 +251,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void weaknessTotemCurseCountsAsWeakness(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.ZOMBIFIED);
@@ -265,11 +262,11 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void zombifiedRunningOutKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         player.addEffect(new MobEffectInstance(BtRegistries.ZOMBIFIED, 2, 0));
-        Morphs.setForm(player, EntityType.ZOMBIE);
+        Morphs.setForm(player, EntityTypes.ZOMBIE);
         tick(player, 5);
         check(helper, !player.isAlive(), "player should die when zombification runs out");
         helper.succeed();
@@ -277,7 +274,7 @@ public final class BalancedTotemsGameTests {
 
     // ---- rampage ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void rampageIsLiftedByThreeKills(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.RAMPAGE);
         player.hurt(player.damageSources().generic(), LETHAL);
@@ -293,7 +290,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void rampageRunningOutKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE, 2, 0));
@@ -302,39 +299,74 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void milkLeavesTheDeadlineCurses(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE, 400, 0));
         player.addEffect(new MobEffectInstance(BtRegistries.HEARTBREAK, 400, 0));
-        player.removeEffectsCuredBy(net.neoforged.neoforge.common.EffectCures.MILK);
+        drinkMilk(player);
         check(helper, player.hasEffect(BtRegistries.RAMPAGE), "milk should not lift rampage");
         check(helper, !player.hasEffect(BtRegistries.HEARTBREAK), "milk does lift heartbreak");
         helper.succeed();
     }
 
+    @BtGameTest
+    public static void milkLiftsAWeaknessCurse(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.WEAKNESS);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        drinkMilk(player);
+        check(helper, !player.hasEffect(MobEffects.WEAKNESS), "milk lifts weakness, curse or not");
+        helper.succeed();
+    }
+
+    @BtGameTest
+    public static void aTotemPopLeavesCursesButClearsPotions(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.WEAKNESS);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        player.addEffect(new MobEffectInstance(MobEffects.SPEED, 400, 0));
+        player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE, 400, 0));
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
+        resetHurtCooldown(player);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, player.isAlive(), "the vanilla totem saves");
+        check(helper, !player.hasEffect(MobEffects.SPEED), "a pop clears ordinary effects");
+        check(helper, player.hasEffect(MobEffects.WEAKNESS), "a pop leaves the weakness curse");
+        check(helper, player.hasEffect(BtRegistries.RAMPAGE), "a pop leaves rage");
+        helper.succeed();
+    }
+
+    @BtGameTest
+    public static void aWeaknessPotionIsNotACurse(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FEATHER);
+        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 400, 0));
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, !player.hasEffect(MobEffects.WEAKNESS), "a totem clears a weakness potion");
+        helper.succeed();
+    }
+
     // ---- stacking, levels and death ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void fatigueIsMiningFatigueTwo(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.FATIGUE);
         player.hurt(player.damageSources().generic(), LETHAL);
-        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
+        MobEffectInstance fatigue = player.getEffect(MobEffects.MINING_FATIGUE);
         check(helper, fatigue != null && fatigue.getAmplifier() == 1, "fatigue should be Mining Fatigue II, was " + fatigue);
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void laterPopsKeepEarlierCurses(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         for (Curse curse : List.of(Curse.FATIGUE, Curse.HEARTBREAK, Curse.WEAKNESS)) pop(player, curse);
-        check(helper, player.hasEffect(MobEffects.DIG_SLOWDOWN), "fatigue cleared by a later pop");
+        check(helper, player.hasEffect(MobEffects.MINING_FATIGUE), "fatigue cleared by a later pop");
         check(helper, player.hasEffect(BtRegistries.HEARTBREAK), "heartbreak cleared by a later pop");
         check(helper, player.hasEffect(MobEffects.WEAKNESS), "weakness missing");
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void sameCurseLevelsUpWithAFullTimer(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.WEAKNESS);
@@ -346,19 +378,19 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void fatigueAddsTimeNotLevels(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.FATIGUE);
         tick(player, 20);
         pop(player, Curse.FATIGUE);
-        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
+        MobEffectInstance fatigue = player.getEffect(MobEffects.MINING_FATIGUE);
         check(helper, fatigue != null && fatigue.getAmplifier() == 1, "fatigue should stay Mining Fatigue II, was " + fatigue);
-        expectEffect(helper, player, MobEffects.DIG_SLOWDOWN, 2 * Curse.FATIGUE.durationTicks() - 20);
+        expectEffect(helper, player, MobEffects.MINING_FATIGUE, 2 * Curse.FATIGUE.durationTicks() - 20);
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void heartbreakStopsAtHalfAHeart(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         for (int i = 0; i < 6; i++) pop(player, Curse.HEARTBREAK);
@@ -369,7 +401,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void secondRampageNeedsSixKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.RAMPAGE);
@@ -383,7 +415,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void cursesComeBackAfterDeathWithAFullTimer(GameTestHelper helper) {
         ServerPlayer dead = player(helper);
         pop(dead, Curse.WEAKNESS);
@@ -402,7 +434,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void expiredZombifiedStaysGoneAfterDeath(GameTestHelper helper) {
         ServerPlayer dead = player(helper);
         dead.addEffect(new MobEffectInstance(BtRegistries.ZOMBIFIED, 2, 0));
@@ -417,7 +449,7 @@ public final class BalancedTotemsGameTests {
 
     // ---- loneliness ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void lonelyIsLiftedByThreeVillagerFriends(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.LONELINESS);
@@ -434,7 +466,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void secondLonelyNeedsSixFriends(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.LONELINESS);
@@ -447,7 +479,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void lonelyRunningOutKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         player.addEffect(new MobEffectInstance(BtRegistries.LONELY, 2, 0));
@@ -456,7 +488,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void playerMobFriendNeedsGiftsBothWays(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.LONELINESS);
@@ -468,7 +500,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void rageCountsVillagersWhenTheyStandIn(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.RAMPAGE);
@@ -480,30 +512,30 @@ public final class BalancedTotemsGameTests {
 
     // ---- pacifism ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void hurtingAnythingBreaksTheVow(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.PACIFISM);
-        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        Pig pig = helper.spawn(EntityTypes.PIG, 2, 1, 2);
         pig.hurt(player.damageSources().playerAttack(player), 1.0F);
         tick(player, 2);
         check(helper, !player.isAlive(), "hurting a pig under the vow should kill");
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void takingDamageKeepsTheVow(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.PACIFISM);
-        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
-        player.invulnerableTime = 0;
+        Pig pig = helper.spawn(EntityTypes.PIG, 2, 1, 2);
+        resetHurtCooldown(player);
         player.hurt(player.damageSources().mobAttack(pig), 1.0F);
         tick(player, 2);
         check(helper, player.isAlive(), "being hurt does not break the vow");
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void pacifismAddsTimeNotLevels(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.PACIFISM);
@@ -517,7 +549,7 @@ public final class BalancedTotemsGameTests {
 
     // ---- melon diet and restraint ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void eatingBreadBreaksTheMelonDiet(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.MELON);
@@ -527,7 +559,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void melonAndDrinksKeepTheMelonDiet(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.MELON);
@@ -539,7 +571,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void openingABarrelBreaksRestraint(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.RESTRAINT);
@@ -552,7 +584,7 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void restraintAddsTimeNotLevels(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.RESTRAINT);
@@ -564,10 +596,10 @@ public final class BalancedTotemsGameTests {
 
     // ---- loot ----
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void evokersDropBalancedTotems(GameTestHelper helper) {
         ServerPlayer killer = player(helper);
-        Evoker evoker = helper.spawn(EntityType.EVOKER, 2, 1, 2);
+        Evoker evoker = helper.spawn(EntityTypes.EVOKER, 2, 1, 2);
         LootParams params = new LootParams.Builder(helper.getLevel())
             .withParameter(LootContextParams.THIS_ENTITY, evoker)
             .withParameter(LootContextParams.ORIGIN, evoker.position())
@@ -577,7 +609,7 @@ public final class BalancedTotemsGameTests {
             .withParameter(LootContextParams.LAST_DAMAGE_PLAYER, killer)
             .create(LootContextParamSets.ENTITY);
         LootTable table = helper.getLevel().getServer().reloadableRegistries()
-            .getLootTable(EntityType.EVOKER.getDefaultLootTable());
+            .getLootTable(EntityTypes.EVOKER.getDefaultLootTable().orElseThrow());
         Set<Item> seen = new HashSet<>();
         boolean emerald = false;
         for (int roll = 0; roll < LOOT_ROLLS; roll++) {
@@ -598,10 +630,10 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
-    @GameTest(template = EMPTY)
+    @BtGameTest
     public static void killedEvokerDropsABalancedTotem(GameTestHelper helper) {
         ServerPlayer killer = player(helper);
-        Evoker evoker = helper.spawn(EntityType.EVOKER, 2, 1, 2);
+        Evoker evoker = helper.spawn(EntityTypes.EVOKER, 2, 1, 2);
         evoker.hurt(killer.damageSources().playerAttack(killer), LETHAL);
         check(helper, !evoker.isAlive(), "evoker should die");
         List<ItemEntity> drops = helper.getLevel().getEntitiesOfClass(ItemEntity.class, evoker.getBoundingBox().inflate(2));
@@ -634,7 +666,7 @@ public final class BalancedTotemsGameTests {
     }
 
     private static Villager villager(GameTestHelper helper) {
-        return helper.spawn(EntityType.VILLAGER, 2, 1, 2);
+        return helper.spawn(EntityTypes.VILLAGER, 2, 1, 2);
     }
 
     private static void trade(ServerPlayer player, Villager villager) {
@@ -645,8 +677,28 @@ public final class BalancedTotemsGameTests {
     /** Pops {@code curse}'s totem on the player. */
     private static void pop(ServerPlayer player, Curse curse) {
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(BtRegistries.TOTEMS.get(curse).get()));
-        player.invulnerableTime = 0; // vanilla ignores a second hit this soon
+        resetHurtCooldown(player); // vanilla ignores a second hit this soon
         player.hurt(player.damageSources().generic(), LETHAL);
+    }
+
+    /** Drinks a milk bucket the way a player does: milk clears effects while it is the item in use. */
+    private static void drinkMilk(ServerPlayer player) {
+        ItemStack milk = new ItemStack(Items.MILK_BUCKET);
+        player.setItemInHand(InteractionHand.MAIN_HAND, milk);
+        player.startUsingItem(InteractionHand.MAIN_HAND);
+        milk.finishUsingItem(player.level(), player);
+        player.stopUsingItem();
+    }
+
+    /** 26.x made {@code invulnerableTime} private; tests still need a second hit right away. */
+    private static void resetHurtCooldown(ServerPlayer player) {
+        try {
+            Field field = Entity.class.getDeclaredField("invulnerableTime");
+            field.setAccessible(true);
+            field.setInt(player, 0);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static void tick(ServerPlayer player, int ticks) {

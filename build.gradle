@@ -1,4 +1,4 @@
-// Balanced Totems: NeoForge 1.21.1 gameplay mod.
+// Balanced Totems: NeoForge 26.3 gameplay mod (branch mc26.3; main stays NeoForge 1.21.1).
 //
 // Totems of Undying that save you like the vanilla one but leave a curse behind
 // (weakness, fatigue, heartbreak, blindness, morphing, zombified), plus a Void
@@ -8,24 +8,24 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'idea'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev' version '2.0.148'
 }
 
 tasks.named('wrapper', Wrapper).configure {
     distributionType = Wrapper.DistributionType.BIN
 }
 
-version = mod_version
 group = mod_group_id
 
-// Jar name contract: build/libs/balancedtotems-neoforge-<version>.jar. Dungeon Train's ivy
-// repository resolves exactly that asset name from the GitHub release tagged v<version>.
+// Jar name: build/libs/balancedtotems-neoforge-<version>+mc26.3.jar. The +mc suffix keeps it
+// apart from main's 1.21.1 jar, whose bare name Dungeon Train resolves.
 base {
     archivesName = "${mod_id}-neoforge"
 }
+version = "${mod_version}+mc${minecraft_version}"
 
-// Mojang ships Java 21 to end users in 1.21.1, so mods target Java 21.
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+// Minecraft 26.x ships Java 25 to end users.
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 sourceSets.main.resources {
     exclude '**/CLAUDE.md'   // authoring docs — never a MC resource
@@ -38,10 +38,7 @@ repositories {
 neoForge {
     version = project.neo_version
 
-    parchment {
-        mappingsVersion = project.parchment_mappings_version
-        minecraftVersion = project.parchment_minecraft_version
-    }
+    // 26.x ships deobfuscated names, so no Parchment.
 
     runs {
         client {
@@ -125,4 +122,8 @@ tasks.named('jar', Jar).configure {
             'Implementation-Vendor'  : mod_authors,
         ])
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-Xmaxerrs' << '1000'
 }

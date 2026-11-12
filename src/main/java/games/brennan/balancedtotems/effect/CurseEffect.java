@@ -2,14 +2,10 @@ package games.brennan.balancedtotems.effect;
 
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.neoforged.neoforge.common.EffectCure;
-
-import java.util.Set;
 
 /**
- * A curse effect. {@code curable == false} gives it no cures at all: milk leaves it, and so does
- * another totem's pop (vanilla clears only effects cured by {@code PROTECTED_BY_TOTEM}).
+ * A curse effect. {@code curable == false} means milk leaves it; no totem pop ever lifts a curse
+ * (both enforced by {@link games.brennan.balancedtotems.curse.CurseGuard}).
  */
 public class CurseEffect extends MobEffect {
 
@@ -20,8 +16,8 @@ public class CurseEffect extends MobEffect {
         this.curable = curable;
     }
 
-    @Override
-    public void fillEffectCures(Set<EffectCure> cures, MobEffectInstance effectInstance) {
-        if (curable) super.fillEffectCures(cures, effectInstance);
+    /** Milk lifts it. */
+    public boolean curable() {
+        return curable;
     }
 }

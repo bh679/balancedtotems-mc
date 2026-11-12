@@ -1,15 +1,15 @@
 package games.brennan.balancedtotems;
 
+import games.brennan.balancedtotems.curse.CurseGuard;
 import games.brennan.balancedtotems.curse.Curses;
 import games.brennan.balancedtotems.net.TotemPopPayload;
-import net.minecraft.advancements.CriteriaTriggers;
+import net.minecraft.advancements.triggers.CriteriaTriggers;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.gameevent.GameEvent;
-import net.neoforged.neoforge.common.EffectCures;
 import games.brennan.balancedtotems.net.BtNetwork;
 
 /**
@@ -30,7 +30,7 @@ public final class TotemPop {
         player.gameEvent(GameEvent.ITEM_INTERACT_FINISH);
 
         player.setHealth(1.0F);
-        player.removeEffectsCuredBy(EffectCures.PROTECTED_BY_TOTEM);
+        CurseGuard.clearForTotem(player);
         player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
         player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));

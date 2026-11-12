@@ -6,11 +6,13 @@ import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.golem.IronGolem;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -96,7 +98,7 @@ public final class MorphEvents {
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (player.tickCount % ZOMBIE_CHECK_EVERY_TICKS != 0) return;
-        if (Morphs.formOf(player).orElse(null) != EntityType.ZOMBIE) return;
+        if (Morphs.formOf(player).orElse(null) != EntityTypes.ZOMBIE) return;
         if (burnsInSun(player)) player.igniteForSeconds(SUNBURN_SECONDS);
         AABB area = player.getBoundingBox().inflate(GOLEM_RADIUS);
         for (IronGolem golem : player.level().getEntitiesOfClass(IronGolem.class, area, g -> g.getTarget() == null)) {
@@ -106,9 +108,10 @@ public final class MorphEvents {
 
     /** Vanilla {@code Mob#isSunBurnTick}, minus the random roll (we check once a second). */
     private static boolean burnsInSun(Player player) {
-        if (!player.level().isDay() || player.isCreative() || player.isSpectator()) return false;
+        if (!player.level().environmentAttributes().getValue(EnvironmentAttributes.MONSTERS_BURN, player.position())
+            || player.isCreative() || player.isSpectator()) return false;
         if (!player.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) return false;
-        if (player.isInWaterRainOrBubble() || player.isInPowderSnow || player.wasInPowderSnow) return false;
+        if (player.isInWaterOrRain() || player.isInPowderSnow || player.wasInPowderSnow) return false;
         if (player.getLightLevelDependentMagicValue() <= 0.5F) return false;
         BlockPos eyes = BlockPos.containing(player.getX(), player.getEyeY(), player.getZ());
         return player.level().canSeeSky(eyes);

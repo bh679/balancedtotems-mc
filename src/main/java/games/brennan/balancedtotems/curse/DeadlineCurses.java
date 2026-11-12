@@ -69,8 +69,8 @@ public final class DeadlineCurses {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         ResourceKey<DamageType> cause = PENDING_DEATHS.remove(player.getUUID());
         if (cause == null || !player.isAlive()) return;
-        Holder<DamageType> type = player.level().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(cause);
-        player.hurt(new DamageSource(type), Float.MAX_VALUE);
+        Holder<DamageType> type = player.level().registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(cause);
+        player.hurtServer(player.level(), new DamageSource(type), Float.MAX_VALUE);
     }
 
     // ---- Zombified ----
@@ -105,7 +105,7 @@ public final class DeadlineCurses {
         ResourceKey<DamageType> deadline = curse.is(BtRegistries.ZOMBIFIED) ? BtRegistries.ZOMBIFICATION
             : curse.is(BtRegistries.RAMPAGE) ? BtRegistries.RAMPAGE_FAILED : BtRegistries.LONELINESS;
         PENDING_DEATHS.remove(player.getUUID(), deadline);
-        player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), false);
+        player.sendSystemMessage(Component.translatable("message.balancedtotems." + name + ".lifted"));
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 }

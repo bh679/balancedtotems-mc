@@ -5,11 +5,12 @@ import games.brennan.balancedtotems.net.MorphSyncPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -37,11 +38,11 @@ public final class Morphs {
 
     private static final double AGGRO_DROP_RADIUS = 32.0;
 
-    private static final ResourceLocation MAX_HEALTH_ID = BalancedTotems.id("morph.max_health");
-    private static final ResourceLocation SPEED_ID = BalancedTotems.id("morph.speed");
-    private static final ResourceLocation ATTACK_ID = BalancedTotems.id("morph.attack_damage");
-    private static final ResourceLocation JUMP_ID = BalancedTotems.id("morph.jump");
-    private static final ResourceLocation STEP_ID = BalancedTotems.id("morph.step_height");
+    private static final Identifier MAX_HEALTH_ID = BalancedTotems.id("morph.max_health");
+    private static final Identifier SPEED_ID = BalancedTotems.id("morph.speed");
+    private static final Identifier ATTACK_ID = BalancedTotems.id("morph.attack_damage");
+    private static final Identifier JUMP_ID = BalancedTotems.id("morph.jump");
+    private static final Identifier STEP_ID = BalancedTotems.id("morph.step_height");
 
     private Morphs() {}
 
@@ -64,7 +65,7 @@ public final class Morphs {
     public static void onCurseEnded(ServerPlayer player, Holder<MobEffect> ending) {
         boolean zombified = !ending.is(BtRegistries.ZOMBIFIED) && player.hasEffect(BtRegistries.ZOMBIFIED);
         boolean morphed = !ending.is(BtRegistries.MORPHED) && player.hasEffect(BtRegistries.MORPHED);
-        if (zombified) setForm(player, EntityType.ZOMBIE);
+        if (zombified) setForm(player, EntityTypes.ZOMBIE);
         else if (morphed) startRandomMorph(player);
         else setForm(player, null);
     }
@@ -84,7 +85,7 @@ public final class Morphs {
         if (!player.hasData(BtRegistries.FORM)) return Optional.empty();
         String id = player.getData(BtRegistries.FORM);
         if (id.isEmpty()) return Optional.empty();
-        ResourceLocation key = ResourceLocation.tryParse(id);
+        Identifier key = Identifier.tryParse(id);
         return key == null ? Optional.empty() : BuiltInRegistries.ENTITY_TYPE.getOptional(key);
     }
 
@@ -107,7 +108,7 @@ public final class Morphs {
         if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());
     }
 
-    private static void add(Player player, AttributeSupplier mob, Holder<Attribute> attribute, ResourceLocation id,
+    private static void add(Player player, AttributeSupplier mob, Holder<Attribute> attribute, Identifier id,
                             DoubleUnaryOperator toAmount, AttributeModifier.Operation operation) {
         AttributeInstance instance = player.getAttribute(attribute);
         if (instance == null || !mob.hasAttribute(attribute)) return;
@@ -116,7 +117,7 @@ public final class Morphs {
         instance.addTransientModifier(new AttributeModifier(id, amount, operation));
     }
 
-    private static void clear(Player player, Holder<Attribute> attribute, ResourceLocation id) {
+    private static void clear(Player player, Holder<Attribute> attribute, Identifier id) {
         AttributeInstance instance = player.getAttribute(attribute);
         if (instance != null) instance.removeModifier(id);
     }

@@ -30,7 +30,7 @@ public final class CurseMemory {
         if (!event.isWasDeath()) return;
         Map<Curse, Integer> curses = new EnumMap<>(Curse.class);
         for (MobEffectInstance instance : event.getOriginal().getActiveEffects()) {
-            Curse curse = Curses.curseOf(instance);
+            Curse curse = Curses.curseOf(event.getOriginal(), instance);
             if (curse != null) curses.put(curse, instance.getAmplifier());
         }
         if (!curses.isEmpty()) KEPT.put(event.getEntity().getUUID(), curses);

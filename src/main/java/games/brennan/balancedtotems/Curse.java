@@ -20,7 +20,7 @@ import java.util.function.Supplier;
 public enum Curse {
     WEAKNESS("weakness_totem", () -> MobEffects.WEAKNESS, Ticks.MINUTE * 20),
     /** Mining Fatigue II: level I is only 30% slower and barely noticed. */
-    FATIGUE("fatigue_totem", () -> MobEffects.DIG_SLOWDOWN, Ticks.MINUTE * 20, 1),
+    FATIGUE("fatigue_totem", () -> MobEffects.MINING_FATIGUE, Ticks.MINUTE * 20, 1),
     HEARTBREAK("heartbreak_totem", () -> BtRegistries.HEARTBREAK, Ticks.MINUTE * 20),
     BLINDNESS("blindness_totem", () -> MobEffects.BLINDNESS, Ticks.SECOND * 30),
     MORPHING("morphing_totem", () -> BtRegistries.MORPHED, Ticks.SECOND * 30),

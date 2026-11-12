@@ -36,7 +36,7 @@ public final class BtNetwork {
      */
     public static void sendToTrackingAndSelf(ServerPlayer player, CustomPacketPayload payload) {
         sendTo(player, payload);
-        for (ServerPlayer watcher : player.serverLevel().getChunkSource().chunkMap.getPlayersWatching(player)) {
+        for (ServerPlayer watcher : player.level().getChunkSource().chunkMap.getPlayersWatching(player)) {
             if (watcher != player) sendTo(watcher, payload);
         }
     }

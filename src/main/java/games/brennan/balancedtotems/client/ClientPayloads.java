@@ -35,7 +35,7 @@ public final class ClientPayloads {
         mc.particleEngine.createTrackingEmitter(entity, ParticleTypes.TOTEM_OF_UNDYING, POP_PARTICLE_TICKS);
         level.playLocalSound(entity.getX(), entity.getY(), entity.getZ(), SoundEvents.TOTEM_USE,
             entity.getSoundSource(), 1.0F, 1.0F, false);
-        if (entity == mc.player) mc.gameRenderer.displayItemActivation(payload.totem());
+        if (entity == mc.player) mc.player.displayItemActivation(payload.totem());
     }
 
     public static void onMorphSync(MorphSyncPayload payload) {
