@@ -17,6 +17,7 @@ import games.brennan.balancedtotems.morph.WaterMoves;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import games.brennan.balancedtotems.voidtotem.VoidRescue;
 import net.minecraft.core.registries.BuiltInRegistries;
+import games.brennan.balancedtotems.morph.MobGaits;
 import games.brennan.balancedtotems.morph.MorphFlight;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.AABB;
@@ -34,6 +35,12 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
+import net.minecraft.world.entity.ai.memory.WalkTarget;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -440,6 +447,7 @@ public final class BalancedTotemsGameTests {
      * life in the form goes by cleanly.
      */
     @GameTest(template = EMPTY, timeoutTicks = 200)
+    @SuppressWarnings("unchecked")
     public static void everyFormFightsLikeItsMob(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         List<EntityType<?>> forms = BuiltInRegistries.ENTITY_TYPE.stream().filter(type -> Morphs.formData(type).isPresent()).toList();
@@ -468,6 +476,18 @@ public final class BalancedTotemsGameTests {
                 if (got != expected) wrong.add(name + " attacked as " + got + ", expected " + expected);
                 target.discard();
 
+                MobGaits.Gait gait = MobGaits.of(form);
+                if (gait != null) {
+                    double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).getBaseValue(Attributes.MOVEMENT_SPEED);
+                    double walk = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+                    player.setSprinting(true);
+                    tick(player, 1);
+                    double run = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+                    player.setSprinting(false);
+                    tick(player, 1);
+                    if (Math.abs(walk - MobGaits.walkSpeed(gait, mobSpeed)) > 1.0E-6) wrong.add(name + " walks at " + walk + ", its mob at " + MobGaits.walkSpeed(gait, mobSpeed));
+                    if (Math.abs(run - MobGaits.runSpeed(gait, mobSpeed)) > 1.0E-6) wrong.add(name + " runs at " + run + ", its mob at " + MobGaits.runSpeed(gait, mobSpeed));
+                }
                 if (FormUse.USABLE.contains(form)) FormUse.use(player);
                 Double jump = FORM_JUMPS.get(form);
                 double strength = player.getAttributeValue(Attributes.JUMP_STRENGTH);
@@ -483,6 +503,125 @@ public final class BalancedTotemsGameTests {
         Morphs.setForm(player, null);
         check(helper, wrong.isEmpty(), forms.size() + " forms, " + wrong.size() + " wrong: " + String.join("; ", wrong));
         helper.succeed();
+    }
+
+    /** Ticks a measured mob walks before timing starts (to reach its pace), and how long it's timed for. */
+    private static final int STROLL_WARM_UP = 40;
+    /** Long enough that a running fox (about 9 blocks a second) is still on it when timing ends. */
+    private static final int LANE_LENGTH = 130;
+    /** Far enough apart that lanes don't bother each other (an armadillo curls up near undead mobs). */
+    private static final int LANE_SPACING = 8;
+    private static final int LANES_PER_BATCH = 10;
+    private static final int LANES_LOAD_TICKS = 40;
+    private static final int STROLL_TICKS = 60;
+    /** How far a measured mob may be from {@link MobGaits}' prediction. */
+    private static final double GAIT_TOLERANCE = 0.1;
+
+    /**
+     * Every land form's real mob strolls, and runs, at its own AI's multipliers down its own stone lane
+     * high above the grid; its ground speed must match
+     * {@link MobGaits}, what the form is given, within 10%. Lanes run {@value #LANES_PER_BATCH} at a time
+     * on one force-loaded patch. Ridden mobs' runs are the player's input on them, so only their walk is
+     * measured.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 1600)
+    @SuppressWarnings("unchecked")
+    public static void mobsWalkAtTheirOwnPace(GameTestHelper helper) {
+        List<GaitLane> lanes = new ArrayList<>();
+        for (Map.Entry<EntityType<?>, MobGaits.Gait> entry : MobGaits.GAITS.entrySet()) {
+            MobGaits.Gait gait = entry.getValue();
+            double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) entry.getKey()).getBaseValue(Attributes.MOVEMENT_SPEED);
+            lanes.add(new GaitLane(entry.getKey(), false, gait.walk(), MobGaits.toBlocksPerSecond(MobGaits.walkSpeed(gait, mobSpeed))));
+            if (!gait.ridden()) lanes.add(new GaitLane(entry.getKey(), true, gait.run(), MobGaits.toBlocksPerSecond(MobGaits.runSpeed(gait, mobSpeed))));
+        }
+        for (int x = 0; x < LANES_PER_BATCH * LANE_SPACING; x++) {
+            for (int z = -1; z <= LANE_LENGTH; z++) {
+                helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 59, z)), Blocks.STONE.defaultBlockState());
+            }
+        }
+        List<net.minecraft.world.level.ChunkPos> forced = forceLanes(helper, LANES_PER_BATCH);
+        List<String> rows = new ArrayList<>();
+        List<String> wrong = new ArrayList<>();
+        List<Mob> mobs = new ArrayList<>();
+        List<Vec3> last = new ArrayList<>();
+        List<List<Double>> steps = new ArrayList<>();
+        int batchTicks = STROLL_WARM_UP + STROLL_TICKS + 1;
+        int[] tick = {-LANES_LOAD_TICKS}; // the patch's chunks start ticking a moment after they're forced
+        helper.onEachTick(() -> {
+            tick[0]++;
+            if (tick[0] < 0) return;
+            int batch = tick[0] / batchTicks;
+            int t = tick[0] % batchTicks;
+            int first = batch * LANES_PER_BATCH;
+            if (first >= lanes.size()) return;
+            List<GaitLane> current = lanes.subList(first, Math.min(first + LANES_PER_BATCH, lanes.size()));
+            if (t == 0) {
+                mobs.clear();
+                last.clear();
+                steps.clear();
+                for (int i = 0; i < current.size(); i++) {
+                    Mob mob = (Mob) current.get(i).form().create(helper.getLevel());
+                    Vec3 at = helper.absoluteVec(new Vec3(i * LANE_SPACING + 1.5, 60, 0.5));
+                    mob.moveTo(at.x, at.y, at.z, 0.0F, 0.0F);
+                    mob.goalSelector.removeAllGoals(goal -> true);
+                    mob.targetSelector.removeAllGoals(goal -> true);
+                    mob.setPersistenceRequired();
+                    if (mob.getBrain().checkMemory(MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS, MemoryStatus.REGISTERED)) {
+                        mob.getBrain().setMemory(MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS, Integer.MAX_VALUE); // a goat walks, not leaps
+                    }
+                    if (mob.getBrain().checkMemory(MemoryModuleType.RAM_COOLDOWN_TICKS, MemoryStatus.REGISTERED)) {
+                        mob.getBrain().setMemory(MemoryModuleType.RAM_COOLDOWN_TICKS, Integer.MAX_VALUE);
+                    }
+                    helper.getLevel().addFreshEntity(mob);
+                    mobs.add(mob);
+                    last.add(null);
+                    steps.add(new ArrayList<>());
+                }
+            }
+            for (int i = 0; i < mobs.size(); i++) {
+                Mob mob = mobs.get(i);
+                float modifier = (float) current.get(i).modifier();
+                Vec3 target = new Vec3(mob.getX(), mob.getY(), mob.getZ() + 20);
+                if (mob.getBrain().checkMemory(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED)) {
+                    mob.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(target, modifier, 0));
+                } else {
+                    mob.getNavigation().moveTo(target.x, target.y, target.z, modifier);
+                }
+                if (t >= STROLL_WARM_UP && last.get(i) != null) steps.get(i).add(mob.position().subtract(last.get(i)).horizontalDistance());
+                last.set(i, mob.position());
+            }
+            if (t != batchTicks - 1) return;
+            for (int i = 0; i < mobs.size(); i++) {
+                GaitLane lane = current.get(i);
+                double measured = steps.get(i).stream().mapToDouble(Double::doubleValue).average().orElse(0.0) * 20.0;
+                String row = String.format("%s %s %.2f b/s, given %.2f", BuiltInRegistries.ENTITY_TYPE.getKey(lane.form()).getPath(),
+                    lane.run() ? "run" : "walk", measured, lane.expected());
+                rows.add(row);
+                if (Math.abs(measured - lane.expected()) > lane.expected() * GAIT_TOLERANCE) wrong.add(row);
+                mobs.get(i).discard();
+            }
+            if (first + LANES_PER_BATCH < lanes.size()) return;
+            forced.forEach(chunk -> helper.getLevel().setChunkForced(chunk.x, chunk.z, false));
+            BalancedTotems.LOGGER.info("Mob gaits:\n{}", String.join("\n", rows));
+            check(helper, wrong.isEmpty(), wrong.size() + " gaits off: " + String.join("; ", wrong));
+            helper.succeed();
+        });
+    }
+
+    /** One measured stroll or run: which mob, at what multiplier, and the blocks a second the form is given. */
+    private record GaitLane(EntityType<?> form, boolean run, double modifier, double expected) {}
+
+    /** Force-loads the chunks under {@code lanes} lanes 4 blocks apart, so every lane's mob ticks. */
+    private static List<net.minecraft.world.level.ChunkPos> forceLanes(GameTestHelper helper, int lanes) {
+        BlockPos corner = helper.absolutePos(BlockPos.ZERO);
+        List<net.minecraft.world.level.ChunkPos> forced = new ArrayList<>();
+        for (int cx = (corner.getX() - 2) >> 4; cx <= (corner.getX() + lanes * LANE_SPACING + 2) >> 4; cx++) {
+            for (int cz = (corner.getZ() - 2) >> 4; cz <= (corner.getZ() + LANE_LENGTH + 4) >> 4; cz++) {
+                helper.getLevel().setChunkForced(cx, cz, true);
+                forced.add(new net.minecraft.world.level.ChunkPos(cx, cz));
+            }
+        }
+        return forced;
     }
 
     private static int shots(GameTestHelper helper) {

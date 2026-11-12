@@ -47,7 +47,8 @@ Other mods find curses by effect id (`balancedtotems:zombified` etc.), with no c
 Data: `data_maps/entity_type/morph_forms.json` (morph forms: pool land/water/lava + weight, generated from
 Brennan's weight table https://claude.ai/artifact/PVn2fag5iJMDGtEvi7bsDe; pull it before committing),
 `tags/entity_type/flying_forms.json`, `rampage_targets.json` (PlayerMob, optional).
-`client/FormAnimator` runs each stand-in mob's own tick for vanilla animations; `FormAttacks` and
+`MobGaits` gives land forms their mob's walk and run speed (vanilla's stroll and panic multipliers; GameTest
+`mobsWalkAtTheirOwnPace` measures the real mobs against it). `client/FormAnimator` runs each stand-in mob's own tick for vanilla animations; `FormAttacks` and
 `FormTraits` give forms their mob's attack and traits.
 Testing every form without a person: GameTest `everyFormFightsLikeItsMob` (server: each form's attack,
 moves, jump, flight) and `./gradlew runSelfTest [-Dforms=goat,llama]` (client/`FormSelfTest`: a real client

@@ -156,7 +156,13 @@ public final class Morphs {
 
         AttributeSupplier mob = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) type);
         add(player, mob, Attributes.MAX_HEALTH, MAX_HEALTH_ID, MorphStats::maxHealthDelta, AttributeModifier.Operation.ADD_VALUE);
-        add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, MorphStats::speedBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        MobGaits.Gait gait = MobGaits.of(type);
+        if (gait == null) { // flyers and swimmers
+            add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, MorphStats::speedBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        } else { // land forms walk at their mob's stroll
+            add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID,
+                mobSpeed -> MobGaits.walkSpeed(gait, mobSpeed) / MobGaits.PLAYER_WALK_SPEED - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        }
         add(player, mob, Attributes.ATTACK_DAMAGE, ATTACK_ID, MorphStats::attackDelta, AttributeModifier.Operation.ADD_VALUE);
         if (!FORM_JUMP.containsKey(type)) {
             add(player, mob, Attributes.JUMP_STRENGTH, JUMP_ID, MorphStats::jumpBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);

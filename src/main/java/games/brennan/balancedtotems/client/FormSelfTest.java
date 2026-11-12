@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.BalancedTotems;
+import games.brennan.balancedtotems.morph.MobGaits;
 import games.brennan.balancedtotems.morph.MorphForm;
 import games.brennan.balancedtotems.morph.Morphs;
 import net.minecraft.client.CameraType;
@@ -59,6 +60,9 @@ public final class FormSelfTest {
     private static final List<String> REPORT = new ArrayList<>();
     private static final List<Float> walkRates = new ArrayList<>();
     private static final List<Float> realRates = new ArrayList<>();
+    private static final List<Double> walkSteps = new ArrayList<>();
+    private static final List<Double> sprintSteps = new ArrayList<>();
+    private static Vec3 lastPlayerPosition;
     private static float lastPosition = Float.NaN;
     private static float lastRealPosition = Float.NaN;
     private static int pigId = -1;
@@ -137,12 +141,15 @@ public final class FormSelfTest {
         if (t >= 16 && t < 56) minecraft.options.keyUp.setDown(true);
         if (t >= 36 && t < 56) minecraft.options.keySprint.setDown(true);
         if (t >= 20 && t < 56) measure(minecraft, form);
+        if (t == 25 || t == 45) lastPlayerPosition = null; // past the speed-up into each gait
+        if (t >= 25 && t < 36) step(player, walkSteps);
+        if (t >= 45 && t < 56) step(player, sprintSteps);
         if (form == EntityType.ARMADILLO && t % 10 == 0) server.execute(() -> steerRealArmadillo(server));
         if (t == 30) shot(minecraft, name, "2_walk");
         if (t == 50) shot(minecraft, name, "3_sprint");
         if (t == 56) {
             release(minecraft);
-            report(name);
+            report(name, form);
             server.execute(() -> home(server, player.getUUID(), form));
         }
         if (t == 70) {
@@ -173,6 +180,9 @@ public final class FormSelfTest {
     private static void begin(MinecraftServer server, Player player, EntityType<?> form) {
         walkRates.clear();
         realRates.clear();
+        walkSteps.clear();
+        sprintSteps.clear();
+        lastPlayerPosition = null;
         lastPosition = Float.NaN;
         lastRealPosition = Float.NaN;
         server.execute(() -> {
@@ -255,10 +265,28 @@ public final class FormSelfTest {
         }
     }
 
-    private static void report(String name) {
+    /** Ground covered since last tick (the first tick of a phase only sets the start). */
+    private static void step(Player player, List<Double> steps) {
+        Vec3 now = player.position();
+        if (lastPlayerPosition != null) steps.add(now.subtract(lastPlayerPosition).horizontalDistance());
+        lastPlayerPosition = now;
+    }
+
+    private static void report(String name, EntityType<?> form) {
         StringBuilder line = new StringBuilder(name).append(": walk-cycle/tick ").append(stats(walkRates));
         if (!realRates.isEmpty()) line.append(", real armadillo ").append(stats(realRates));
+        line.append(String.format(", walks %.2f b/s, sprints %.2f b/s", perSecond(walkSteps), perSecond(sprintSteps)));
+        MobGaits.Gait gait = MobGaits.of(form);
+        if (gait != null && form.create(Minecraft.getInstance().level) instanceof LivingEntity mob) {
+            double mobSpeed = mob.getAttributeBaseValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);
+            line.append(String.format(" (its mob: %.2f, %.2f)", MobGaits.toBlocksPerSecond(MobGaits.walkSpeed(gait, mobSpeed)),
+                MobGaits.toBlocksPerSecond(MobGaits.runSpeed(gait, mobSpeed))));
+        }
         REPORT.add(line.toString());
+    }
+
+    private static double perSecond(List<Double> steps) {
+        return steps.stream().mapToDouble(Double::doubleValue).average().orElse(0.0) * 20.0;
     }
 
     /** Mean and the largest tick-to-tick jump in rate (a jumpy rate reads as shaking). */

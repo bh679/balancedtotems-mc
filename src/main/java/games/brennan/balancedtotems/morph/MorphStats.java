@@ -29,7 +29,10 @@ public final class MorphStats {
         return clamp(mobMaxHealth, MIN_MAX_HEALTH, MAX_MAX_HEALTH) - PLAYER_MAX_HEALTH;
     }
 
-    /** Multiplier on movement speed, as an ADD_MULTIPLIED_TOTAL amount (result minus one). */
+    /**
+     * Multiplier on movement speed, as an ADD_MULTIPLIED_TOTAL amount (result minus one), for flyers and
+     * swimmers. Land forms walk at their mob's own pace instead ({@link MobGaits}).
+     */
     public static double speedBonus(double mobSpeed) {
         return clamp(mobSpeed / REFERENCE_MOB_SPEED, 0.5, 1.5) - 1.0;
     }
