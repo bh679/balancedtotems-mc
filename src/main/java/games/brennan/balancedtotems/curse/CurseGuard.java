@@ -39,7 +39,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class CurseGuard {
 
-    /** Players whose totem pop is clearing effects this game tick. */
+    /**
+     * Players whose totem pop is clearing effects right now, by game tick. Vanilla's pop clears, then
+     * adds its buffs, so the first effect added ends it; the tick is a backstop.
+     */
     private static final Map<UUID, Long> POPPING = new ConcurrentHashMap<>();
 
     private CurseGuard() {}
@@ -72,7 +75,11 @@ public final class CurseGuard {
     /** Clears every effect but the curses, as a totem pop does. */
     public static void clearForTotem(ServerPlayer player) {
         POPPING.put(player.getUUID(), player.level().getGameTime());
-        player.removeAllEffects();
+        try {
+            player.removeAllEffects();
+        } finally {
+            POPPING.remove(player.getUUID());
+        }
     }
 
     /** Vanilla's own totem clears effects right after this event. */
@@ -80,6 +87,12 @@ public final class CurseGuard {
     public static void onVanillaTotem(LivingUseTotemEvent event) {
         if (event.isCanceled()) return;
         POPPING.put(event.getEntity().getUUID(), event.getEntity().level().getGameTime());
+    }
+
+    /** Vanilla's pop adds its buffs right after the clear: the pop is over. */
+    @SubscribeEvent
+    public static void onAdded(MobEffectEvent.Added event) {
+        POPPING.remove(event.getEntity().getUUID());
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)

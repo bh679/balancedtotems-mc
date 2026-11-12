@@ -20,7 +20,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -48,7 +47,6 @@ import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
-import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -326,7 +324,7 @@ public final class BalancedTotemsGameTests {
         player.addEffect(new MobEffectInstance(MobEffects.SPEED, 400, 0));
         player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE, 400, 0));
         player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.TOTEM_OF_UNDYING));
-        resetHurtCooldown(player);
+        player.damageCooldownTime = 0;
         player.hurt(player.damageSources().generic(), LETHAL);
         check(helper, player.isAlive(), "the vanilla totem saves");
         check(helper, !player.hasEffect(MobEffects.SPEED), "a pop clears ordinary effects");
@@ -528,7 +526,7 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         pop(player, Curse.PACIFISM);
         Pig pig = helper.spawn(EntityTypes.PIG, 2, 1, 2);
-        resetHurtCooldown(player);
+        player.damageCooldownTime = 0;
         player.hurt(player.damageSources().mobAttack(pig), 1.0F);
         tick(player, 2);
         check(helper, player.isAlive(), "being hurt does not break the vow");
@@ -677,7 +675,7 @@ public final class BalancedTotemsGameTests {
     /** Pops {@code curse}'s totem on the player. */
     private static void pop(ServerPlayer player, Curse curse) {
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(BtRegistries.TOTEMS.get(curse).get()));
-        resetHurtCooldown(player); // vanilla ignores a second hit this soon
+        player.damageCooldownTime = 0; // vanilla ignores a second hit this soon
         player.hurt(player.damageSources().generic(), LETHAL);
     }
 
@@ -688,17 +686,6 @@ public final class BalancedTotemsGameTests {
         player.startUsingItem(InteractionHand.MAIN_HAND);
         milk.finishUsingItem(player.level(), player);
         player.stopUsingItem();
-    }
-
-    /** 26.x made {@code invulnerableTime} private; tests still need a second hit right away. */
-    private static void resetHurtCooldown(ServerPlayer player) {
-        try {
-            Field field = Entity.class.getDeclaredField("invulnerableTime");
-            field.setAccessible(true);
-            field.setInt(player, 0);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     private static void tick(ServerPlayer player, int ticks) {

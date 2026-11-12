@@ -81,6 +81,7 @@ public final class BtGameTestRegistry {
     }
 
     static String snakeCase(String camel) {
-        return camel.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase(java.util.Locale.ROOT);
+        return camel.replaceAll("([a-z0-9])([A-Z])", "$1_$2").replaceAll("([A-Z])([A-Z][a-z])", "$1_$2")
+            .toLowerCase(java.util.Locale.ROOT);
     }
 }
