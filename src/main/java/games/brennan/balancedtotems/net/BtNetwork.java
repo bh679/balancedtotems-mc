@@ -7,12 +7,12 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /**
- * Registers both payloads. Handlers reach the client code only inside the lambda body, so a
+ * Registers every payload. Handlers reach the client code only inside the lambda body, so a
  * dedicated server never loads a client class.
  */
 public final class BtNetwork {
 
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
 
     private BtNetwork() {}
 
@@ -25,6 +25,9 @@ public final class BtNetwork {
         registrar.playToClient(MorphSyncPayload.TYPE, MorphSyncPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.balancedtotems.client.ClientPayloads.onMorphSync(payload)));
+        registrar.playToClient(CurseCountPayload.TYPE, CurseCountPayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(
+                () -> games.brennan.balancedtotems.client.ClientPayloads.onCurseCount(payload)));
     }
 
     /**

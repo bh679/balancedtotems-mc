@@ -1,10 +1,10 @@
-"""The eight totems (16x16). Each is a grid over the vanilla totem's shape.
+"""The fourteen totems (16x16). Each is a grid over the vanilla totem's shape.
 
 Grid keys: '0'..'6' are body tones darkest to lightest (the vanilla totem's own
 seven), 'g'/'h' its light/dark eye pixels, '.' transparent, and any other letter
 a colour named in that totem's palette.
 """
-from PIL import Image
+from PIL import Image, ImageOps
 
 from pixel import Vanilla, cols, hexc, luminance_ramp, over, ramp, render, scaled
 
@@ -168,11 +168,85 @@ def rampage(vanilla: Vanilla) -> Image.Image:
     return render(grid, palette)
 
 
+def loneliness(vanilla: Vanilla) -> Image.Image:
+    """Pink, downcast, a tear, holding an empty vanilla health-bar heart."""
+    grid = list(VANILLA)
+    grid[5] = "....06333360...."
+    grid[7] = "....0t354320...."
+    grid[8] = ".1111t244201111."
+    palette = {**PINK, **cols(g="fcdce0", h="9a4456", t="6ab4f0")}
+    return over(render(grid, palette), vanilla.load("gui/sprites/hud/heart/container.png"), (3, 7))
+
+
+def pacifism(vanilla: Vanilla) -> Image.Image:
+    """White, eyes closed, a big vanilla poppy over the chest."""
+    grid = list(VANILLA)
+    grid[5] = "....06333360...."
+    grid[6] = "....0hh65hh0...."
+    palette = {**ramp("6a6a78", "9a9aa8", "c4c4d0", "d4d4de", "e8e8f0", "f2f2f8", "ffffff"), **cols(h="6a6a78")}
+    poppy = vanilla.load("block/poppy.png").resize((14, 14), Image.NEAREST)
+    return over(render(grid, palette), poppy, (4, 2))
+
+
+def melon(vanilla: Vanilla) -> Image.Image:
+    """Rind green with pink eyes, holding a vanilla melon slice."""
+    palette = {**ramp("1e3a10", "2e5a18", "3e7a22", "4e8c2a", "62a236", "78b646", "96cc66"), **cols(g="fcb8a0", h="cc2c30")}
+    melon = vanilla.load("item/melon_slice.png").resize((10, 10), Image.NEAREST)
+    return over(render(VANILLA, palette), melon, (7, 6))
+
+
+def restraint(vanilla: Vanilla) -> Image.Image:
+    """Made of the vanilla barrel side, lit by the totem's own shading."""
+    return block_textured(vanilla.load("block/barrel_side.png"), {"g": (30, 20, 10), "h": (10, 5, 0)})
+
+
+# How bright each body tone makes a block texture mapped onto the totem.
+TONE_LIGHT = {"0": 0.45, "1": 0.62, "2": 0.78, "3": 0.88, "4": 1.0, "5": 1.12, "6": 1.25}
+
+
+def block_textured(texture: Image.Image, eyes: dict) -> Image.Image:
+    """The vanilla totem's shape filled with a 16x16 texture, shaded by its tones; eyes in plain colours."""
+    im = Image.new("RGBA", (16, 16))
+    for y, row in enumerate(VANILLA):
+        for x, key in enumerate(row):
+            if key == ".":
+                continue
+            if key in eyes:
+                im.putpixel((x, y), (*eyes[key], 255))
+                continue
+            r, g, b, _ = texture.getpixel((x, y))
+            light = TONE_LIGHT[key]
+            im.putpixel((x, y), (min(255, int(r * light)), min(255, int(g * light)), min(255, int(b * light)), 255))
+    return im
+
+
 def void(vanilla: Vanilla) -> Image.Image:
     """Plain dark, dim purple eyes."""
     palette = {**ramp("06060a", "0e0e14", "16161e", "1c1c26", "242430", "2c2c3a", "363648"),
                "g": scaled(hexc("c070ff"), 0.72), "h": scaled(hexc("6a20b0"), 0.72)}
     return render(VANILLA, palette)
+
+
+def feather(vanilla: Vanilla) -> Image.Image:
+    """White totem with the vanilla Allay's wings behind it."""
+    wing = ImageOps.mirror(vanilla.load("entity/allay/allay.png").crop((16, 22, 24, 27)))
+    wings = Image.new("RGBA", (16, 16))
+    wings.alpha_composite(wing, (0, 3))
+    wings.alpha_composite(ImageOps.mirror(wings))
+    palette = {**ramp("6a6a78", "9a9aa8", "c4c4d0", "d4d4de", "e8e8f0", "f2f2f8", "ffffff"),
+               **cols(g="7ab8e8", h="3a6a9a")}
+    return over(wings, render(VANILLA, palette))
+
+
+def boom(vanilla: Vanilla) -> Image.Image:
+    """Gold totem hugging a vanilla TNT block, its hands showing at the sides."""
+    body = render(VANILLA, {**GOLD, **GOLD_EYES})
+    tnt = vanilla.load("block/tnt_side.png").resize((8, 8), Image.NEAREST)
+    im = over(body, tnt, (4, 7))
+    for y in (8, 9):
+        for x in [1, 2, 3, 12, 13, 14]:
+            im.putpixel((x, y), body.getpixel((x, y)))
+    return im
 
 
 def pig_head_alternate(vanilla: Vanilla) -> Image.Image:
@@ -198,5 +272,11 @@ TOTEMS = {
     "morphing_totem": morphing,
     "zombified_totem": zombified,
     "rampage_totem": rampage,
+    "loneliness_totem": loneliness,
+    "pacifism_totem": pacifism,
+    "melon_totem": melon,
+    "restraint_totem": restraint,
     "void_totem": void,
+    "feather_totem": feather,
+    "boom_totem": boom,
 }

@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.curse;
 
 import games.brennan.balancedtotems.BalancedTotems;
+import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -15,11 +16,8 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.core.component.DataComponents;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
@@ -32,13 +30,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The two curses you must lift before they run out, or die:
+ * The three curses you must lift before they run out, or die:
  * <ul>
- *   <li><b>Zombified</b> (10 min): eat a golden apple, or take a potion of weakness (drunk, splashed
- *       or lingering).</li>
+ *   <li><b>Zombified</b> (10 min): eat a golden apple while you have Weakness, like curing a zombie
+ *       villager. Any Weakness counts: a potion, a splash, or a Totem of Weakness's curse.</li>
  *   <li><b>Rampage</b> (15 min): kill {@link BtRegistries#RAMPAGE_KILLS_NEEDED} players or entities
- *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs).</li>
+ *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs; villagers stand in, see {@link Targets}) per
+ *       level.</li>
+ *   <li><b>Lonely</b> (10 min): make three friends per level ({@link LonelyFriends}).</li>
  * </ul>
+ * Rage and Lonely keep their counts in {@link Tallies}.
  * Lifting a curse removes its effect; running out kills you on the next tick (deferred so the kill
  * never lands inside the effect-tick loop that reported the expiry).
  */
@@ -55,6 +56,12 @@ public final class DeadlineCurses {
         if (instance == null || !(event.getEntity() instanceof ServerPlayer player)) return;
         if (instance.is(BtRegistries.ZOMBIFIED)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.ZOMBIFICATION);
         if (instance.is(BtRegistries.RAMPAGE)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.RAMPAGE_FAILED);
+        if (instance.is(BtRegistries.LONELY)) PENDING_DEATHS.put(player.getUUID(), BtRegistries.LONELINESS);
+    }
+
+    /** Kills the player on their next tick with {@code cause}, outside whatever event is running now. */
+    public static void doom(ServerPlayer player, ResourceKey<DamageType> cause) {
+        PENDING_DEATHS.put(player.getUUID(), cause);
     }
 
     @SubscribeEvent
@@ -72,28 +79,13 @@ public final class DeadlineCurses {
     public static void onFinishUsing(LivingEntityUseItemEvent.Finish event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (!player.hasEffect(BtRegistries.ZOMBIFIED)) return;
-        if (curesZombified(event.getItem())) cure(player, BtRegistries.ZOMBIFIED, "zombified");
-    }
-
-    /**
-     * Splash and lingering potions, and tipped arrows, apply weakness with a source entity. Drinking
-     * (handled above) and a Weakness Totem's own curse apply it with none, so a totem never cures.
-     */
-    @SubscribeEvent
-    public static void onEffectAdded(MobEffectEvent.Added event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
-        if (event.getEffectSource() == null || !event.getEffectInstance().is(MobEffects.WEAKNESS)) return;
-        if (player.hasEffect(BtRegistries.ZOMBIFIED)) cure(player, BtRegistries.ZOMBIFIED, "zombified");
-    }
-
-    static boolean curesZombified(ItemStack stack) {
-        if (stack.is(Items.GOLDEN_APPLE) || stack.is(Items.ENCHANTED_GOLDEN_APPLE)) return true;
-        PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
-        if (contents == null) return false;
-        for (MobEffectInstance effect : contents.getAllEffects()) {
-            if (effect.is(MobEffects.WEAKNESS)) return true;
+        if (isGoldenApple(event.getItem()) && player.hasEffect(MobEffects.WEAKNESS)) {
+            cure(player, BtRegistries.ZOMBIFIED, "zombified");
         }
-        return false;
+    }
+
+    static boolean isGoldenApple(ItemStack stack) {
+        return stack.is(Items.GOLDEN_APPLE) || stack.is(Items.ENCHANTED_GOLDEN_APPLE);
     }
 
     // ---- Rampage ----
@@ -103,27 +95,17 @@ public final class DeadlineCurses {
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
         if (!killer.hasEffect(BtRegistries.RAMPAGE)) return;
         LivingEntity victim = event.getEntity();
-        if (victim == killer || !countsForRampage(victim)) return;
-
-        int kills = killer.getData(BtRegistries.RAMPAGE_KILLS) + 1;
-        killer.setData(BtRegistries.RAMPAGE_KILLS, kills);
-        if (kills >= BtRegistries.RAMPAGE_KILLS_NEEDED) {
-            cure(killer, BtRegistries.RAMPAGE, "rampage");
-        } else {
-            killer.displayClientMessage(Component.translatable("message.balancedtotems.rampage.progress",
-                kills, BtRegistries.RAMPAGE_KILLS_NEEDED), true);
-        }
+        if (victim != killer && Targets.countsForRage(victim)) Tallies.add(killer, Curse.RAMPAGE, victim.getDisplayName());
     }
 
-    private static boolean countsForRampage(LivingEntity victim) {
-        return victim instanceof Player || victim.getType().is(BtRegistries.RAMPAGE_TARGETS);
-    }
-
-    private static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
+    /** Lifts {@code curse}: no more deadline, a message and a sound. */
+    static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
         player.removeEffect(curse);
-        if (curse.is(BtRegistries.RAMPAGE)) player.setData(BtRegistries.RAMPAGE_KILLS, 0);
-        PENDING_DEATHS.remove(player.getUUID());
-        player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), true);
+        // Only this curse's own deadline: a broken vow in the same tick still kills.
+        ResourceKey<DamageType> deadline = curse.is(BtRegistries.ZOMBIFIED) ? BtRegistries.ZOMBIFICATION
+            : curse.is(BtRegistries.RAMPAGE) ? BtRegistries.RAMPAGE_FAILED : BtRegistries.LONELINESS;
+        PENDING_DEATHS.remove(player.getUUID(), deadline);
+        player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), false);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 }

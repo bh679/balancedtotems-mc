@@ -16,16 +16,22 @@ class CurseTest {
         assertEquals(20 * 60 * 20, Curse.WEAKNESS.durationTicks());
         assertEquals(20 * 60 * 20, Curse.FATIGUE.durationTicks());
         assertEquals(20 * 60 * 20, Curse.HEARTBREAK.durationTicks());
-        assertEquals(20 * 20, Curse.BLINDNESS.durationTicks());
-        assertEquals(20 * 20, Curse.MORPHING.durationTicks());
+        assertEquals(30 * 20, Curse.BLINDNESS.durationTicks());
+        assertEquals(30 * 20, Curse.MORPHING.durationTicks());
         assertEquals(10 * 60 * 20, Curse.ZOMBIFIED.durationTicks());
         assertEquals(15 * 60 * 20, Curse.RAMPAGE.durationTicks());
+        assertEquals(10 * 60 * 20, Curse.LONELINESS.durationTicks());
+        assertEquals(20 * 60 * 20, Curse.PACIFISM.durationTicks());
+        assertEquals(20 * 60 * 20, Curse.MELON.durationTicks());
+        assertEquals(20 * 60 * 20, Curse.RESTRAINT.durationTicks());
     }
 
     @Test
-    void onlyTheVoidTotemIsVoidOnly() {
+    void onlyVoidFeatherAndBoomSaveFromOneThing() {
         for (Curse curse : Curse.values()) {
-            assertEquals(curse == Curse.VOID, curse.savesFromVoidOnly(), curse.name());
+            boolean narrow = curse == Curse.VOID || curse == Curse.FEATHER || curse == Curse.BOOM;
+            assertEquals(narrow, curse.isNarrow(), curse.name());
+            assertEquals(narrow, curse.effect() == null, curse.name() + " should leave a curse unless it is narrow");
         }
     }
 

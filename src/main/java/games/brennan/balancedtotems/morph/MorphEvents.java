@@ -11,6 +11,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -91,7 +92,7 @@ public final class MorphEvents {
             new MorphSyncPayload(target.getId(), target.getData(BtRegistries.FORM))));
     }
 
-    /** A zombified player burns in daylight like a zombie and is hunted by iron golems. */
+    /** A zombified player burns in daylight like a zombie and is hunted by the golems that hunt zombies. */
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
@@ -100,6 +101,9 @@ public final class MorphEvents {
         if (burnsInSun(player)) player.igniteForSeconds(SUNBURN_SECONDS);
         AABB area = player.getBoundingBox().inflate(GOLEM_RADIUS);
         for (IronGolem golem : player.level().getEntitiesOfClass(IronGolem.class, area, g -> g.getTarget() == null)) {
+            golem.setTarget(player);
+        }
+        for (SnowGolem golem : player.level().getEntitiesOfClass(SnowGolem.class, area, g -> g.getTarget() == null)) {
             golem.setTarget(player);
         }
     }
