@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate every Balanced Totems texture.
+"""Generate every Dungeon Totems texture.
 
 Usage: python3 art/make_textures.py <client resources jar>
 
@@ -21,8 +21,8 @@ from pixel import Vanilla
 from totems import TOTEMS, pig_head_alternate
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-ITEMS = ROOT / "src/main/resources/assets/balancedtotems/textures/item"
-EFFECTS = ROOT / "src/main/resources/assets/balancedtotems/textures/mob_effect"
+ITEMS = ROOT / "src/main/resources/assets/dungeontotems/textures/item"
+EFFECTS = ROOT / "src/main/resources/assets/dungeontotems/textures/mob_effect"
 ALTERNATES = ROOT / "art/alternates"
 
 

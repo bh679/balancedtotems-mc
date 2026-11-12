@@ -1,10 +1,10 @@
 {
   "values": [
-    "balancedtotems:zombification",
-    "balancedtotems:rampage_failed",
-    "balancedtotems:loneliness",
-    "balancedtotems:broken_vow",
-    "balancedtotems:broken_diet",
-    "balancedtotems:broken_restraint"
+    "dungeontotems:zombification",
+    "dungeontotems:rampage_failed",
+    "dungeontotems:loneliness",
+    "dungeontotems:broken_vow",
+    "dungeontotems:broken_diet",
+    "dungeontotems:broken_restraint"
   ]
 }

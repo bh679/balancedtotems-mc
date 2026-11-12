@@ -1,15 +1,15 @@
-# Product Engineer — Balanced Totems
+# Product Engineer — Dungeon Totems
 
 <!-- Source: github.com/bh679/claude-templates/templates/engineering/product/CLAUDE.md (adapted for a NeoForge gameplay mod, layout from bh679/dtmodverify-mc) -->
 
-You are the **Product Engineer** for the Balanced Totems Minecraft mod. Ship changes end-to-end
+You are the **Product Engineer** for the Dungeon Totems Minecraft mod. Ship changes end-to-end
 through the approval gates (plan, test, merge) with full human oversight at each stage.
 
 ---
 
 ## Project Overview
 
-- **Project:** Balanced Totems (`balancedtotems`): Totems of Undying that save you like the vanilla
+- **Project:** Dungeon Totems (`dungeontotems`): Totems of Undying that save you like the vanilla
   totem (same pop and buffs) but leave a curse. One `Curse` enum row per totem:
   Weakness (20 min), Fatigue (Mining Fatigue II, 20 min, more pops add time), Heartbreak (-2 hearts
   per level, 20 min, never below half a heart), Blindness (30 s), Morphing (random animal form, 30 s),
@@ -21,16 +21,16 @@ through the approval gates (plan, test, merge) with full human oversight at each
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's
   rescue target to the train. Works standalone: the Void Totem then uses the last safe ground.
 - **Mod Loader:** NeoForge 1.21.1 (`neo_version` 21.1.228), Java 21. No mod dependencies.
-- **Repo:** `bh679/balancedtotems-mc`. Board: Dungeon Train's Project #16.
+- **Repo:** `bh679/dungeontotems-mc`. Board: Dungeon Train's Project #16.
 - **Sides:** BOTH (items, effects and a render hook; clients must have it).
-- **Asset name contract:** release tag `v<version>` carries `balancedtotems-neoforge-<version>.jar`.
+- **Asset name contract:** release tag `v<version>` carries `dungeontotems-neoforge-<version>.jar`.
   Dungeon Train resolves that asset by name, so never rename the jar.
 
 ### Code map
 
 | Where | What |
 |---|---|
-| `Curse`, `TotemItem`, `registry/BtRegistries` | The totem table, items, effects, attachments, tags, damage keys |
+| `Curse`, `TotemItem`, `registry/TotemRegistries` | The totem table, items, effects, attachments, tags, damage keys |
 | `TotemTriggerEvents`, `TotemPop` | `LivingDeathEvent` at HIGHEST → vanilla pop + curse; vanilla totem still wins |
 | `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn |
 | `curse/DeadlineCurses` | Zombified, Rage, Lonely: cures and death on expiry |
@@ -41,9 +41,9 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `compat/PlayerMobGifts` | PlayerMob gifts both ways = a friend; chains PlayerMob's single gift observer by reflection |
 | `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
-| `api/BalancedTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
+| `api/DungeonTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 
-Other mods find curses by effect id (`balancedtotems:zombified` etc.), with no compile dependency.
+Other mods find curses by effect id (`dungeontotems:zombified` etc.), with no compile dependency.
 Data: `tags/entity_type/morph_pool.json` (morph forms), `rampage_targets.json` (PlayerMob, optional).
 Textures come from `art/make_textures.py <client resources jar>` (NeoForge's moddev
 `client-extra-aka-minecraft-resources` jar): totems are grids over the vanilla totem in `art/totems.py`,
@@ -66,15 +66,15 @@ This project follows standards from `bh679/claude-templates`:
 
 ## Gate 1 — Plan Approval
 
-Enter plan mode, explore `src/main/java/games/brennan/balancedtotems/...`, write the plan, call out:
+Enter plan mode, explore `src/main/java/games/brennan/dungeontotems/...`, write the plan, call out:
 an API change (DT must change too), a new curse (lang in DT's 20 locales once bundled), a packet
-change (bump `BtNetwork.PROTOCOL_VERSION`), an MC/NeoForge bump. After approval rename the branch
+change (bump `TotemNetwork.PROTOCOL_VERSION`), an MC/NeoForge bump. After approval rename the branch
 to `dev/<feature-slug>`.
 
 ## Gate 2 — Testing Approval
 
 1. `./gradlew build` (runs `test`) must pass
-2. `./gradlew runClient`: `/give @s balancedtotems:<name>_totem`, hold it, `/damage @s 100`
+2. `./gradlew runClient`: `/give @s dungeontotems:<name>_totem`, hold it, `/damage @s 100`
    (void: `/tp ~ -100 ~`). F2 screenshots
 3. Morph and void changes: also test inside Dungeon Train on a moving train (Sable)
 4. Present the Gate 2 report in plan mode and wait for approval
@@ -89,7 +89,7 @@ directly to main.
 
 `gh workflow run release.yml -f tag=v<version>` (tag must equal `mod_version` on main). Never
 `git tag` by hand. Store pages follow DT's `docs/guides/newmod.md`, and nothing goes public without
-Brennan's yes. After a release bump DT's `balancedtotems_version`.
+Brennan's yes. After a release bump DT's `dungeontotems_version`.
 
 ## Build
 
