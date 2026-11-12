@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    "balancedtotems:weakness_totem",
+    "balancedtotems:fatigue_totem",
+    "balancedtotems:heartbreak_totem",
+    "balancedtotems:blindness_totem",
+    "balancedtotems:morphing_totem",
+    "balancedtotems:zombified_totem",
+    "balancedtotems:rampage_totem",
+    "balancedtotems:void_totem"
+  ]
+}

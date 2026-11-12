@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems;
 
 import com.mojang.logging.LogUtils;
+import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.net.BtNetwork;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -24,6 +25,7 @@ public final class BalancedTotems {
 
     public BalancedTotems(IEventBus modBus, ModContainer container) {
         BtRegistries.register(modBus);
+        EvokerTotemLootModifier.register(modBus);
         modBus.addListener(BtNetwork::register);
         LOGGER.info("Balanced Totems loaded");
     }

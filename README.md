@@ -16,6 +16,9 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance) when held in either
 hand. A vanilla totem in hand is used first. Milk doesn't lift the Morphed, Zombified or Rampage curses.
 
+Evokers drop one of these at random instead of the vanilla totem. The pool is the item tag
+`balancedtotems:evoker_totems`, so a datapack can change it.
+
 Built for [Dungeon Train](https://modrinth.com/mod/dungeon-train), where the Void Totem lands you
 back on the train, but it works on its own.
 
