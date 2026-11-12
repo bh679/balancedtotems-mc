@@ -2,7 +2,7 @@
   "item.balancedtotems.weakness_totem": "Weakness Totem",
   "item.balancedtotems.weakness_totem.curse": "Saves you, then Weakness for 20 minutes",
   "item.balancedtotems.fatigue_totem": "Fatigue Totem",
-  "item.balancedtotems.fatigue_totem.curse": "Saves you, then Mining Fatigue for 20 minutes",
+  "item.balancedtotems.fatigue_totem.curse": "Saves you, then Mining Fatigue II for 20 minutes",
   "item.balancedtotems.heartbreak_totem": "Heartbreak Totem",
   "item.balancedtotems.heartbreak_totem.curse": "Saves you, then 2 fewer hearts for 20 minutes",
   "item.balancedtotems.blindness_totem": "Blindness Totem",
@@ -20,6 +20,9 @@
   "effect.balancedtotems.morphed": "Morphed",
   "effect.balancedtotems.zombified": "Zombified",
   "effect.balancedtotems.rampage": "Rampage",
+  "effect.balancedtotems.zombified.deadline": "You have %s to be cured",
+  "effect.balancedtotems.zombified.cure": "Eat a golden apple or take a potion of weakness",
+  "effect.balancedtotems.rampage.deadline": "Kill %s more players in %s to survive",
 
   "message.balancedtotems.rampage.progress": "Rampage: %s of %s",
   "message.balancedtotems.rampage.lifted": "Rampage complete. You live.",

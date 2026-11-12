@@ -3,6 +3,7 @@ package games.brennan.balancedtotems.gametest;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.api.BalancedTotemsApi;
+import games.brennan.balancedtotems.curse.CurseMemory;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
@@ -31,6 +32,7 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -262,6 +264,85 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
+    // ---- stacking, levels and death ----
+
+    @GameTest(template = EMPTY)
+    public static void fatigueIsMiningFatigueTwo(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FATIGUE);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
+        check(helper, fatigue != null && fatigue.getAmplifier() == 1, "fatigue should be Mining Fatigue II, was " + fatigue);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void laterPopsKeepEarlierCurses(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        for (Curse curse : List.of(Curse.FATIGUE, Curse.HEARTBREAK, Curse.WEAKNESS)) pop(player, curse);
+        check(helper, player.hasEffect(MobEffects.DIG_SLOWDOWN), "fatigue cleared by a later pop");
+        check(helper, player.hasEffect(BtRegistries.HEARTBREAK), "heartbreak cleared by a later pop");
+        check(helper, player.hasEffect(MobEffects.WEAKNESS), "weakness missing");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void sameCurseLevelsUpWithAFullTimer(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.WEAKNESS);
+        tick(player, 20);
+        pop(player, Curse.WEAKNESS);
+        MobEffectInstance weakness = player.getEffect(MobEffects.WEAKNESS);
+        check(helper, weakness != null && weakness.getAmplifier() == 1, "second pop should give Weakness II, was " + weakness);
+        expectEffect(helper, player, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void secondRampageNeedsSixKills(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.RAMPAGE);
+        pop(player, Curse.RAMPAGE);
+        for (int i = 0; i < 2 * BtRegistries.RAMPAGE_KILLS_NEEDED; i++) {
+            check(helper, player.hasEffect(BtRegistries.RAMPAGE), "rampage II lifted after only " + i + " kills");
+            ServerPlayer victim = player(helper);
+            CommonHooks.onLivingDeath(victim, victim.damageSources().playerAttack(player));
+        }
+        check(helper, !player.hasEffect(BtRegistries.RAMPAGE), "six kills should lift rampage II");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void cursesComeBackAfterDeathWithAFullTimer(GameTestHelper helper) {
+        ServerPlayer dead = player(helper);
+        pop(dead, Curse.WEAKNESS);
+        pop(dead, Curse.WEAKNESS);
+        pop(dead, Curse.HEARTBREAK);
+        tick(dead, 20);
+        dead.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 400)); // a plain effect, not a curse
+        ServerPlayer respawned = player(helper);
+        CurseMemory.onClone(new PlayerEvent.Clone(respawned, dead, true));
+        CurseMemory.onRespawn(new PlayerEvent.PlayerRespawnEvent(respawned, false));
+        MobEffectInstance weakness = respawned.getEffect(MobEffects.WEAKNESS);
+        check(helper, weakness != null && weakness.getAmplifier() == 1, "weakness II should come back, was " + weakness);
+        expectEffect(helper, respawned, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
+        check(helper, respawned.hasEffect(BtRegistries.HEARTBREAK), "heartbreak should come back");
+        check(helper, !respawned.hasEffect(MobEffects.BLINDNESS), "a plain effect should not come back");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void expiredZombifiedStaysGoneAfterDeath(GameTestHelper helper) {
+        ServerPlayer dead = player(helper);
+        dead.addEffect(new MobEffectInstance(BtRegistries.ZOMBIFIED, 2, 0));
+        tick(dead, 5);
+        check(helper, !dead.isAlive(), "zombification should have killed");
+        ServerPlayer respawned = player(helper);
+        CurseMemory.onClone(new PlayerEvent.Clone(respawned, dead, true));
+        CurseMemory.onRespawn(new PlayerEvent.PlayerRespawnEvent(respawned, false));
+        check(helper, !respawned.hasEffect(BtRegistries.ZOMBIFIED), "the curse that killed you should not come back");
+        helper.succeed();
+    }
+
     // ---- loot ----
 
     @GameTest(template = EMPTY)
@@ -327,6 +408,13 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(BtRegistries.TOTEMS.get(curse).get()));
         return player;
+    }
+
+    /** Pops {@code curse}'s totem on the player. */
+    private static void pop(ServerPlayer player, Curse curse) {
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(BtRegistries.TOTEMS.get(curse).get()));
+        player.invulnerableTime = 0; // vanilla ignores a second hit this soon
+        player.hurt(player.damageSources().generic(), LETHAL);
     }
 
     private static void tick(ServerPlayer player, int ticks) {

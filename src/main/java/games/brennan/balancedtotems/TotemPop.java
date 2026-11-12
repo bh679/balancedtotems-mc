@@ -1,8 +1,7 @@
 package games.brennan.balancedtotems;
 
-import games.brennan.balancedtotems.morph.Morphs;
+import games.brennan.balancedtotems.curse.Curses;
 import games.brennan.balancedtotems.net.TotemPopPayload;
-import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.Holder;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,7 +9,6 @@ import net.minecraft.stats.Stats;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.neoforged.neoforge.common.EffectCures;
@@ -43,13 +41,15 @@ public final class TotemPop {
         BtNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));
     }
 
+    /**
+     * Earlier curses survive the clear above (curses carry no totem cure), so the same curse is
+     * still here when it pops again: then it goes up a level with a fresh timer.
+     */
     private static void applyCurse(ServerPlayer player, Curse curse) {
         Holder<MobEffect> effect = curse.effect();
         if (effect == null) return;
-        if (curse == Curse.RAMPAGE) player.setData(BtRegistries.RAMPAGE_KILLS, 0);
-        // showIcon true, visible particles off: a curse is a status, not a potion cloud.
-        player.addEffect(new MobEffectInstance(effect, curse.durationTicks(), 0, false, false, true));
-        if (curse == Curse.MORPHING) Morphs.startRandomMorph(player);
-        if (curse == Curse.ZOMBIFIED) Morphs.setForm(player, EntityType.ZOMBIE);
+        MobEffectInstance current = player.getEffect(effect);
+        int amplifier = current == null ? curse.baseAmplifier() : current.getAmplifier() + 1;
+        Curses.apply(player, curse, amplifier);
     }
 }

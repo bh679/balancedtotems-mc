@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.net.MorphSyncPayload;
+import games.brennan.balancedtotems.net.RampageKillsPayload;
 import games.brennan.balancedtotems.net.TotemPopPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.client.Minecraft;
@@ -10,7 +11,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
-/** Client side of both payloads. Only ever reached from a payload handler on the client. */
+/** Client side of every payload. Only ever reached from a payload handler on the client. */
 public final class ClientPayloads {
 
     private static final int POP_PARTICLE_TICKS = 30;
@@ -37,5 +38,10 @@ public final class ClientPayloads {
         player.setData(BtRegistries.FORM, payload.form());
         player.refreshDimensions();
         MorphRenderer.forget(player);
+    }
+
+    public static void onRampageKills(RampageKillsPayload payload) {
+        Player player = Minecraft.getInstance().player;
+        if (player != null) player.setData(BtRegistries.RAMPAGE_KILLS, payload.kills());
     }
 }

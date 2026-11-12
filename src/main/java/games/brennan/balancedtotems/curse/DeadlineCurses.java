@@ -1,6 +1,8 @@
 package games.brennan.balancedtotems.curse;
 
 import games.brennan.balancedtotems.BalancedTotems;
+import games.brennan.balancedtotems.net.BtNetwork;
+import games.brennan.balancedtotems.net.RampageKillsPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -25,6 +27,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.Map;
@@ -37,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li><b>Zombified</b> (10 min): eat a golden apple, or take a potion of weakness (drunk, splashed
  *       or lingering).</li>
  *   <li><b>Rampage</b> (15 min): kill {@link BtRegistries#RAMPAGE_KILLS_NEEDED} players or entities
- *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs).</li>
+ *       in {@link BtRegistries#RAMPAGE_TARGETS} (PlayerMobs) per level.</li>
  * </ul>
  * Lifting a curse removes its effect; running out kills you on the next tick (deferred so the kill
  * never lands inside the effect-tick loop that reported the expiry).
@@ -101,18 +104,35 @@ public final class DeadlineCurses {
     @SubscribeEvent
     public static void onKill(LivingDeathEvent event) {
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
-        if (!killer.hasEffect(BtRegistries.RAMPAGE)) return;
+        MobEffectInstance rampage = killer.getEffect(BtRegistries.RAMPAGE);
+        if (rampage == null) return;
         LivingEntity victim = event.getEntity();
         if (victim == killer || !countsForRampage(victim)) return;
 
         int kills = killer.getData(BtRegistries.RAMPAGE_KILLS) + 1;
-        killer.setData(BtRegistries.RAMPAGE_KILLS, kills);
-        if (kills >= BtRegistries.RAMPAGE_KILLS_NEEDED) {
+        int needed = killsNeeded(rampage);
+        setRampageKills(killer, kills);
+        if (kills >= needed) {
             cure(killer, BtRegistries.RAMPAGE, "rampage");
         } else {
-            killer.displayClientMessage(Component.translatable("message.balancedtotems.rampage.progress",
-                kills, BtRegistries.RAMPAGE_KILLS_NEEDED), true);
+            killer.displayClientMessage(Component.translatable("message.balancedtotems.rampage.progress", kills, needed), true);
         }
+    }
+
+    /** Kills that lift this Rampage: {@link BtRegistries#RAMPAGE_KILLS_NEEDED} per level. */
+    public static int killsNeeded(MobEffectInstance rampage) {
+        return BtRegistries.RAMPAGE_KILLS_NEEDED * (rampage.getAmplifier() + 1);
+    }
+
+    /** Sets the kill count and tells the player's client (it shows what is left on hover). */
+    public static void setRampageKills(ServerPlayer player, int kills) {
+        player.setData(BtRegistries.RAMPAGE_KILLS, kills);
+        BtNetwork.sendTo(player, new RampageKillsPayload(kills));
+    }
+
+    @SubscribeEvent
+    public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) setRampageKills(player, player.getData(BtRegistries.RAMPAGE_KILLS));
     }
 
     private static boolean countsForRampage(LivingEntity victim) {
@@ -121,7 +141,7 @@ public final class DeadlineCurses {
 
     private static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
         player.removeEffect(curse);
-        if (curse.is(BtRegistries.RAMPAGE)) player.setData(BtRegistries.RAMPAGE_KILLS, 0);
+        if (curse.is(BtRegistries.RAMPAGE)) setRampageKills(player, 0);
         PENDING_DEATHS.remove(player.getUUID());
         player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), true);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);

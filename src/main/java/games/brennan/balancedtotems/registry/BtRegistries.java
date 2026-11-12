@@ -55,10 +55,11 @@ public final class BtRegistries {
     public static final DeferredHolder<MobEffect, MobEffect> ZOMBIFIED = EFFECTS.register("zombified",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x3E6B2F, false));
 
-    /** Kill {@link #RAMPAGE_KILLS_NEEDED} players or PlayerMobs before it runs out, or die. */
+    /** Kill {@link #RAMPAGE_KILLS_NEEDED} players or PlayerMobs per level before it runs out, or die. */
     public static final DeferredHolder<MobEffect, MobEffect> RAMPAGE = EFFECTS.register("rampage",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x8B0000, false));
 
+    /** Kills needed per Rampage level. */
     public static final int RAMPAGE_KILLS_NEEDED = 3;
 
     /** The entity type a player is shown and played as, by id; empty for their own body. */
