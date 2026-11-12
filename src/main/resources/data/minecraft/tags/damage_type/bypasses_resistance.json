@@ -3,6 +3,8 @@
     "balancedtotems:zombification",
     "balancedtotems:rampage_failed",
     "balancedtotems:loneliness",
-    "balancedtotems:broken_vow"
+    "balancedtotems:broken_vow",
+    "balancedtotems:broken_diet",
+    "balancedtotems:broken_restraint"
   ]
 }

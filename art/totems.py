@@ -1,4 +1,4 @@
-"""The eleven totems (16x16). Each is a grid over the vanilla totem's shape.
+"""The thirteen totems (16x16). Each is a grid over the vanilla totem's shape.
 
 Grid keys: '0'..'6' are body tones darkest to lightest (the vanilla totem's own
 seven), 'g'/'h' its light/dark eye pixels, '.' transparent, and any other letter
@@ -188,6 +188,38 @@ def pacifism(vanilla: Vanilla) -> Image.Image:
     return over(render(grid, palette), poppy, (4, 2))
 
 
+def watermelon(vanilla: Vanilla) -> Image.Image:
+    """Rind green with pink eyes, holding a vanilla melon slice."""
+    palette = {**ramp("1e3a10", "2e5a18", "3e7a22", "4e8c2a", "62a236", "78b646", "96cc66"), **cols(g="fcb8a0", h="cc2c30")}
+    melon = vanilla.load("item/melon_slice.png").resize((10, 10), Image.NEAREST)
+    return over(render(VANILLA, palette), melon, (7, 6))
+
+
+def restraint(vanilla: Vanilla) -> Image.Image:
+    """Made of the vanilla barrel side, lit by the totem's own shading."""
+    return block_textured(vanilla.load("block/barrel_side.png"), {"g": (30, 20, 10), "h": (10, 5, 0)})
+
+
+# How bright each body tone makes a block texture mapped onto the totem.
+TONE_LIGHT = {"0": 0.45, "1": 0.62, "2": 0.78, "3": 0.88, "4": 1.0, "5": 1.12, "6": 1.25}
+
+
+def block_textured(texture: Image.Image, eyes: dict) -> Image.Image:
+    """The vanilla totem's shape filled with a 16x16 texture, shaded by its tones; eyes in plain colours."""
+    im = Image.new("RGBA", (16, 16))
+    for y, row in enumerate(VANILLA):
+        for x, key in enumerate(row):
+            if key == ".":
+                continue
+            if key in eyes:
+                im.putpixel((x, y), (*eyes[key], 255))
+                continue
+            r, g, b, _ = texture.getpixel((x, y))
+            light = TONE_LIGHT[key]
+            im.putpixel((x, y), (min(255, int(r * light)), min(255, int(g * light)), min(255, int(b * light)), 255))
+    return im
+
+
 def void(vanilla: Vanilla) -> Image.Image:
     """Plain dark, dim purple eyes."""
     palette = {**ramp("06060a", "0e0e14", "16161e", "1c1c26", "242430", "2c2c3a", "363648"),
@@ -231,6 +263,8 @@ TOTEMS = {
     "rampage_totem": rampage,
     "loneliness_totem": loneliness,
     "pacifism_totem": pacifism,
+    "watermelon_totem": watermelon,
+    "restraint_totem": restraint,
     "void_totem": void,
     "feather_totem": feather,
 }

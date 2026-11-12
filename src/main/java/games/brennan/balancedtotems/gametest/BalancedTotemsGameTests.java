@@ -11,6 +11,7 @@ import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -31,16 +32,19 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
@@ -492,6 +496,53 @@ public final class BalancedTotemsGameTests {
         MobEffectInstance vow = player.getEffect(BtRegistries.VOW_OF_PEACE);
         check(helper, vow != null && vow.getAmplifier() == 0, "the vow has no levels, was " + vow);
         expectEffect(helper, player, BtRegistries.VOW_OF_PEACE, 2 * Curse.PACIFISM.durationTicks() - 20);
+        helper.succeed();
+    }
+
+    // ---- melon diet and restraint ----
+
+    @GameTest(template = EMPTY)
+    public static void eatingBreadBreaksTheMelonDiet(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.WATERMELON);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.BREAD), 0, ItemStack.EMPTY);
+        tick(player, 2);
+        check(helper, !player.isAlive(), "bread under the melon diet should kill");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void melonAndDrinksKeepTheMelonDiet(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.WATERMELON);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.MELON_SLICE), 0, ItemStack.EMPTY);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.HONEY_BOTTLE), 0, ItemStack.EMPTY);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.MILK_BUCKET), 0, ItemStack.EMPTY);
+        tick(player, 2);
+        check(helper, player.isAlive(), "melon and drinks are allowed");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void openingABarrelBreaksRestraint(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.RESTRAINT);
+        BlockPos barrel = helper.absolutePos(new BlockPos(1, 1, 1));
+        helper.getLevel().setBlockAndUpdate(barrel, Blocks.BARREL.defaultBlockState());
+        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(barrel), Direction.UP, barrel, false);
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, barrel, hit));
+        tick(player, 2);
+        check(helper, !player.isAlive(), "opening a barrel while restrained should kill");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void restraintAddsTimeNotLevels(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.RESTRAINT);
+        tick(player, 20);
+        pop(player, Curse.RESTRAINT);
+        expectEffect(helper, player, BtRegistries.RESTRAINED, 2 * Curse.RESTRAINT.durationTicks() - 20);
         helper.succeed();
     }
 

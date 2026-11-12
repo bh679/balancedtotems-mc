@@ -65,6 +65,14 @@ public final class BtRegistries {
     public static final DeferredHolder<MobEffect, MobEffect> VOW_OF_PEACE = EFFECTS.register("vow_of_peace",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xE4E4EC, false));
 
+    /** Eat anything but watermelon while it lasts and you die (see {@code curse/RuleCurses}). */
+    public static final DeferredHolder<MobEffect, MobEffect> MELON_DIET = EFFECTS.register("melon_diet",
+        () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x62A236, false));
+
+    /** Open a chest, barrel or ender chest while it lasts and you die (see {@code curse/RuleCurses}). */
+    public static final DeferredHolder<MobEffect, MobEffect> RESTRAINED = EFFECTS.register("restrained",
+        () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x8A6A3A, false));
+
     /** Kills (Rage) or friends (Lonely) needed per level. */
     public static final int RAMPAGE_KILLS_NEEDED = 3;
 
@@ -100,6 +108,10 @@ public final class BtRegistries {
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("loneliness"));
     public static final ResourceKey<DamageType> BROKEN_VOW =
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("broken_vow"));
+    public static final ResourceKey<DamageType> BROKEN_DIET =
+        ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("broken_diet"));
+    public static final ResourceKey<DamageType> BROKEN_RESTRAINT =
+        ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("broken_restraint"));
 
     private BtRegistries() {}
 

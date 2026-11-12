@@ -23,6 +23,8 @@ class CurseTest {
         assertEquals(15 * 60 * 20, Curse.RAMPAGE.durationTicks());
         assertEquals(10 * 60 * 20, Curse.LONELINESS.durationTicks());
         assertEquals(20 * 60 * 20, Curse.PACIFISM.durationTicks());
+        assertEquals(20 * 60 * 20, Curse.WATERMELON.durationTicks());
+        assertEquals(20 * 60 * 20, Curse.RESTRAINT.durationTicks());
     }
 
     @Test

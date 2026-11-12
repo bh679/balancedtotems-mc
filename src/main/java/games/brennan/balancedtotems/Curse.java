@@ -14,7 +14,8 @@ import java.util.function.Supplier;
 /**
  * What each totem leaves behind after it saves you. Durations are in ticks; the base amplifier is the
  * level a first pop gives (0 is level I). Popping the same totem again raises the level and resets the
- * timer, except Fatigue and Pacifism, which add their duration to the time left instead.
+ * timer, except Fatigue, Pacifism, Watermelons and Restraint, which add their duration to the time
+ * left instead.
  */
 public enum Curse {
     WEAKNESS("weakness_totem", () -> MobEffects.WEAKNESS, Ticks.MINUTE * 20),
@@ -28,6 +29,10 @@ public enum Curse {
     LONELINESS("loneliness_totem", () -> BtRegistries.LONELY, Ticks.MINUTE * 10),
     /** Hurt anything while it lasts and you die. */
     PACIFISM("pacifism_totem", () -> BtRegistries.VOW_OF_PEACE, Ticks.MINUTE * 20),
+    /** Eat anything but watermelon while it lasts and you die. */
+    WATERMELON("watermelon_totem", () -> BtRegistries.MELON_DIET, Ticks.MINUTE * 20),
+    /** Open a chest, barrel or ender chest while it lasts and you die. */
+    RESTRAINT("restraint_totem", () -> BtRegistries.RESTRAINED, Ticks.MINUTE * 20),
     /** Saves you only from falling out of the world, and leaves no curse. */
     VOID("void_totem", null, 0),
     /** Saves you only from a deadly fall, and leaves no curse. */
@@ -78,7 +83,7 @@ public enum Curse {
 
     /** Another pop of this totem adds its duration to the time left rather than a level. */
     public boolean addsTimeNotLevels() {
-        return this == FATIGUE || this == PACIFISM;
+        return this == FATIGUE || this == PACIFISM || this == WATERMELON || this == RESTRAINT;
     }
 
     /** The one kind of death this totem saves you from, or null for any death a vanilla totem saves. */

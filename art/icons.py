@@ -62,6 +62,21 @@ def vow_of_peace(vanilla: Vanilla) -> Image.Image:
     return over(Image.new("RGBA", (18, 18)), vanilla.load("block/poppy.png"), (1, 1))
 
 
+def melon_diet(vanilla: Vanilla) -> Image.Image:
+    """The vanilla melon slice."""
+    return over(Image.new("RGBA", (18, 18)), vanilla.load("item/melon_slice.png"), (1, 1))
+
+
+def restrained(vanilla: Vanilla) -> Image.Image:
+    """The vanilla barrel top, struck through in red."""
+    icon = over(Image.new("RGBA", (18, 18)), vanilla.load("block/barrel_top.png"), (1, 1))
+    for t in range(18):
+        for x in (t, t + 1):
+            if x < 18:
+                icon.putpixel((x, t), (220, 30, 30, 255))
+    return icon
+
+
 ICONS = {
     "heartbreak": heartbreak,
     "morphed": morphed,
@@ -69,4 +84,6 @@ ICONS = {
     "rampage": rampage,
     "lonely": lonely,
     "vow_of_peace": vow_of_peace,
+    "melon_diet": melon_diet,
+    "restrained": restrained,
 }
