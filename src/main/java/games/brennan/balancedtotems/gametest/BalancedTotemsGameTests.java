@@ -13,6 +13,7 @@ import games.brennan.balancedtotems.morph.FormTraits;
 import games.brennan.balancedtotems.morph.FormUse;
 import games.brennan.balancedtotems.morph.MorphForm;
 import games.brennan.balancedtotems.morph.Morphs;
+import games.brennan.balancedtotems.morph.WaterMoves;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import games.brennan.balancedtotems.voidtotem.VoidRescue;
 import net.minecraft.core.BlockPos;
@@ -32,7 +33,12 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Evoker;
+import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.monster.ZombifiedPiglin;
+import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -51,6 +57,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -391,6 +398,135 @@ public final class BalancedTotemsGameTests {
         check(helper, FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0, "a rolled armadillo can't move");
         Morphs.setForm(player, EntityType.COW);
         check(helper, !FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) > 0.0, "changing form unrolls");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void camelDashesForward(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAMEL);
+        player.setOnGround(true);
+        FormUse.use(player);
+        Vec3 motion = player.getDeltaMovement();
+        check(helper, motion.horizontalDistance() > 1.0 && motion.y > 0.0, "a camel's dash should lunge, was " + motion);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void squidInkBlindsNearbyPlayers(GameTestHelper helper) {
+        ServerPlayer squid = player(helper);
+        ServerPlayer other = player(helper);
+        Morphs.setForm(squid, EntityType.SQUID);
+        FormUse.use(squid);
+        check(helper, other.hasEffect(MobEffects.BLINDNESS), "ink should blind a nearby player");
+        check(helper, !squid.hasEffect(MobEffects.BLINDNESS), "the squid isn't blinded by its own ink");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void puffedPufferfishPoisonsOnTouch(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.PUFFERFISH);
+        FormUse.use(player);
+        check(helper, WaterMoves.isPuffed(player), "right-click should puff up");
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        tick(player, 1);
+        check(helper, pig.hasEffect(MobEffects.POISON), "touching a puffed pufferfish should poison");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void frogEatsSmallSlimes(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.FROG);
+        Slime slime = helper.spawn(EntityType.SLIME, 2, 1, 3);
+        slime.setSize(1, true);
+        NeoForge.EVENT_BUS.post(new AttackEntityEvent(player, slime));
+        check(helper, slime.isRemoved(), "a frog's tongue should eat a small slime whole");
+        check(helper, player.getAttributeValue(Attributes.JUMP_STRENGTH) > 0.42 * 1.4, "a frog should leap");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void snowGolemThrowsSnowballs(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.SNOW_GOLEM);
+        FormUse.use(player);
+        check(helper, !helper.getLevel().getEntitiesOfClass(Snowball.class, player.getBoundingBox().inflate(3)).isEmpty(),
+            "a snow golem should throw a snowball");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void turtleLaysEggOnSand(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        helper.getLevel().setBlockAndUpdate(player.blockPosition().below(), Blocks.SAND.defaultBlockState());
+        Morphs.setForm(player, EntityType.TURTLE);
+        check(helper, player.hasEffect(MobEffects.WATER_BREATHING), "a turtle breathes underwater");
+        FormUse.use(player);
+        check(helper, helper.getLevel().getBlockState(player.blockPosition()).is(Blocks.TURTLE_EGG), "a turtle should lay an egg on sand");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void axolotlPlaysDead(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.AXOLOTL);
+        FormUse.use(player);
+        check(helper, WaterMoves.isPlayingDead(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0,
+            "playing dead holds you still");
+        Zombie zombie = helper.spawn(EntityType.ZOMBIE, 2, 1, 4);
+        zombie.setTarget(player);
+        check(helper, zombie.getTarget() == null, "mobs ignore an axolotl playing dead");
+        Morphs.setForm(player, EntityType.COD);
+        check(helper, !WaterMoves.isPlayingDead(player), "changing form wakes you");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void mooshroomCanBeMilkedForStew(GameTestHelper helper) {
+        ServerPlayer mooshroom = player(helper);
+        ServerPlayer milker = player(helper);
+        Morphs.setForm(mooshroom, EntityType.MOOSHROOM);
+        milker.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BOWL));
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.EntityInteract(milker, InteractionHand.MAIN_HAND, mooshroom));
+        check(helper, milker.getMainHandItem().is(Items.MUSHROOM_STEW), "a bowl on a mooshroom should give stew");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void zombifiedPiglinsAreKin(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.ZOMBIFIED_PIGLIN);
+        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a zombified piglin is fire-proof");
+        ZombifiedPiglin piglin = helper.spawn(EntityType.ZOMBIFIED_PIGLIN, 2, 1, 4);
+        piglin.setTarget(player);
+        check(helper, piglin.getTarget() == null, "zombified piglins don't turn on their own");
+        Pig pig = helper.spawn(EntityType.PIG, 4, 1, 2);
+        player.invulnerableTime = 0;
+        player.hurt(player.damageSources().mobAttack(pig), 1.0F);
+        check(helper, piglin.getTarget() == pig, "the pack turns on whoever hurts you");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void creepersKeepAwayFromCats(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAT);
+        Creeper creeper = helper.spawn(EntityType.CREEPER, 2, 1, 4);
+        creeper.setTarget(player);
+        check(helper, creeper.getTarget() == null, "creepers won't go for a cat");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void striderFloatsOnLava(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.STRIDER);
+        submerge(helper, player, Blocks.LAVA);
+        player.setDeltaMovement(0.0, -0.5, 0.0);
+        tick(player, 1);
+        check(helper, player.isAlive() && player.getDeltaMovement().y > 0.0, "a strider should rise in lava, was " + player.getDeltaMovement());
         helper.succeed();
     }
 

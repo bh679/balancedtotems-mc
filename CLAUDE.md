@@ -32,7 +32,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
 |---|---|
 | `Curse`, `TotemItem`, `registry/BtRegistries` | The totem table, items, effects, attachments, tags, damage keys |
 | `TotemTriggerEvents`, `TotemPop` | `LivingDeathEvent` at HIGHEST → vanilla pop + curse; vanilla totem still wins |
-| `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn, flight (`MorphFlight`: `flying_forms` tag always airborne; chicken slow-falls) |
+| `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn, flight (`MorphFlight`), attacks (`FormAttacks`), empty-hand right-click moves (`FormUse` → `LandMoves`/`WaterMoves`, `FormTimers`), traits (`FormTraits`), how mobs treat a form (`FormAllies`); `client/FormAnimator` plays each move on the stand-in |
 | `curse/DeadlineCurses` | Zombified, Rage, Lonely: cures and death on expiry |
 | `curse/Curses`, `CurseMemory` | Applying a curse (stacking, levels), keeping curses through death |
 | `curse/Tallies`, `Targets`, `LonelyFriends` | Rage kills / Lonely friends; who counts (PlayerMobs, villagers without PlayerMob and Dungeon Train) |

@@ -19,7 +19,13 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.MagmaCube;
+import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.projectile.LlamaSpit;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -39,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A form attacks the way its mob does. Goats ram, iron golems throw the target up, llamas spit,
- * pufferfish poison, bees
+ * pufferfish poison, frogs swallow small slimes and magma cubes, bees
  * sting once (poison) and then may die like a stung bee unless the morph ends first, and forms with no
  * attack do no damage. Sheep, cows and horses graze instead: hitting grass eats it.
  */
@@ -55,6 +61,9 @@ public final class FormAttacks {
     private static final int STING_DEATH_ODDS_CAP = 1200;
     /** {@code Pufferfish#touch} at full puff. */
     private static final int PUFFERFISH_POISON_TICKS = 120;
+    /** Biome temperatures that make cold and warm frogs. */
+    private static final float COLD_FROG = 0.2F;
+    private static final float WARM_FROG = 1.0F;
 
     private static final Set<EntityType<?>> GRAZERS = Set.of(EntityType.SHEEP, EntityType.HORSE, EntityType.DONKEY, EntityType.MULE,
         EntityType.COW, EntityType.MOOSHROOM);
@@ -87,9 +96,36 @@ public final class FormAttacks {
         } else if (form == EntityType.LLAMA || form == EntityType.TRADER_LLAMA) {
             event.setCanceled(true);
             spit(player, target);
+        } else if (form == EntityType.FROG) {
+            if (tongue(player, target)) event.setCanceled(true);
         } else if (!hasAttack(form)) {
             event.setCanceled(true);
+        } else {
+            show(player, FormAction.SWING_ARM); // a zombified piglin's or zombie's arm swing
         }
+    }
+
+    /**
+     * {@code ShootTongue}: a frog's tongue swallows a small slime or magma cube whole (a magma cube
+     * leaves a froglight); anything else just takes the hit. True if it swallowed the target.
+     */
+    private static boolean tongue(ServerPlayer player, Entity target) {
+        show(player, FormAction.TONGUE);
+        if (!(target instanceof Slime slime) || slime.getSize() != 1) return false;
+        player.level().playSound(null, player.blockPosition(), SoundEvents.FROG_EAT, SoundSource.PLAYERS, 2.0F, 1.0F);
+        if (slime instanceof MagmaCube) {
+            player.level().addFreshEntity(new ItemEntity(player.level(), slime.getX(), slime.getY(), slime.getZ(), new ItemStack(froglight(player))));
+        }
+        slime.remove(Entity.RemovalReason.KILLED);
+        return true;
+    }
+
+    /** The froglight a frog from this climate makes: cold verdant, warm pearlescent, else ochre. */
+    private static Item froglight(ServerPlayer player) {
+        float temperature = player.level().getBiome(player.blockPosition()).value().getBaseTemperature();
+        if (temperature < COLD_FROG) return Items.VERDANT_FROGLIGHT;
+        if (temperature >= WARM_FROG) return Items.PEARLESCENT_FROGLIGHT;
+        return Items.OCHRE_FROGLIGHT;
     }
 
     /** Whether the mob has a melee attack of its own. */

@@ -36,7 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * What a form is like to live in, beyond its stats and flight:
  * <ul>
- *   <li>Chickens fall slowly; water forms swim fast; striders shrug off fire and lava. Each is a
+ *   <li>Chickens fall slowly; water forms swim fast; turtles breathe underwater; lava forms and
+ *       zombified piglins shrug off fire and lava. Each is a
  *       hidden, endless effect that lasts exactly as long as the form.</li>
  *   <li>Water forms breathe in water and dry out on land like the mob: fish, squid and tadpoles
  *       in 15 seconds, dolphins in 2 minutes, axolotls in 5; after that they take damage.</li>
@@ -55,9 +56,9 @@ public final class FormTraits {
     private static final int DRY_DAMAGE_EVERY_TICKS = 20;
     private static final float DRY_DAMAGE = 2.0F;
 
-    /** Every hidden effect a form can bring; at most one at a time (see {@link #effectFor}). */
+    /** Every hidden effect a form can bring (see {@link #effectsFor}). */
     private static final List<Holder<MobEffect>> FORM_EFFECTS =
-        List.of(MobEffects.SLOW_FALLING, MobEffects.DOLPHINS_GRACE, MobEffects.FIRE_RESISTANCE);
+        List.of(MobEffects.SLOW_FALLING, MobEffects.DOLPHINS_GRACE, MobEffects.FIRE_RESISTANCE, MobEffects.WATER_BREATHING);
 
     private static final Map<UUID, Integer> DRY_TICKS = new ConcurrentHashMap<>();
 
@@ -99,8 +100,9 @@ public final class FormTraits {
     /** From {@link Morphs#setForm}: swap the hidden effects to the new form's. */
     static void onFormChanged(ServerPlayer player, @Nullable EntityType<?> form) {
         DRY_TICKS.remove(player.getUUID());
+        Set<Holder<MobEffect>> wantedEffects = effectsFor(form);
         for (Holder<MobEffect> effect : FORM_EFFECTS) {
-            boolean wanted = effect == effectFor(form);
+            boolean wanted = wantedEffects.contains(effect);
             MobEffectInstance current = player.getEffect(effect);
             if (wanted && current == null) {
                 player.addEffect(new MobEffectInstance(effect, MobEffectInstance.INFINITE_DURATION, 0, true, false, false));
@@ -110,13 +112,17 @@ public final class FormTraits {
         }
     }
 
-    @Nullable
-    private static Holder<MobEffect> effectFor(@Nullable EntityType<?> form) {
-        if (form == null) return null;
-        if (form == EntityType.CHICKEN) return MobEffects.SLOW_FALLING;
-        if (form == EntityType.STRIDER) return MobEffects.FIRE_RESISTANCE;
-        if (isWaterForm(form)) return MobEffects.DOLPHINS_GRACE;
-        return null;
+    private static Set<Holder<MobEffect>> effectsFor(@Nullable EntityType<?> form) {
+        if (form == null) return Set.of();
+        if (form == EntityType.CHICKEN) return Set.of(MobEffects.SLOW_FALLING);
+        if (form == EntityType.TURTLE) return Set.of(MobEffects.WATER_BREATHING, MobEffects.DOLPHINS_GRACE);
+        if (isLavaForm(form) || form.fireImmune()) return Set.of(MobEffects.FIRE_RESISTANCE);
+        if (isWaterForm(form)) return Set.of(MobEffects.DOLPHINS_GRACE);
+        return Set.of();
+    }
+
+    private static boolean isLavaForm(EntityType<?> form) {
+        return Morphs.formData(form).filter(data -> data.pool() == MorphForm.Pool.LAVA).isPresent();
     }
 
     public static boolean isWaterForm(@Nullable EntityType<?> form) {

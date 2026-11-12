@@ -3,10 +3,19 @@ package games.brennan.balancedtotems.client;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.morph.FormAction;
 import games.brennan.balancedtotems.morph.MorphFlight;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ambient.Bat;
+import net.minecraft.world.entity.animal.Pufferfish;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.entity.animal.armadillo.Armadillo;
+import net.minecraft.world.entity.animal.axolotl.Axolotl;
+import net.minecraft.world.entity.animal.camel.Camel;
+import net.minecraft.world.entity.animal.frog.Frog;
+import net.minecraft.world.entity.animal.sniffer.Sniffer;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.player.Player;
@@ -32,11 +41,23 @@ final class FormAnimator {
     private static final int RAM_TICKS = 10;
     private static final int EAT_TICKS = 20;
     private static final float ARMADILLO_WALK_SCALE = 0.35F;
+    private static final int DASH_TICKS = 20;
+    private static final int CROAK_TICKS = 60;
+    private static final int TONGUE_TICKS = 10;
+    /** {@code LandMoves#DIG_SEED_DELAY}: the sniffer digs until the seed comes up. */
+    private static final int DIG_TICKS = 120;
+    /** Moving further than this in a tick ends a sit or a hang. */
+    private static final double STILL_DISTANCE_SQR = 0.0025;
 
     private static final Map<UUID, Boolean> WAS_ON_GROUND = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> REARING = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> RAMMING = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> EATING = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> DASHING = new ConcurrentHashMap<>();
+    /** A pose the mob holds for a while (croak, tongue, dig), and how it ends. */
+    private static final Map<UUID, Timed> TIMED = new ConcurrentHashMap<>();
+    /** Sitting cats and hanging bats, until the player moves. */
+    private static final Set<UUID> RESTING = ConcurrentHashMap.newKeySet();
     private static final Set<Class<?>> FAILED = ConcurrentHashMap.newKeySet();
 
     private FormAnimator() {}
@@ -58,6 +79,12 @@ final class FormAnimator {
         animateEating(standIn, player);
 
         if (jumped) onJump(standIn, id);
+        if (RESTING.contains(id) && (jumped || moved(player))) stopResting(standIn, id);
+        if (standIn instanceof Camel camel && DASHING.containsKey(id)) camel.setDashing(true); // its tick ends a dash on landing
+        countDown(DASHING, id, () -> {
+            if (standIn instanceof Camel camel) camel.setDashing(false);
+        });
+        tickTimed(id);
         if (standIn instanceof Strider strider) strider.setSuffocating(!player.isInLava()); // shivers off lava
         countDown(REARING, id, () -> {
             if (standIn instanceof AbstractHorse horse) horse.setStanding(false);
@@ -99,8 +126,73 @@ final class FormAnimator {
             case UNROLL -> {
                 if (standIn instanceof Armadillo armadillo) armadillo.switchToState(Armadillo.ArmadilloState.IDLE);
             }
+            case SWING_ARM -> standIn.swing(InteractionHand.MAIN_HAND);
+            case DASH -> {
+                if (standIn instanceof Camel camel) camel.setDashing(true);
+                DASHING.put(player, DASH_TICKS);
+            }
+            case SIT -> {
+                if (standIn instanceof TamableAnimal pet) pet.setInSittingPose(true);
+                RESTING.add(player);
+            }
+            case HANG -> {
+                if (standIn instanceof Bat bat) bat.setResting(true);
+                RESTING.add(player);
+            }
+            case PLAY_DEAD, WAKE -> {
+                if (standIn instanceof Axolotl axolotl) axolotl.setPlayingDead(action == FormAction.PLAY_DEAD);
+            }
+            case PUFF, DEFLATE -> {
+                if (standIn instanceof Pufferfish puffer) puffer.setPuffState(action == FormAction.PUFF ? 2 : 0);
+            }
+            case CROAK -> holdPose(standIn, player, Pose.CROAKING, CROAK_TICKS);
+            case TONGUE -> holdPose(standIn, player, Pose.USING_TONGUE, TONGUE_TICKS);
+            case DIG -> {
+                if (!(standIn instanceof Sniffer sniffer)) return;
+                sniffer.transitionTo(Sniffer.State.DIGGING);
+                startTimed(player, DIG_TICKS, () -> sniffer.transitionTo(Sniffer.State.IDLING));
+            }
         }
     }
+
+    /** {@code Frog}: its croak and tongue animations start when its pose changes. */
+    private static void holdPose(LivingEntity standIn, UUID player, Pose pose, int ticks) {
+        if (!(standIn instanceof Frog)) return;
+        standIn.setPose(pose);
+        startTimed(player, ticks, () -> standIn.setPose(Pose.STANDING));
+    }
+
+    /** Starts a held pose, ending any other first. */
+    private static void startTimed(UUID player, int ticks, Runnable end) {
+        Timed previous = TIMED.put(player, new Timed(ticks, end));
+        if (previous != null) previous.end().run();
+    }
+
+    private static void tickTimed(UUID player) {
+        Timed timed = TIMED.get(player);
+        if (timed == null) return;
+        if (timed.left() <= 0) {
+            TIMED.remove(player);
+            timed.end().run();
+        } else {
+            TIMED.put(player, new Timed(timed.left() - 1, timed.end()));
+        }
+    }
+
+    private static boolean moved(Player player) {
+        double dx = player.getX() - player.xo;
+        double dy = player.getY() - player.yo;
+        double dz = player.getZ() - player.zo;
+        return dx * dx + dy * dy + dz * dz > STILL_DISTANCE_SQR;
+    }
+
+    private static void stopResting(LivingEntity standIn, UUID player) {
+        RESTING.remove(player);
+        if (standIn instanceof TamableAnimal pet) pet.setInSittingPose(false);
+        if (standIn instanceof Bat bat) bat.setResting(false);
+    }
+
+    private record Timed(int left, Runnable end) {}
 
     /** Whether the stand-in should hang its head to eat (mobs with no eat pose of their own, like the cow). */
     static boolean headDown(UUID player) {
@@ -133,6 +225,9 @@ final class FormAnimator {
         REARING.remove(player);
         RAMMING.remove(player);
         EATING.remove(player);
+        DASHING.remove(player);
+        TIMED.remove(player);
+        RESTING.remove(player);
     }
 
     private static void onJump(LivingEntity standIn, UUID player) {

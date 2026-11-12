@@ -26,6 +26,7 @@ import games.brennan.balancedtotems.net.BtNetwork;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.ToIntFunction;
@@ -44,7 +45,9 @@ public final class Morphs {
     private static final ResourceLocation ATTACK_ID = BalancedTotems.id("morph.attack_damage");
     private static final ResourceLocation JUMP_ID = BalancedTotems.id("morph.jump");
     private static final ResourceLocation STEP_ID = BalancedTotems.id("morph.step_height");
-    private static final ResourceLocation NO_JUMP_ID = BalancedTotems.id("morph.no_jump");
+    private static final ResourceLocation FORM_JUMP_ID = BalancedTotems.id("morph.form_jump");
+    /** Jumps a form's attributes don't capture: camels can't jump (they step up blocks), frogs leap. */
+    private static final Map<EntityType<?>, Double> FORM_JUMP = Map.of(EntityType.CAMEL, -1.0, EntityType.FROG, 0.6);
 
     private Morphs() {}
 
@@ -118,6 +121,7 @@ public final class Morphs {
         applyStats(player, type);
         player.refreshDimensions();
         if (type != null) dropMonsterAggro(player);
+        FormTimers.onFormChanged(player);
         MorphFlight.onFormChanged(player, previous, type);
         FormAttacks.onFormChanged(player, type);
         FormTraits.onFormChanged(player, type);
@@ -142,7 +146,7 @@ public final class Morphs {
         clear(player, Attributes.ATTACK_DAMAGE, ATTACK_ID);
         clear(player, Attributes.JUMP_STRENGTH, JUMP_ID);
         clear(player, Attributes.STEP_HEIGHT, STEP_ID);
-        clear(player, Attributes.JUMP_STRENGTH, NO_JUMP_ID);
+        clear(player, Attributes.JUMP_STRENGTH, FORM_JUMP_ID);
         if (type == null || !DefaultAttributes.hasSupplier(type)) return;
 
         AttributeSupplier mob = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) type);
@@ -151,9 +155,9 @@ public final class Morphs {
         add(player, mob, Attributes.ATTACK_DAMAGE, ATTACK_ID, MorphStats::attackDelta, AttributeModifier.Operation.ADD_VALUE);
         add(player, mob, Attributes.JUMP_STRENGTH, JUMP_ID, MorphStats::jumpBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
         add(player, mob, Attributes.STEP_HEIGHT, STEP_ID, MorphStats::stepDelta, AttributeModifier.Operation.ADD_VALUE);
-        if (type == EntityType.CAMEL) { // camels can't jump; they step up blocks instead
-            AttributeInstance jump = player.getAttribute(Attributes.JUMP_STRENGTH);
-            if (jump != null) jump.addTransientModifier(new AttributeModifier(NO_JUMP_ID, -1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+        AttributeInstance jump = player.getAttribute(Attributes.JUMP_STRENGTH);
+        if (jump != null && FORM_JUMP.containsKey(type)) {
+            jump.addTransientModifier(new AttributeModifier(FORM_JUMP_ID, FORM_JUMP.get(type), AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
         }
         if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());
     }
