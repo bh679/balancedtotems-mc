@@ -49,6 +49,15 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
+        // ./gradlew runSelfTest: drives every morph form in a real client (client/FormSelfTest) and quits.
+        selfTest {
+            client()
+            gameDirectory = project.file('run-selftest')
+            systemProperty 'balancedtotems.selftest', 'true'
+            systemProperty 'balancedtotems.selftest.forms', System.getProperty('forms', '')
+            programArguments.addAll '--quickPlaySingleplayer', 'New World'
+        }
+
         server {
             server()
             programArgument '--nogui'

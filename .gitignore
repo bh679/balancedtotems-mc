@@ -5,6 +5,7 @@ out/
 classes/
 run/
 run-data/
+run-selftest/
 repo/
 *.log
 

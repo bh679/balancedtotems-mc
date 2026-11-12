@@ -250,6 +250,11 @@ final class FormAnimator {
         standIn.walkAnimation.update(speed * ARMADILLO_WALK_SCALE, 0.4F);
     }
 
+    /** Stand-in classes whose own tick threw, so they're drawn without animation. */
+    static Set<Class<?>> failures() {
+        return Set.copyOf(FAILED);
+    }
+
     static void forget(UUID player) {
         WAS_ON_GROUND.remove(player);
         REARING.remove(player);
@@ -277,14 +282,31 @@ final class FormAnimator {
         standIn.setSprinting(player.isSprinting());
     }
 
-    /** A mob whose tick throws once is left frozen rather than crashing the client every frame. */
+    /**
+     * A mob whose tick throws once is left frozen rather than crashing the client every frame. The tick's
+     * own walk-cycle update is held back (it would count the player's movement a second time and run the
+     * legs at double speed); {@link #tick} updates it once afterwards.
+     */
     private static void runOwnTick(LivingEntity standIn) {
         if (FAILED.contains(standIn.getClass())) return;
+        double xo = standIn.xo;
+        double yo = standIn.yo;
+        double zo = standIn.zo;
+        float walkSpeed = standIn.walkAnimation.speed();
+        standIn.xo = standIn.getX(); // no movement and no speed: its own update adds nothing
+        standIn.yo = standIn.getY();
+        standIn.zo = standIn.getZ();
+        standIn.walkAnimation.setSpeed(0.0F);
         try {
             standIn.tick();
         } catch (RuntimeException e) {
             FAILED.add(standIn.getClass());
             BalancedTotems.LOGGER.warn("Morph form {} can't animate; drawing it still", standIn.getType(), e);
+        } finally {
+            standIn.xo = xo;
+            standIn.yo = yo;
+            standIn.zo = zo;
+            standIn.walkAnimation.setSpeed(walkSpeed);
         }
     }
 }

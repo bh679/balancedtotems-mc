@@ -37,6 +37,11 @@ public final class MorphRenderer {
 
     private MorphRenderer() {}
 
+    /** The stand-in drawn for a morphed player, if there is one yet. */
+    static LivingEntity standIn(Player player) {
+        return DUMMIES.get(player.getUUID());
+    }
+
     static void forget(Player player) {
         DUMMIES.remove(player.getUUID());
     }
