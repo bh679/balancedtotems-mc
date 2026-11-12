@@ -23,6 +23,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.golem.SnowGolem;
 import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.illager.Evoker;
@@ -46,6 +47,13 @@ import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.network.CommonListenerCookie;
 
 import java.util.HashSet;
 import java.util.List;
@@ -75,6 +83,7 @@ public final class BalancedTotemsGameTests {
         check(helper, player.getMainHandItem().isEmpty(), "totem should be used up");
         check(helper, player.hasEffect(MobEffects.REGENERATION), "vanilla regeneration");
         check(helper, player.hasEffect(MobEffects.ABSORPTION), "vanilla absorption");
+        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a curse totem still gives Fire Resistance");
         expectEffect(helper, player, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
         helper.succeed();
     }
@@ -188,6 +197,35 @@ public final class BalancedTotemsGameTests {
         helper.succeed();
     }
 
+    // ---- boom ----
+
+    @BtGameTest
+    public static void boomTotemSavesFromExplosions(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.BOOM);
+        player.hurt(player.damageSources().explosion(null, null), LETHAL);
+        check(helper, player.isAlive(), "player should survive the explosion");
+        check(helper, !player.hasEffect(MobEffects.FIRE_RESISTANCE), "a single-purpose totem gives no Fire Resistance");
+        check(helper, player.hasEffect(MobEffects.REGENERATION), "the pop still heals");
+        helper.succeed();
+    }
+
+    @BtGameTest
+    public static void boomTotemIgnoresOtherDeaths(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.BOOM);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, !player.isAlive(), "only an explosion is saved");
+        helper.succeed();
+    }
+
+    @BtGameTest
+    public static void featherTotemGivesNoFireResistance(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FEATHER);
+        player.hurt(player.damageSources().fall(), LETHAL);
+        check(helper, player.isAlive(), "player should survive the fall");
+        check(helper, !player.hasEffect(MobEffects.FIRE_RESISTANCE), "a single-purpose totem gives no Fire Resistance");
+        helper.succeed();
+    }
+
     // ---- morph ----
 
     @BtGameTest
@@ -257,6 +295,17 @@ public final class BalancedTotemsGameTests {
         check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "a totem's weakness alone is no cure");
         eatGoldenApple(player);
         check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "golden apple with the Weakness curse should cure");
+        helper.succeed();
+    }
+
+    @BtGameTest
+    public static void snowGolemsHuntAZombifiedPlayer(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.ZOMBIFIED);
+        SnowGolem golem = helper.spawn(EntityTypes.SNOW_GOLEM, 2, 1, 2);
+        tick(player, 21);
+        check(helper, golem.getTarget() == player, "a snow golem should target a zombie player, targets " + golem.getTarget());
+        golem.discard();
         helper.succeed();
     }
 
@@ -643,9 +692,17 @@ public final class BalancedTotemsGameTests {
 
     // ---- helpers ----
 
-    @SuppressWarnings("removal")
+    /**
+     * A survival mock player in the level. 26.3's {@code makeMockServerPlayerInLevel} pins {@code gameMode()}
+     * to creative, which mobs refuse to target, so this is that helper without the pin.
+     */
     private static ServerPlayer player(GameTestHelper helper) {
-        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        ServerLevel level = helper.getLevel();
+        CommonListenerCookie cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "test-mock-player"), false);
+        ServerPlayer player = new ServerPlayer(level.getServer(), level, cookie.gameProfile(), cookie.clientInformation());
+        Connection connection = new Connection(PacketFlow.SERVERBOUND);
+        new EmbeddedChannel(connection);
+        level.getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
         player.setGameMode(GameType.SURVIVAL);
         Vec3 at = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
         player.teleportTo(at.x, at.y, at.z);

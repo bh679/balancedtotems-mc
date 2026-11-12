@@ -15,7 +15,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
   per level, 20 min, never below half a heart), Blindness (30 s), Morphing (random animal form, 30 s),
   Zombified (zombie form; golden apple while weakened within 10 min or die), Rage (id `rampage`; kill 3
   players/PlayerMobs per level within 15 min or die), Void (void deaths only; chorus-fruit hop near the last safe ground, or the API rescue target,
-  no curse), Feather (deadly falls only, no curse), Loneliness (make 3 friends per level within 10 min or die), Pacifism (Vow of Peace: hurt anything within 20 min and die), Melon Diet (eat anything but
+  no curse), Feather (deadly falls only, no curse), Boom (explosions only, no curse; the three single-purpose totems give no Fire Resistance), Loneliness (make 3 friends per level within 10 min or die), Pacifism (Vow of Peace: hurt anything within 20 min and die), Melon Diet (eat anything but
   melon within 20 min and die), Restraint (open a chest, barrel or ender chest within 20 min and die). Curse totems are named
   "Totem of X"; Void and Feather keep "X Totem". Curses stack, level up, and survive death.
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's

@@ -25,6 +25,8 @@
   "item.balancedtotems.void_totem.curse": "Only saves you from void death",
   "item.balancedtotems.feather_totem": "Feather Totem",
   "item.balancedtotems.feather_totem.curse": "Only saves you from falling",
+  "item.balancedtotems.boom_totem": "Boom Totem",
+  "item.balancedtotems.boom_totem.curse": "Only saves you from explosions",
 
   "effect.balancedtotems.heartbreak": "Heartbreak",
   "effect.balancedtotems.morphed": "Morphed",

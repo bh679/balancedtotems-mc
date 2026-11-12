@@ -1,4 +1,4 @@
-"""The thirteen totems (16x16). Each is a grid over the vanilla totem's shape.
+"""The fourteen totems (16x16). Each is a grid over the vanilla totem's shape.
 
 Grid keys: '0'..'6' are body tones darkest to lightest (the vanilla totem's own
 seven), 'g'/'h' its light/dark eye pixels, '.' transparent, and any other letter
@@ -238,6 +238,17 @@ def feather(vanilla: Vanilla) -> Image.Image:
     return over(wings, render(VANILLA, palette))
 
 
+def boom(vanilla: Vanilla) -> Image.Image:
+    """Gold totem hugging a vanilla TNT block, its hands showing at the sides."""
+    body = render(VANILLA, {**GOLD, **GOLD_EYES})
+    tnt = vanilla.load("block/tnt_side.png").resize((8, 8), Image.NEAREST)
+    im = over(body, tnt, (4, 7))
+    for y in (8, 9):
+        for x in [1, 2, 3, 12, 13, 14]:
+            im.putpixel((x, y), body.getpixel((x, y)))
+    return im
+
+
 def pig_head_alternate(vanilla: Vanilla) -> Image.Image:
     """Unused alternate Morphing design: big-snout pig head on the gold body."""
     head = [
@@ -267,4 +278,5 @@ TOTEMS = {
     "restraint_totem": restraint,
     "void_totem": void,
     "feather_totem": feather,
+    "boom_totem": boom,
 }
