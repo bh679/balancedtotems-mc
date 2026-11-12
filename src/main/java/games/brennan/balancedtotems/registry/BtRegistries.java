@@ -115,6 +115,9 @@ public final class BtRegistries {
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("broken_diet"));
     public static final ResourceKey<DamageType> BROKEN_RESTRAINT =
         ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("broken_restraint"));
+    /** A bee-form player who stung and didn't turn back in time. */
+    public static final ResourceKey<DamageType> LOST_STINGER =
+        ResourceKey.create(Registries.DAMAGE_TYPE, BalancedTotems.id("lost_stinger"));
 
     private BtRegistries() {}
 

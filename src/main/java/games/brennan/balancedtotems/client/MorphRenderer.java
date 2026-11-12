@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.BalancedTotems;
+import games.brennan.balancedtotems.morph.FormAction;
 import games.brennan.balancedtotems.morph.Morphs;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -60,7 +61,7 @@ public final class MorphRenderer {
         if (player != null && Morphs.formOf(player).isPresent()) event.setCanceled(true);
     }
 
-    /** Walk animation needs movement per tick, which only a tick sees. */
+    /** Animations advance once a tick (see {@link FormAnimator}). */
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         ClientLevel level = Minecraft.getInstance().level;
@@ -70,13 +71,21 @@ public final class MorphRenderer {
         }
         for (Player player : level.players()) {
             LivingEntity dummy = DUMMIES.get(player.getUUID());
-            if (dummy == null) continue;
-            dummy.setOldPosAndRot();
-            dummy.setPos(player.getX(), player.getY(), player.getZ());
-            dummy.calculateEntityAnimation(false);
-            dummy.tickCount = player.tickCount;
+            if (dummy != null) FormAnimator.tick(dummy, player);
         }
-        DUMMIES.keySet().removeIf(id -> level.getPlayerByUUID(id) == null);
+        DUMMIES.keySet().removeIf(id -> {
+            boolean gone = level.getPlayerByUUID(id) == null;
+            if (gone) FormAnimator.forget(id);
+            return gone;
+        });
+    }
+
+    /** Shows a form's action (a ram, a swing, a graze) on a morphed player's stand-in. */
+    static void perform(Player player, int action) {
+        LivingEntity dummy = dummyFor(player);
+        if (dummy != null && action >= 0 && action < FormAction.values().length) {
+            FormAnimator.perform(dummy, player.getUUID(), FormAction.values()[action]);
+        }
     }
 
     private static LivingEntity dummyFor(Player player) {
@@ -89,6 +98,7 @@ public final class MorphRenderer {
         if (existing != null && existing.getType() == form) return existing;
         if (!(form.create(player.level()) instanceof LivingEntity created)) return null;
         if (created instanceof Bat bat) bat.setResting(false); // a new bat hangs upside down
+        created.setSilent(true); // its own tick runs for animations; the player makes the sounds
         created.setPos(player.getX(), player.getY(), player.getZ());
         created.setOldPosAndRot();
         DUMMIES.put(player.getUUID(), created);

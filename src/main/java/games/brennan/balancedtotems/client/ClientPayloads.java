@@ -2,6 +2,7 @@ package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.net.MorphSyncPayload;
 import games.brennan.balancedtotems.net.CurseCountPayload;
+import games.brennan.balancedtotems.net.MorphActionPayload;
 import games.brennan.balancedtotems.net.TotemPopPayload;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import net.minecraft.client.CameraType;
@@ -62,6 +63,13 @@ public final class ClientPayloads {
         } else if (form.isEmpty() && cameraBeforeMorph != null) {
             if (mc.options.getCameraType() == MORPH_CAMERA) mc.options.setCameraType(cameraBeforeMorph);
             cameraBeforeMorph = null;
+        }
+    }
+
+    public static void onMorphAction(MorphActionPayload payload) {
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level != null && level.getEntity(payload.entityId()) instanceof Player player) {
+            MorphRenderer.perform(player, payload.action());
         }
     }
 

@@ -8,6 +8,7 @@ import games.brennan.balancedtotems.compat.PlayerMobGifts;
 import games.brennan.balancedtotems.curse.Curses;
 import games.brennan.balancedtotems.curse.Tallies;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
+import games.brennan.balancedtotems.morph.FormAttacks;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import games.brennan.balancedtotems.voidtotem.VoidRescue;
@@ -260,6 +261,56 @@ public final class BalancedTotemsGameTests {
             Morphs.setForm(player, null);
             check(helper, !player.getAbilities().mayfly && !player.getAbilities().flying, "flight should end with the form");
         }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void beeFormStingsOnceAndMayDie(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.BEE);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        player.attack(pig);
+        check(helper, pig.hasEffect(MobEffects.POISON), "a sting should poison");
+        check(helper, FormAttacks.hasStung(player), "the bee has lost its stinger");
+        Morphs.setForm(player, EntityType.COW);
+        check(helper, !FormAttacks.hasStung(player), "turning back in time saves you");
+        pig.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void formsWithoutAnAttackDoNoDamage(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COW);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        float before = pig.getHealth();
+        player.attack(pig);
+        check(helper, pig.getHealth() == before, "a cow can't hurt anything");
+        pig.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void goatFormRams(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.GOAT);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 3);
+        player.attack(pig);
+        double push = pig.getDeltaMovement().horizontalDistance();
+        check(helper, push > 0.5, "a ram should knock the target far, was " + push);
+        pig.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void sheepFormGrazes(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.SHEEP);
+        BlockPos grass = helper.absolutePos(new BlockPos(1, 1, 1));
+        helper.getLevel().setBlockAndUpdate(grass, Blocks.GRASS_BLOCK.defaultBlockState());
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.LeftClickBlock(player, grass, Direction.UP,
+            PlayerInteractEvent.LeftClickBlock.Action.START));
+        check(helper, helper.getLevel().getBlockState(grass).is(Blocks.DIRT), "a sheep should eat the grass");
         helper.succeed();
     }
 

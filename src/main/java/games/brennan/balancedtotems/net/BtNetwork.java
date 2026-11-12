@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
  */
 public final class BtNetwork {
 
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
 
     private BtNetwork() {}
 
@@ -28,6 +28,9 @@ public final class BtNetwork {
         registrar.playToClient(CurseCountPayload.TYPE, CurseCountPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.balancedtotems.client.ClientPayloads.onCurseCount(payload)));
+        registrar.playToClient(MorphActionPayload.TYPE, MorphActionPayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(
+                () -> games.brennan.balancedtotems.client.ClientPayloads.onMorphAction(payload)));
     }
 
     /**

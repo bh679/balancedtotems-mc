@@ -78,6 +78,7 @@ public final class Morphs {
         player.refreshDimensions();
         if (type != null) dropMonsterAggro(player);
         MorphFlight.onFormChanged(player, previous, type);
+        FormAttacks.onFormChanged(player, type);
         BtNetwork.sendToTrackingAndSelf(player, new MorphSyncPayload(player.getId(), id));
     }
 
