@@ -188,7 +188,7 @@ def pacifism(vanilla: Vanilla) -> Image.Image:
     return over(render(grid, palette), poppy, (4, 2))
 
 
-def watermelon(vanilla: Vanilla) -> Image.Image:
+def melon(vanilla: Vanilla) -> Image.Image:
     """Rind green with pink eyes, holding a vanilla melon slice."""
     palette = {**ramp("1e3a10", "2e5a18", "3e7a22", "4e8c2a", "62a236", "78b646", "96cc66"), **cols(g="fcb8a0", h="cc2c30")}
     melon = vanilla.load("item/melon_slice.png").resize((10, 10), Image.NEAREST)
@@ -263,7 +263,7 @@ TOTEMS = {
     "rampage_totem": rampage,
     "loneliness_totem": loneliness,
     "pacifism_totem": pacifism,
-    "watermelon_totem": watermelon,
+    "melon_totem": melon,
     "restraint_totem": restraint,
     "void_totem": void,
     "feather_totem": feather,

@@ -56,8 +56,8 @@ public final class Tallies {
         }
     }
 
-    /** One more kill or friend: lifts the curse at its target, or shows progress. */
-    public static void add(ServerPlayer player, Curse curse) {
+    /** One more kill or friend ({@code who}): lifts the curse at its target, or says so in chat. */
+    public static void add(ServerPlayer player, Curse curse, Component who) {
         MobEffectInstance instance = player.getEffect(curse.effect());
         if (instance == null) return;
         int count = count(player, curse) + 1;
@@ -68,7 +68,7 @@ public final class Tallies {
             DeadlineCurses.cure(player, curse.effect(), name);
             reset(player, curse);
         } else {
-            player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".progress", count, needed), true);
+            player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".progress", who, count, needed), false);
         }
     }
 

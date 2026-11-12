@@ -3,6 +3,7 @@ package games.brennan.balancedtotems.curse;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import games.brennan.balancedtotems.registry.BtRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.gossip.GossipType;
@@ -41,7 +42,9 @@ public final class LonelyFriends {
         List<String> updated = new ArrayList<>(known);
         updated.add(id);
         player.setData(BtRegistries.LONELY_FRIEND_IDS, List.copyOf(updated));
-        Tallies.add(player, Curse.LONELINESS);
+        Entity entity = player.serverLevel().getEntity(friend);
+        Component who = entity != null ? entity.getDisplayName() : Component.translatable("message.balancedtotems.lonely.someone");
+        Tallies.add(player, Curse.LONELINESS, who);
     }
 
     @SubscribeEvent

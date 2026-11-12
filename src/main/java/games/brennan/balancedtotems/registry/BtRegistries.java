@@ -65,7 +65,7 @@ public final class BtRegistries {
     public static final DeferredHolder<MobEffect, MobEffect> VOW_OF_PEACE = EFFECTS.register("vow_of_peace",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xE4E4EC, false));
 
-    /** Eat anything but watermelon while it lasts and you die (see {@code curse/RuleCurses}). */
+    /** Eat anything but melon while it lasts and you die (see {@code curse/RuleCurses}). */
     public static final DeferredHolder<MobEffect, MobEffect> MELON_DIET = EFFECTS.register("melon_diet",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x62A236, false));
 

@@ -504,7 +504,7 @@ public final class BalancedTotemsGameTests {
     @GameTest(template = EMPTY)
     public static void eatingBreadBreaksTheMelonDiet(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        pop(player, Curse.WATERMELON);
+        pop(player, Curse.MELON);
         EventHooks.onItemUseFinish(player, new ItemStack(Items.BREAD), 0, ItemStack.EMPTY);
         tick(player, 2);
         check(helper, !player.isAlive(), "bread under the melon diet should kill");
@@ -514,7 +514,7 @@ public final class BalancedTotemsGameTests {
     @GameTest(template = EMPTY)
     public static void melonAndDrinksKeepTheMelonDiet(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        pop(player, Curse.WATERMELON);
+        pop(player, Curse.MELON);
         EventHooks.onItemUseFinish(player, new ItemStack(Items.MELON_SLICE), 0, ItemStack.EMPTY);
         EventHooks.onItemUseFinish(player, new ItemStack(Items.HONEY_BOTTLE), 0, ItemStack.EMPTY);
         EventHooks.onItemUseFinish(player, new ItemStack(Items.MILK_BUCKET), 0, ItemStack.EMPTY);

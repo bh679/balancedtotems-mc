@@ -95,7 +95,7 @@ public final class DeadlineCurses {
         if (!(event.getSource().getEntity() instanceof ServerPlayer killer)) return;
         if (!killer.hasEffect(BtRegistries.RAMPAGE)) return;
         LivingEntity victim = event.getEntity();
-        if (victim != killer && Targets.countsForRage(victim)) Tallies.add(killer, Curse.RAMPAGE);
+        if (victim != killer && Targets.countsForRage(victim)) Tallies.add(killer, Curse.RAMPAGE, victim.getDisplayName());
     }
 
     /** Lifts {@code curse}: no more deadline, a message and a sound. */
@@ -105,7 +105,7 @@ public final class DeadlineCurses {
         ResourceKey<DamageType> deadline = curse.is(BtRegistries.ZOMBIFIED) ? BtRegistries.ZOMBIFICATION
             : curse.is(BtRegistries.RAMPAGE) ? BtRegistries.RAMPAGE_FAILED : BtRegistries.LONELINESS;
         PENDING_DEATHS.remove(player.getUUID(), deadline);
-        player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), true);
+        player.displayClientMessage(Component.translatable("message.balancedtotems." + name + ".lifted"), false);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 }
