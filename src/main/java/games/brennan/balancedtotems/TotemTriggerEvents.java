@@ -6,10 +6,10 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.bus.api.EventPriority;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 
 /**
  * Fires a held Balanced Totem when a player would die.
@@ -18,7 +18,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
  * wins and {@code die()} is never reached. Ours cancels the death at HIGHEST priority, as the
  * vanilla totem effectively does, so nothing downstream reports a death that didn't happen.</p>
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class TotemTriggerEvents {
 
     private TotemTriggerEvents() {}

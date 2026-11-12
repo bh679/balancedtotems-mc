@@ -11,12 +11,19 @@ import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
 import games.brennan.balancedtotems.morph.Morphs;
 import games.brennan.balancedtotems.registry.BtRegistries;
 import games.brennan.balancedtotems.voidtotem.VoidRescue;
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.Connection;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -30,7 +37,6 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -40,14 +46,14 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.CommonHooks;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.EventHooks;
-import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.gametest.GameTestHolder;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.event.entity.player.TradeWithVillagerEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.gametest.GameTestHolder;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 import java.util.HashSet;
 import java.util.List;
@@ -71,6 +77,18 @@ public final class BalancedTotemsGameTests {
     private BalancedTotemsGameTests() {}
 
     // ---- the pop ----
+
+    /** Moved from the unit tests on 1.20.1: damage type keys need the game's registries there. */
+    @GameTest(template = EMPTY)
+    public static void onlyVoidAndFeatherSaveFromOneThing(GameTestHelper helper) {
+        for (Curse curse : Curse.values()) {
+            boolean narrow = curse == Curse.VOID || curse == Curse.FEATHER;
+            check(helper, narrow == (curse.onlySaves() != null), curse.name());
+        }
+        check(helper, Curse.VOID.onlySaves() == DamageTypes.FELL_OUT_OF_WORLD, "void totem saves from the void");
+        check(helper, Curse.FEATHER.onlySaves() == DamageTypes.FALL, "feather totem saves from falls");
+        helper.succeed();
+    }
 
     @GameTest(template = EMPTY)
     public static void curseTotemSavesAndCurses(GameTestHelper helper) {
@@ -202,7 +220,7 @@ public final class BalancedTotemsGameTests {
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         check(helper, form != null, "player should have a form");
         check(helper, form.is(BtRegistries.MORPH_POOL), "form should come from the pool: " + form);
-        check(helper, player.getBbHeight() == form.getDimensions().height(), "hitbox should be the form's");
+        check(helper, player.getBbHeight() == form.getDimensions().height, "hitbox should be the form's");
         helper.succeed();
     }
 
@@ -238,9 +256,9 @@ public final class BalancedTotemsGameTests {
         check(helper, Morphs.formOf(player).orElse(null) == EntityType.ZOMBIE, "player should be a zombie");
         var witch = helper.spawn(EntityType.WITCH, new BlockPos(1, 2, 1));
         player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 400), witch); // a splash
-        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "weakness alone should not cure");
+        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED.get()), "weakness alone should not cure");
         eatGoldenApple(player);
-        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "golden apple while weakened should cure");
+        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED.get()), "golden apple while weakened should cure");
         check(helper, Morphs.formOf(player).isEmpty(), "form should be gone");
         helper.succeed();
     }
@@ -250,7 +268,7 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = holding(helper, Curse.ZOMBIFIED);
         player.hurt(player.damageSources().generic(), LETHAL);
         eatGoldenApple(player);
-        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "a golden apple alone should not cure");
+        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED.get()), "a golden apple alone should not cure");
         helper.succeed();
     }
 
@@ -259,16 +277,16 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         pop(player, Curse.ZOMBIFIED);
         pop(player, Curse.WEAKNESS);
-        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED), "a totem's weakness alone is no cure");
+        check(helper, player.hasEffect(BtRegistries.ZOMBIFIED.get()), "a totem's weakness alone is no cure");
         eatGoldenApple(player);
-        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED), "golden apple with the Weakness curse should cure");
+        check(helper, !player.hasEffect(BtRegistries.ZOMBIFIED.get()), "golden apple with the Weakness curse should cure");
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void zombifiedRunningOutKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(BtRegistries.ZOMBIFIED, 2, 0));
+        player.addEffect(new MobEffectInstance(BtRegistries.ZOMBIFIED.get(), 2, 0));
         Morphs.setForm(player, EntityType.ZOMBIE);
         tick(player, 5);
         check(helper, !player.isAlive(), "player should die when zombification runs out");
@@ -282,12 +300,12 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = holding(helper, Curse.RAMPAGE);
         player.hurt(player.damageSources().generic(), LETHAL);
         for (int i = 0; i < BtRegistries.RAMPAGE_KILLS_NEEDED; i++) {
-            check(helper, player.hasEffect(BtRegistries.RAMPAGE), "rampage active before kill " + (i + 1));
+            check(helper, player.hasEffect(BtRegistries.RAMPAGE.get()), "rampage active before kill " + (i + 1));
             // The GameTest server has PvP off, so fire the kill's death event directly.
             ServerPlayer victim = player(helper);
-            CommonHooks.onLivingDeath(victim, victim.damageSources().playerAttack(player));
+            ForgeHooks.onLivingDeath(victim, victim.damageSources().playerAttack(player));
         }
-        check(helper, !player.hasEffect(BtRegistries.RAMPAGE), "three kills should lift the rampage");
+        check(helper, !player.hasEffect(BtRegistries.RAMPAGE.get()), "three kills should lift the rampage");
         tick(player, 3);
         check(helper, player.isAlive(), "a lifted rampage never kills");
         helper.succeed();
@@ -296,7 +314,7 @@ public final class BalancedTotemsGameTests {
     @GameTest(template = EMPTY)
     public static void rampageRunningOutKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE, 2, 0));
+        player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE.get(), 2, 0));
         tick(player, 5);
         check(helper, !player.isAlive(), "player should die when the rampage runs out");
         helper.succeed();
@@ -305,11 +323,11 @@ public final class BalancedTotemsGameTests {
     @GameTest(template = EMPTY)
     public static void milkLeavesTheDeadlineCurses(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE, 400, 0));
-        player.addEffect(new MobEffectInstance(BtRegistries.HEARTBREAK, 400, 0));
-        player.removeEffectsCuredBy(net.neoforged.neoforge.common.EffectCures.MILK);
-        check(helper, player.hasEffect(BtRegistries.RAMPAGE), "milk should not lift rampage");
-        check(helper, !player.hasEffect(BtRegistries.HEARTBREAK), "milk does lift heartbreak");
+        player.addEffect(new MobEffectInstance(BtRegistries.RAMPAGE.get(), 400, 0));
+        player.addEffect(new MobEffectInstance(BtRegistries.HEARTBREAK.get(), 400, 0));
+        player.curePotionEffects(new ItemStack(Items.MILK_BUCKET));
+        check(helper, player.hasEffect(BtRegistries.RAMPAGE.get()), "milk should not lift rampage");
+        check(helper, !player.hasEffect(BtRegistries.HEARTBREAK.get()), "milk does lift heartbreak");
         helper.succeed();
     }
 
@@ -329,7 +347,7 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         for (Curse curse : List.of(Curse.FATIGUE, Curse.HEARTBREAK, Curse.WEAKNESS)) pop(player, curse);
         check(helper, player.hasEffect(MobEffects.DIG_SLOWDOWN), "fatigue cleared by a later pop");
-        check(helper, player.hasEffect(BtRegistries.HEARTBREAK), "heartbreak cleared by a later pop");
+        check(helper, player.hasEffect(BtRegistries.HEARTBREAK.get()), "heartbreak cleared by a later pop");
         check(helper, player.hasEffect(MobEffects.WEAKNESS), "weakness missing");
         helper.succeed();
     }
@@ -363,9 +381,9 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         for (int i = 0; i < 6; i++) pop(player, Curse.HEARTBREAK);
         check(helper, player.getMaxHealth() == 1.0F, "max health should stop at half a heart, was " + player.getMaxHealth());
-        MobEffectInstance heartbreak = player.getEffect(BtRegistries.HEARTBREAK);
+        MobEffectInstance heartbreak = player.getEffect(BtRegistries.HEARTBREAK.get());
         check(helper, heartbreak != null && heartbreak.getAmplifier() == 4, "level should stop at V, was " + heartbreak);
-        expectEffect(helper, player, BtRegistries.HEARTBREAK, Curse.HEARTBREAK.durationTicks());
+        expectEffect(helper, player, BtRegistries.HEARTBREAK.get(), Curse.HEARTBREAK.durationTicks());
         helper.succeed();
     }
 
@@ -375,11 +393,11 @@ public final class BalancedTotemsGameTests {
         pop(player, Curse.RAMPAGE);
         pop(player, Curse.RAMPAGE);
         for (int i = 0; i < 2 * BtRegistries.RAMPAGE_KILLS_NEEDED; i++) {
-            check(helper, player.hasEffect(BtRegistries.RAMPAGE), "rampage II lifted after only " + i + " kills");
+            check(helper, player.hasEffect(BtRegistries.RAMPAGE.get()), "rampage II lifted after only " + i + " kills");
             ServerPlayer victim = player(helper);
-            CommonHooks.onLivingDeath(victim, victim.damageSources().playerAttack(player));
+            ForgeHooks.onLivingDeath(victim, victim.damageSources().playerAttack(player));
         }
-        check(helper, !player.hasEffect(BtRegistries.RAMPAGE), "six kills should lift rampage II");
+        check(helper, !player.hasEffect(BtRegistries.RAMPAGE.get()), "six kills should lift rampage II");
         helper.succeed();
     }
 
@@ -397,7 +415,7 @@ public final class BalancedTotemsGameTests {
         MobEffectInstance weakness = respawned.getEffect(MobEffects.WEAKNESS);
         check(helper, weakness != null && weakness.getAmplifier() == 1, "weakness II should come back, was " + weakness);
         expectEffect(helper, respawned, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
-        check(helper, respawned.hasEffect(BtRegistries.HEARTBREAK), "heartbreak should come back");
+        check(helper, respawned.hasEffect(BtRegistries.HEARTBREAK.get()), "heartbreak should come back");
         check(helper, !respawned.hasEffect(MobEffects.BLINDNESS), "a plain effect should not come back");
         helper.succeed();
     }
@@ -405,13 +423,13 @@ public final class BalancedTotemsGameTests {
     @GameTest(template = EMPTY)
     public static void expiredZombifiedStaysGoneAfterDeath(GameTestHelper helper) {
         ServerPlayer dead = player(helper);
-        dead.addEffect(new MobEffectInstance(BtRegistries.ZOMBIFIED, 2, 0));
+        dead.addEffect(new MobEffectInstance(BtRegistries.ZOMBIFIED.get(), 2, 0));
         tick(dead, 5);
         check(helper, !dead.isAlive(), "zombification should have killed");
         ServerPlayer respawned = player(helper);
         CurseMemory.onClone(new PlayerEvent.Clone(respawned, dead, true));
         CurseMemory.onRespawn(new PlayerEvent.PlayerRespawnEvent(respawned, false));
-        check(helper, !respawned.hasEffect(BtRegistries.ZOMBIFIED), "the curse that killed you should not come back");
+        check(helper, !respawned.hasEffect(BtRegistries.ZOMBIFIED.get()), "the curse that killed you should not come back");
         helper.succeed();
     }
 
@@ -421,14 +439,14 @@ public final class BalancedTotemsGameTests {
     public static void lonelyIsLiftedByThreeVillagerFriends(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.LONELINESS);
-        expectEffect(helper, player, BtRegistries.LONELY, Curse.LONELINESS.durationTicks());
+        expectEffect(helper, player, BtRegistries.LONELY.get(), Curse.LONELINESS.durationTicks());
         Villager first = villager(helper);
         trade(player, first);
         trade(player, first); // the same villager counts once
         check(helper, Tallies.count(player, Curse.LONELINESS) == 1, "one villager should be one friend");
         trade(player, villager(helper));
         trade(player, villager(helper));
-        check(helper, !player.hasEffect(BtRegistries.LONELY), "three friends should lift Lonely");
+        check(helper, !player.hasEffect(BtRegistries.LONELY.get()), "three friends should lift Lonely");
         tick(player, 3);
         check(helper, player.isAlive(), "a lifted Lonely never kills");
         helper.succeed();
@@ -440,17 +458,17 @@ public final class BalancedTotemsGameTests {
         pop(player, Curse.LONELINESS);
         pop(player, Curse.LONELINESS);
         for (int i = 0; i < 2 * BtRegistries.RAMPAGE_KILLS_NEEDED; i++) {
-            check(helper, player.hasEffect(BtRegistries.LONELY), "Lonely II lifted after only " + i + " friends");
+            check(helper, player.hasEffect(BtRegistries.LONELY.get()), "Lonely II lifted after only " + i + " friends");
             trade(player, villager(helper));
         }
-        check(helper, !player.hasEffect(BtRegistries.LONELY), "six friends should lift Lonely II");
+        check(helper, !player.hasEffect(BtRegistries.LONELY.get()), "six friends should lift Lonely II");
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void lonelyRunningOutKills(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(BtRegistries.LONELY, 2, 0));
+        player.addEffect(new MobEffectInstance(BtRegistries.LONELY.get(), 2, 0));
         tick(player, 5);
         check(helper, !player.isAlive(), "player should die when Lonely runs out");
         helper.succeed();
@@ -473,7 +491,7 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         pop(player, Curse.RAMPAGE);
         Villager villager = villager(helper);
-        CommonHooks.onLivingDeath(villager, villager.damageSources().playerAttack(player));
+        ForgeHooks.onLivingDeath(villager, villager.damageSources().playerAttack(player));
         check(helper, Tallies.count(player, Curse.RAMPAGE) == 1, "a villager kill should count without PlayerMob");
         helper.succeed();
     }
@@ -509,9 +527,9 @@ public final class BalancedTotemsGameTests {
         pop(player, Curse.PACIFISM);
         tick(player, 20);
         pop(player, Curse.PACIFISM);
-        MobEffectInstance vow = player.getEffect(BtRegistries.VOW_OF_PEACE);
+        MobEffectInstance vow = player.getEffect(BtRegistries.VOW_OF_PEACE.get());
         check(helper, vow != null && vow.getAmplifier() == 0, "the vow has no levels, was " + vow);
-        expectEffect(helper, player, BtRegistries.VOW_OF_PEACE, 2 * Curse.PACIFISM.durationTicks() - 20);
+        expectEffect(helper, player, BtRegistries.VOW_OF_PEACE.get(), 2 * Curse.PACIFISM.durationTicks() - 20);
         helper.succeed();
     }
 
@@ -521,7 +539,7 @@ public final class BalancedTotemsGameTests {
     public static void eatingBreadBreaksTheMelonDiet(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.MELON);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.BREAD), 0, ItemStack.EMPTY);
+        ForgeEventFactory.onItemUseFinish(player, new ItemStack(Items.BREAD), 0, ItemStack.EMPTY);
         tick(player, 2);
         check(helper, !player.isAlive(), "bread under the melon diet should kill");
         helper.succeed();
@@ -531,9 +549,9 @@ public final class BalancedTotemsGameTests {
     public static void melonAndDrinksKeepTheMelonDiet(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.MELON);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.MELON_SLICE), 0, ItemStack.EMPTY);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.HONEY_BOTTLE), 0, ItemStack.EMPTY);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.MILK_BUCKET), 0, ItemStack.EMPTY);
+        ForgeEventFactory.onItemUseFinish(player, new ItemStack(Items.MELON_SLICE), 0, ItemStack.EMPTY);
+        ForgeEventFactory.onItemUseFinish(player, new ItemStack(Items.HONEY_BOTTLE), 0, ItemStack.EMPTY);
+        ForgeEventFactory.onItemUseFinish(player, new ItemStack(Items.MILK_BUCKET), 0, ItemStack.EMPTY);
         tick(player, 2);
         check(helper, player.isAlive(), "melon and drinks are allowed");
         helper.succeed();
@@ -546,7 +564,7 @@ public final class BalancedTotemsGameTests {
         BlockPos barrel = helper.absolutePos(new BlockPos(1, 1, 1));
         helper.getLevel().setBlockAndUpdate(barrel, Blocks.BARREL.defaultBlockState());
         BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(barrel), Direction.UP, barrel, false);
-        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, barrel, hit));
+        MinecraftForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, barrel, hit));
         tick(player, 2);
         check(helper, !player.isAlive(), "opening a barrel while restrained should kill");
         helper.succeed();
@@ -558,7 +576,7 @@ public final class BalancedTotemsGameTests {
         pop(player, Curse.RESTRAINT);
         tick(player, 20);
         pop(player, Curse.RESTRAINT);
-        expectEffect(helper, player, BtRegistries.RESTRAINED, 2 * Curse.RESTRAINT.durationTicks() - 20);
+        expectEffect(helper, player, BtRegistries.RESTRAINED.get(), 2 * Curse.RESTRAINT.durationTicks() - 20);
         helper.succeed();
     }
 
@@ -572,11 +590,11 @@ public final class BalancedTotemsGameTests {
             .withParameter(LootContextParams.THIS_ENTITY, evoker)
             .withParameter(LootContextParams.ORIGIN, evoker.position())
             .withParameter(LootContextParams.DAMAGE_SOURCE, killer.damageSources().playerAttack(killer))
-            .withParameter(LootContextParams.ATTACKING_ENTITY, killer)
-            .withParameter(LootContextParams.DIRECT_ATTACKING_ENTITY, killer)
+            .withParameter(LootContextParams.KILLER_ENTITY, killer)
+            .withParameter(LootContextParams.DIRECT_KILLER_ENTITY, killer)
             .withParameter(LootContextParams.LAST_DAMAGE_PLAYER, killer)
             .create(LootContextParamSets.ENTITY);
-        LootTable table = helper.getLevel().getServer().reloadableRegistries()
+        LootTable table = helper.getLevel().getServer().getLootData()
             .getLootTable(EntityType.EVOKER.getDefaultLootTable());
         Set<Item> seen = new HashSet<>();
         boolean emerald = false;
@@ -613,13 +631,35 @@ public final class BalancedTotemsGameTests {
 
     // ---- helpers ----
 
-    @SuppressWarnings("removal")
     private static ServerPlayer player(GameTestHelper helper) {
-        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        ServerPlayer player = mockPlayer(helper);
         player.setGameMode(GameType.SURVIVAL);
         Vec3 at = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
         player.teleportTo(at.x, at.y, at.z);
         for (int i = 0; i < SPAWN_INVULNERABLE_TICKS; i++) player.tick(); // only counts down spawn protection
+        return player;
+    }
+
+    /**
+     * {@code GameTestHelper#makeMockServerPlayerInLevel}, but with an in-memory netty channel: on Forge
+     * 1.20.1 joining sends packets, and the helper's bare {@code Connection} has no channel to send on.
+     */
+    private static ServerPlayer mockPlayer(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = new ServerPlayer(level.getServer(), level, new GameProfile(UUID.randomUUID(), "test-mock-player")) {
+            @Override
+            public boolean isSpectator() {
+                return false;
+            }
+
+            @Override
+            public boolean isCreative() {
+                return true;
+            }
+        };
+        Connection connection = new Connection(PacketFlow.SERVERBOUND);
+        new EmbeddedChannel(connection);
+        level.getServer().getPlayerList().placeNewPlayer(connection, player);
         return player;
     }
 
@@ -630,7 +670,7 @@ public final class BalancedTotemsGameTests {
     }
 
     private static void eatGoldenApple(ServerPlayer player) {
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.GOLDEN_APPLE), 0, ItemStack.EMPTY);
+        ForgeEventFactory.onItemUseFinish(player, new ItemStack(Items.GOLDEN_APPLE), 0, ItemStack.EMPTY);
     }
 
     private static Villager villager(GameTestHelper helper) {
@@ -638,8 +678,8 @@ public final class BalancedTotemsGameTests {
     }
 
     private static void trade(ServerPlayer player, Villager villager) {
-        MerchantOffer offer = new MerchantOffer(new ItemCost(Items.EMERALD), new ItemStack(Items.BREAD), 1, 1, 0.0F);
-        NeoForge.EVENT_BUS.post(new TradeWithVillagerEvent(player, offer, villager));
+        MerchantOffer offer = new MerchantOffer(new ItemStack(Items.EMERALD), new ItemStack(Items.BREAD), 1, 1, 0.0F);
+        MinecraftForge.EVENT_BUS.post(new TradeWithVillagerEvent(player, offer, villager));
     }
 
     /** Pops {@code curse}'s totem on the player. */
@@ -653,11 +693,11 @@ public final class BalancedTotemsGameTests {
         for (int i = 0; i < ticks && player.isAlive(); i++) player.doTick();
     }
 
-    private static void expectEffect(GameTestHelper helper, ServerPlayer player, Holder<MobEffect> effect, int duration) {
+    private static void expectEffect(GameTestHelper helper, ServerPlayer player, MobEffect effect, int duration) {
         MobEffectInstance instance = player.getEffect(effect);
-        check(helper, instance != null, "missing " + effect.getRegisteredName());
+        check(helper, instance != null, "missing " + BuiltInRegistries.MOB_EFFECT.getKey(effect));
         check(helper, instance.getDuration() == duration,
-            effect.getRegisteredName() + " lasts " + instance.getDuration() + ", expected " + duration);
+            BuiltInRegistries.MOB_EFFECT.getKey(effect) + " lasts " + instance.getDuration() + ", expected " + duration);
     }
 
     private static void check(GameTestHelper helper, boolean ok, String message) {

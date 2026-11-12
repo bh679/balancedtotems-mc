@@ -13,10 +13,10 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.TickEvent;
 
 import java.util.Map;
 import java.util.UUID;
@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * player stood on (else world spawn), a random hop onto ground within 8 blocks, as many tries as the
  * fruit takes; if none lands, the player stays on that safe ground.
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class VoidRescue {
 
     private static final int TRACK_EVERY_TICKS = 20;
@@ -92,10 +92,10 @@ public final class VoidRescue {
 
     /** Remembers where the player last stood on solid ground, once a second. */
     @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) return;
         if (player.tickCount % TRACK_EVERY_TICKS != 0) return;
-        if (!player.onGround() || player.isPassenger() || player.isInLiquid()) return;
+        if (!player.onGround() || player.isPassenger() || player.isInWater() || player.isInLava()) return;
         BlockPos below = player.blockPosition().below();
         if (!player.level().getBlockState(below).isFaceSturdy(player.level(), below, Direction.UP)) return;
         LAST_SAFE.put(player.getUUID(), new SafeSpot(player.level().dimension(), player.position()));

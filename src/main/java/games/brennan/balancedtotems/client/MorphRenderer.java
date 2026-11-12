@@ -10,12 +10,12 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RenderHandEvent;
-import net.neoforged.neoforge.client.event.RenderPlayerEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.RenderHandEvent;
+import net.minecraftforge.client.event.RenderPlayerEvent;
 
 import java.util.Map;
 import java.util.UUID;
@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Draws a morphed player as their form: the player model is cancelled and a client-only dummy of
  * the mob is drawn in its place, posed from the player every frame and animated every tick.
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID, value = Dist.CLIENT)
 public final class MorphRenderer {
 
     /** One dummy per morphed player, rebuilt when their form changes. */
@@ -61,7 +61,8 @@ public final class MorphRenderer {
 
     /** Walk animation needs movement per tick, which only a tick sees. */
     @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
         ClientLevel level = Minecraft.getInstance().level;
         if (level == null) {
             DUMMIES.clear();
@@ -109,7 +110,6 @@ public final class MorphRenderer {
         dummy.hurtTime = player.hurtTime;
         dummy.deathTime = player.deathTime;
         for (EquipmentSlot slot : EquipmentSlot.values()) {
-            if (slot.getType() == EquipmentSlot.Type.ANIMAL_ARMOR) continue;
             dummy.setItemSlot(slot, player.getItemBySlot(slot));
         }
     }

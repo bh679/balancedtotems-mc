@@ -13,10 +13,10 @@ import net.minecraft.world.level.block.CakeBlock;
 import net.minecraft.world.level.block.CandleCakeBlock;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.EnderChestBlock;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 /**
  * Two rule curses; break the rule and you die on your next tick.
@@ -26,14 +26,14 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
  *       "Respect The Rules", sneaking with a block in hand is placing, not opening.</li>
  * </ul>
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class RuleCurses {
 
     private RuleCurses() {}
 
     @SubscribeEvent
     public static void onFinishEating(LivingEntityUseItemEvent.Finish event) {
-        if (!(event.getEntity() instanceof ServerPlayer player) || !player.hasEffect(BtRegistries.MELON_DIET)) return;
+        if (!(event.getEntity() instanceof ServerPlayer player) || !player.hasEffect(BtRegistries.MELON_DIET.get())) return;
         if (breaksMelonDiet(event.getItem(), player)) DeadlineCurses.doom(player, BtRegistries.BROKEN_DIET);
     }
 
@@ -46,10 +46,10 @@ public final class RuleCurses {
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         Block block = event.getLevel().getBlockState(event.getPos()).getBlock();
-        if (player.hasEffect(BtRegistries.MELON_DIET) && isCake(block) && player.canEat(false)) {
+        if (player.hasEffect(BtRegistries.MELON_DIET.get()) && isCake(block) && player.canEat(false)) {
             DeadlineCurses.doom(player, BtRegistries.BROKEN_DIET);
         }
-        if (player.hasEffect(BtRegistries.RESTRAINED) && isLootContainer(block)
+        if (player.hasEffect(BtRegistries.RESTRAINED.get()) && isLootContainer(block)
             && !(player.isSecondaryUseActive() && event.getItemStack().getItem() instanceof BlockItem)) {
             DeadlineCurses.doom(player, BtRegistries.BROKEN_RESTRAINT);
         }

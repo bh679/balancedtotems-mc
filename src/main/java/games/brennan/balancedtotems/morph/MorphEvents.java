@@ -14,17 +14,19 @@ import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.EntityEvent;
-import net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent;
-import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.EntityEvent;
+import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
+import net.minecraftforge.event.entity.living.MobEffectEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.TickEvent;
 import games.brennan.balancedtotems.net.BtNetwork;
 
 /** Hitbox, mob reactions, zombie sunburn, and keeping the form in step with its curse. */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class MorphEvents {
 
     private static final int ZOMBIE_CHECK_EVERY_TICKS = 20;
@@ -38,13 +40,13 @@ public final class MorphEvents {
     public static void onSize(EntityEvent.Size event) {
         if (!(event.getEntity() instanceof Player player)) return;
         if (event.getPose() == Pose.SLEEPING || event.getPose() == Pose.DYING) return;
-        Morphs.formOf(player).ifPresent(type -> event.setNewSize(type.getDimensions()));
+        Morphs.formOf(player).ifPresent(type -> event.setNewSize(type.getDimensions(), true));
     }
 
     /** Monsters leave a morphed player alone, unless the player hit them. */
     @SubscribeEvent
     public static void onTarget(LivingChangeTargetEvent event) {
-        if (!(event.getNewAboutToBeSetTarget() instanceof Player player)) return;
+        if (!(event.getNewTarget() instanceof Player player)) return;
         if (ignoresMorphed(event.getEntity(), player)) event.setCanceled(true);
     }
 
@@ -71,7 +73,7 @@ public final class MorphEvents {
     }
 
     private static boolean isFormCurse(MobEffectInstance instance) {
-        return instance.is(BtRegistries.MORPHED) || instance.is(BtRegistries.ZOMBIFIED);
+        return instance.getEffect() == BtRegistries.MORPHED.get() || instance.getEffect() == BtRegistries.ZOMBIFIED.get();
     }
 
     /** Modifiers are transient, so a relog re-applies them; a form whose curse is gone is dropped. */
@@ -79,7 +81,7 @@ public final class MorphEvents {
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (Morphs.formOf(player).isEmpty()) return;
-        boolean cursed = player.hasEffect(BtRegistries.MORPHED) || player.hasEffect(BtRegistries.ZOMBIFIED);
+        boolean cursed = player.hasEffect(BtRegistries.MORPHED.get()) || player.hasEffect(BtRegistries.ZOMBIFIED.get());
         Morphs.setForm(player, cursed ? Morphs.formOf(player).get() : null);
     }
 
@@ -88,16 +90,26 @@ public final class MorphEvents {
         if (!(event.getTarget() instanceof Player target)) return;
         if (!(event.getEntity() instanceof ServerPlayer tracker)) return;
         Morphs.formOf(target).ifPresent(type -> BtNetwork.sendTo(tracker,
-            new MorphSyncPayload(target.getId(), target.getData(BtRegistries.FORM))));
+            new MorphSyncPayload(target.getId(), BtRegistries.FORM.get(target))));
+    }
+
+    /** A horse form jumps higher; other mobs jump like a player on 1.20.1. Runs on the client too. */
+    @SubscribeEvent
+    public static void onJump(LivingEvent.LivingJumpEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        double multiplier = Morphs.jumpMultiplier(player);
+        if (multiplier == 1.0) return;
+        Vec3 motion = player.getDeltaMovement();
+        player.setDeltaMovement(motion.x, motion.y * multiplier, motion.z);
     }
 
     /** A zombified player burns in daylight like a zombie and is hunted by iron golems. */
     @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent.Post event) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)) return;
         if (player.tickCount % ZOMBIE_CHECK_EVERY_TICKS != 0) return;
         if (Morphs.formOf(player).orElse(null) != EntityType.ZOMBIE) return;
-        if (burnsInSun(player)) player.igniteForSeconds(SUNBURN_SECONDS);
+        if (burnsInSun(player)) player.setSecondsOnFire(SUNBURN_SECONDS);
         AABB area = player.getBoundingBox().inflate(GOLEM_RADIUS);
         for (IronGolem golem : player.level().getEntitiesOfClass(IronGolem.class, area, g -> g.getTarget() == null)) {
             golem.setTarget(player);

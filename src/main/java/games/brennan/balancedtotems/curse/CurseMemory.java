@@ -4,9 +4,9 @@ import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.Curse;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * A deadline curse that killed you by running out is already gone, so it stays gone. Read on the
  * clone (the dead body still holds its effects), applied once the new body is in the world.
  */
-@EventBusSubscriber(modid = BalancedTotems.MOD_ID)
+@Mod.EventBusSubscriber(modid = BalancedTotems.MOD_ID)
 public final class CurseMemory {
 
     private static final Map<UUID, Map<Curse, Integer>> KEPT = new ConcurrentHashMap<>();
