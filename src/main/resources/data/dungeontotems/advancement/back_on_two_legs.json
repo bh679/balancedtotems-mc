@@ -1,4 +1,9 @@
 {
+  "neoforge:conditions": [
+    {
+      "type": "dungeontotems:advancements_launched"
+    }
+  ],
   "parent": "dungeontotems:terms_and_conditions",
   "display": {
     "icon": {

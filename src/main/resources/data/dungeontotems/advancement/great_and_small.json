@@ -1,4 +1,9 @@
 {
+  "neoforge:conditions": [
+    {
+      "type": "dungeontotems:advancements_launched"
+    }
+  ],
   "parent": "dungeontotems:back_on_two_legs",
   "display": {
     "icon": {

@@ -4,7 +4,9 @@
     python3 scripts/make_advancements.py
 
 Great and Small gets one criterion per morph form, read from the morph_forms data map, so run this again
-whenever a form is added (GameTest ``greatAndSmallHasEveryForm`` fails until you do). Progress bars come
+whenever a form is added (GameTest ``greatAndSmallHasEveryForm`` fails until you do). Every file carries
+the ``dungeontotems:advancements_launched`` condition, so the tab stays off until a release sets
+``TotemAdvancements.LAUNCHED``. Progress bars come
 free: each curse is its own criterion and requirement, and vanilla counts them.
 """
 
@@ -88,7 +90,10 @@ def main():
                    "show_toast": True, "announce_to_chat": True, "hidden": False}
         if parent is None:
             display["background"] = "minecraft:textures/block/crying_obsidian.png"
-        advancement = {"parent": f"dungeontotems:{parent}"} if parent else {}
+        # Off until launch: advancement/TotemAdvancements.LAUNCHED.
+        advancement = {"neoforge:conditions": [{"type": "dungeontotems:advancements_launched"}]}
+        if parent:
+            advancement["parent"] = f"dungeontotems:{parent}"
         advancement.update({"display": display, "criteria": criteria, "requirements": requirements})
         (OUT / f"{name}.json").write_text(json.dumps(advancement, indent=2) + "\n")
         lang[key + ".title"] = title

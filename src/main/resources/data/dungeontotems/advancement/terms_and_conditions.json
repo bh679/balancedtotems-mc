@@ -1,4 +1,9 @@
 {
+  "neoforge:conditions": [
+    {
+      "type": "dungeontotems:advancements_launched"
+    }
+  ],
   "display": {
     "icon": {
       "id": "dungeontotems:heartbreak_totem"

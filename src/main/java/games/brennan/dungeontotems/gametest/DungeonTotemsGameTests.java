@@ -1,5 +1,8 @@
 package games.brennan.dungeontotems.gametest;
 
+import com.google.gson.JsonParser;
+import net.minecraft.server.packs.resources.Resource;
+import games.brennan.dungeontotems.advancement.TotemAdvancements;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.advancements.CriterionProgress;
 import net.minecraft.advancements.AdvancementProgress;
@@ -1368,6 +1371,26 @@ public final class DungeonTotemsGameTests {
     }
 
     // ---- advancements ----
+
+    @GameTest(template = EMPTY)
+    public static void advancementsStayOffUntilLaunch(GameTestHelper helper) {
+        check(helper, !TotemAdvancements.isLaunched(false, null) && !TotemAdvancements.isLaunched(false, "false"),
+            "before launch, only a dev run's property loads the tab");
+        check(helper, TotemAdvancements.isLaunched(true, null), "a launched release loads it");
+        Map<ResourceLocation, Resource> files = helper.getLevel().getServer().getResourceManager()
+            .listResources("advancement", path -> path.getNamespace().equals(DungeonTotems.MOD_ID) && path.getPath().endsWith(".json"));
+        check(helper, files.size() == TabComplete.TAB.size() + 1, "expected every advancement file, found " + files.keySet());
+        List<ResourceLocation> ungated = new ArrayList<>();
+        files.forEach((path, resource) -> {
+            try (var reader = resource.openAsReader()) {
+                if (!JsonParser.parseReader(reader).toString().contains("\"dungeontotems:advancements_launched\"")) ungated.add(path);
+            } catch (java.io.IOException e) {
+                ungated.add(path);
+            }
+        });
+        check(helper, ungated.isEmpty(), "these would show before launch: " + ungated);
+        helper.succeed();
+    }
 
     @GameTest(template = EMPTY)
     public static void everyTotemAdvancementLoads(GameTestHelper helper) {

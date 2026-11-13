@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import games.brennan.dungeontotems.DungeonTotems;
 import games.brennan.dungeontotems.Curse;
 import games.brennan.dungeontotems.TotemItem;
+import games.brennan.dungeontotems.advancement.TotemAdvancements;
 import games.brennan.dungeontotems.advancement.TotemTriggers;
 import games.brennan.dungeontotems.effect.CurseEffect;
 import games.brennan.dungeontotems.effect.HeartbreakEffect;
@@ -129,6 +130,7 @@ public final class TotemRegistries {
         EFFECTS.register(modBus);
         ATTACHMENTS.register(modBus);
         TotemTriggers.register(modBus);
+        TotemAdvancements.register(modBus);
         modBus.addListener(TotemRegistries::addToCreativeTab);
     }
 
