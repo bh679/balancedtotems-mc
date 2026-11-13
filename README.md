@@ -31,6 +31,10 @@ the hearts taken, the cure, or the kills and time left.
 Evokers drop one of these at random instead of the vanilla totem. The pool is the item tag
 `dungeontotems:evoker_totems`, so a datapack can change it.
 
+An advancement tab, **Terms and Conditions**, follows your pops: change back from an animal, cure your
+zombie self, be every animal (Great and Small lists them as you go), survive every curse to its end
+(Waiting It Out, Promises Kept, Close Calls, with progress bars), and fulfil the terms by earning them all.
+
 Built for [Dungeon Train](https://modrinth.com/mod/dungeon-train), where the Void Totem lands you
 back on the train, but it works on its own.
 

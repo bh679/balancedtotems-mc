@@ -105,6 +105,8 @@ public final class DeadlineCurses {
         ResourceKey<DamageType> deadline = curse.is(TotemRegistries.ZOMBIFIED) ? TotemRegistries.ZOMBIFICATION
             : curse.is(TotemRegistries.RAMPAGE) ? TotemRegistries.RAMPAGE_FAILED : TotemRegistries.LONELINESS;
         PENDING_DEATHS.remove(player.getUUID(), deadline);
+        Curse lifted = Curse.forEffect(curse);
+        if (lifted != null) CurseTrials.onLifted(player, lifted);
         player.displayClientMessage(Component.translatable("message.dungeontotems." + name + ".lifted"), false);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);
     }

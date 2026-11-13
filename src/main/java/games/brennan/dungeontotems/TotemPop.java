@@ -1,5 +1,6 @@
 package games.brennan.dungeontotems;
 
+import games.brennan.dungeontotems.curse.CurseTrials;
 import games.brennan.dungeontotems.curse.Curses;
 import games.brennan.dungeontotems.net.TotemPopPayload;
 import net.minecraft.advancements.CriteriaTriggers;
@@ -36,6 +37,7 @@ public final class TotemPop {
         // A single-purpose totem (void, fall, explosion) gives no Fire Resistance.
         if (!curse.isNarrow()) player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
         applyCurse(player, curse);
+        CurseTrials.onPop(player, curse);
 
         TotemNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));
     }

@@ -47,7 +47,7 @@ import java.util.UUID;
 @EventBusSubscriber(modid = DungeonTotems.MOD_ID, value = Dist.CLIENT)
 public final class FormSelfTest {
 
-    private static final boolean ENABLED = System.getProperty("dungeontotems.selftest") != null;
+    private static final boolean ENABLED = System.getProperty("dungeontotems.selftest") != null && !AdvancementSelfTest.ENABLED;
     private static final int WARM_UP_TICKS = 100;
     private static final int TICKS_PER_FORM = 140;
     /** The test area: a grass platform, a water pool to its south and a lava pool to its north, high up. */

@@ -42,6 +42,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
 | `mixin/` | `LivingEntityMixin`: a strider-form player stands on lava; `EntityMixin`: fire-immune forms don't burn; `PlayerMixin`: land forms' air speed follows their pace (`morph/FormAir`) |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
+| `advancement/`, `curse/CurseTrials` | The Dungeon Totems advancement tab (`scripts/make_advancements.py` writes the JSON and English): triggers `totem_popped`, `curse_survived`, `became_form`; `TabComplete` grants Terms and Conditions Fulfilled; `mixin/client/AdvancementWidgetMixin` shows hints until earned and Great and Small's animal list. `./gradlew runSelfTest -Dadvancements=true` screenshots the tooltips |
 | `api/DungeonTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 
 Other mods find curses by effect id (`dungeontotems:zombified` etc.), with no compile dependency.

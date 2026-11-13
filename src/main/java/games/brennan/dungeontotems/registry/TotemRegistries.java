@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import games.brennan.dungeontotems.DungeonTotems;
 import games.brennan.dungeontotems.Curse;
 import games.brennan.dungeontotems.TotemItem;
+import games.brennan.dungeontotems.advancement.TotemTriggers;
 import games.brennan.dungeontotems.effect.CurseEffect;
 import games.brennan.dungeontotems.effect.HeartbreakEffect;
 import net.minecraft.core.registries.Registries;
@@ -92,6 +93,10 @@ public final class TotemRegistries {
     public static final Supplier<AttachmentType<List<String>>> LONELY_FRIEND_IDS = ATTACHMENTS.register("lonely_friend_ids",
         () -> AttachmentType.<List<String>>builder(() -> List.of()).serialize(Codec.STRING.listOf()).build());
 
+    /** Curses popped since you last died, still running (see {@code curse/CurseTrials}). */
+    public static final Supplier<AttachmentType<List<String>>> CURSE_TRIALS = ATTACHMENTS.register("curse_trials",
+        () -> AttachmentType.<List<String>>builder(() -> List.of()).serialize(Codec.STRING.listOf()).build());
+
     public static final Map<Curse, DeferredItem<TotemItem>> TOTEMS = registerTotems();
 
     /** Forms that fly: always airborne, no walking or jumping (see {@code morph/MorphFlight}). */
@@ -123,6 +128,7 @@ public final class TotemRegistries {
         ITEMS.register(modBus);
         EFFECTS.register(modBus);
         ATTACHMENTS.register(modBus);
+        TotemTriggers.register(modBus);
         modBus.addListener(TotemRegistries::addToCreativeTab);
     }
 

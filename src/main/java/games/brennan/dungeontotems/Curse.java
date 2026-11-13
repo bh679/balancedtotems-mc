@@ -83,6 +83,16 @@ public enum Curse {
         return null;
     }
 
+    /** Its id in advancements and commands: {@code weakness}, {@code void}... */
+    public String key() {
+        return name().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Lifted by doing something before its timer runs out; running out kills you. */
+    public boolean hasDeadline() {
+        return this == ZOMBIFIED || this == RAMPAGE || this == LONELINESS;
+    }
+
     /** Another pop of this totem adds its duration to the time left rather than a level. */
     public boolean addsTimeNotLevels() {
         return this == FATIGUE || this == PACIFISM || this == MELON || this == RESTRAINT;

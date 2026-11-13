@@ -1,0 +1,67 @@
+{
+  "parent": "dungeontotems:terms_and_conditions",
+  "display": {
+    "icon": {
+      "id": "minecraft:clock"
+    },
+    "title": {
+      "translate": "advancements.dungeontotems.waiting_it_out.title"
+    },
+    "description": {
+      "translate": "advancements.dungeontotems.waiting_it_out.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "weakness": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "weakness"
+      }
+    },
+    "fatigue": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "fatigue"
+      }
+    },
+    "heartbreak": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "heartbreak"
+      }
+    },
+    "blindness": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "blindness"
+      }
+    },
+    "morphing": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "morphing"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "weakness"
+    ],
+    [
+      "fatigue"
+    ],
+    [
+      "heartbreak"
+    ],
+    [
+      "blindness"
+    ],
+    [
+      "morphing"
+    ]
+  ]
+}

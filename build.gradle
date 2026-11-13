@@ -55,6 +55,7 @@ neoForge {
             gameDirectory = project.file('run-selftest')
             systemProperty 'dungeontotems.selftest', 'true'
             systemProperty 'dungeontotems.selftest.forms', System.getProperty('forms', '')
+            systemProperty 'dungeontotems.selftest.advancements', System.getProperty('advancements', '')
             programArguments.addAll '--quickPlaySingleplayer', 'New World'
         }
 

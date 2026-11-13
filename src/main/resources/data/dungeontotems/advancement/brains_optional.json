@@ -1,0 +1,31 @@
+{
+  "parent": "dungeontotems:terms_and_conditions",
+  "display": {
+    "icon": {
+      "id": "minecraft:golden_apple"
+    },
+    "title": {
+      "translate": "advancements.dungeontotems.brains_optional.title"
+    },
+    "description": {
+      "translate": "advancements.dungeontotems.brains_optional.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "zombified"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}
