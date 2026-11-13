@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "games.brennan.dungeontotems.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityMixin",
+    "LivingEntityMixin",
+    "PlayerMixin",
+    "MobInvoker"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

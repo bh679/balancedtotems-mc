@@ -91,5 +91,7 @@
   "death.attack.dungeontotems.broken_restraint": "%1$s couldn't keep their hands off the loot",
   "death.attack.dungeontotems.broken_restraint.player": "%1$s couldn't keep their hands off the loot",
   "death.attack.dungeontotems.breathless": "%1$s forgot how to breathe",
-  "death.attack.dungeontotems.breathless.player": "%1$s forgot how to breathe"
+  "death.attack.dungeontotems.breathless.player": "%1$s forgot how to breathe",
+  "death.attack.dungeontotems.lost_stinger": "%1$s lost their stinger",
+  "death.attack.dungeontotems.lost_stinger.player": "%1$s lost their stinger"
 }

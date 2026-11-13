@@ -10,14 +10,18 @@ through the approval gates (plan, test, merge) with full human oversight at each
 ## Project Overview
 
 - **Project:** Dungeon Totems (`dungeontotems`): Totems of Undying that save you like the vanilla
-  totem (same pop and buffs) but leave a curse. One `Curse` enum row per totem:
-  Weakness (20 min), Fatigue (Mining Fatigue II, 20 min, more pops add time), Heartbreak (-2 hearts
-  per level, 20 min, never below half a heart), Blindness (30 s), Morphing (random animal form, 30 s),
-  Zombified (zombie form; golden apple while weakened within 10 min or die), Rage (id `rampage`; kill 3
-  players/PlayerMobs per level within 15 min or die), Void (void deaths only; chorus-fruit hop near the last safe ground, or the API rescue target,
-  no curse), Feather (deadly falls only, no curse), Boom (explosions only, no curse; the three single-purpose totems give no Fire Resistance), Loneliness (make 3 friends per level within 10 min or die), Pacifism (Vow of Peace: hurt anything within 20 min and die), Melon Diet (eat anything but
-  melon within 20 min and die), Restraint (open a chest, barrel or ender chest within 20 min and die). Curse totems are named
-  "Totem of X"; Void and Feather keep "X Totem". Curses stack, level up, and survive death.
+  totem (same pop and buffs) but curse you for carrying them. One `Curse` enum row per totem, of three kinds:
+  - HELD (curse while in either hand, then for a while after a save): Weakness, Fatigue (Mining Fatigue I),
+    Heartbreak (-3 hearts), Hunger, Slowness, Breathlessness, Insomnia (4 min after a save); Pacifism,
+    Restraint (4 min) and Melon Diet (10 min), whose held totem pops when you break the rule; Rage (hit
+    something) and Loneliness (give a gift), 60/40/30 s timers by level, level I while held, I for 1 min
+    after letting go, II for 5 min after a save. After a save a curse's own damage stops at half a heart
+    and restarts that curse.
+  - AFTER (curse only after the save): Blindness (30 s), Morphing (random animal form, 30 s), Zombified
+    (zombie form; golden apple while weakened within 10 min or die).
+  - NARROW (one death only, no curse): Void (chorus-fruit hop near the last safe ground, or the API rescue
+    target), Feather (falls), Boom (explosions), Fire (fire and lava, keeps Fire Resistance).
+  Curse totems are named "Totem of X"; the narrow ones "X Totem". After-save curses survive death.
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's
   rescue target to the train. Works standalone: the Void Totem then uses the last safe ground.
 - **Mod Loader:** NeoForge 1.21.1 (`neo_version` 21.1.228), Java 21. No mod dependencies.
@@ -32,7 +36,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
 |---|---|
 | `Curse`, `TotemItem`, `registry/TotemRegistries` | The totem table, items, effects, attachments, tags, damage keys |
 | `TotemTriggerEvents`, `TotemPop` | `LivingDeathEvent` at HIGHEST → vanilla pop + curse; vanilla totem still wins |
-| `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn |
+| `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn, flight (`MorphFlight`), attacks (`FormAttacks`), empty-hand right-click moves (`FormUse` → `LandMoves`/`WaterMoves`, `FormTimers`), traits (`FormTraits`), how mobs treat a form (`FormAllies`); `client/FormAnimator` plays each move on the stand-in |
 | `curse/HeldCurses` | Held curses on while the totem is in either hand, off (or Rage/Lonely II for 1 min) when let go |
 | `curse/Curses`, `CurseMemory` | Applying a curse; after-save curses and their shield time; keeping after-save curses through death |
 | `curse/SavedCurseShield` | After a save, a curse's own damage stops at half a heart |
@@ -42,11 +46,21 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `curse/Breathless`, `InsomniaPhantoms` | Air drains on land; phantoms by night (100%) and day (25%, Fire Resistance) |
 | `compat/PlayerMobGifts` | A gift you give a PlayerMob counts for Lonely; chains PlayerMob's single gift observer by reflection |
 | `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
+| `mixin/` | `LivingEntityMixin`: a strider-form player stands on lava; `EntityMixin`: fire-immune forms don't burn; `PlayerMixin`: land forms' air speed follows their pace (`morph/FormAir`) |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
 | `api/DungeonTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 
 Other mods find curses by effect id (`dungeontotems:zombified` etc.), with no compile dependency.
-Data: `tags/entity_type/morph_pool.json` (morph forms).
+Data: `data_maps/entity_type/morph_forms.json` (morph forms: pool land/water/lava + weight, generated from
+Brennan's weight table https://claude.ai/artifact/PVn2fag5iJMDGtEvi7bsDe; pull it before committing),
+`tags/entity_type/flying_forms.json`.
+`MobGaits` gives land forms their mob's walk and run speed (vanilla's stroll and panic multipliers; GameTest
+`mobsWalkAtTheirOwnPace` measures the real mobs against it). `client/FormAnimator` runs each stand-in mob's own tick for vanilla animations; `FormAttacks` and
+`FormTraits` give forms their mob's attack and traits.
+Testing every form without a person: GameTest `everyFormFightsLikeItsMob` (server: each form's attack,
+moves, jump, flight) and `./gradlew runSelfTest [-Dforms=goat,llama]` (client/`FormSelfTest`: a real client
+plays each form, writes `run-selftest/selftest/report.txt` with walk-cycle rates and attack results, and
+screenshots to `run-selftest/screenshots/`). It needs a world named "New World" in `run-selftest/saves`.
 Textures come from `art/make_textures.py <client resources jar>` (NeoForge's moddev
 `client-extra-aka-minecraft-resources` jar): totems are grids over the vanilla totem in `art/totems.py`,
 effect icons combine vanilla sprites in `art/icons.py`. Build effect icons from vanilla sprites where they exist.
@@ -77,7 +91,7 @@ to `dev/<feature-slug>`.
 
 1. `./gradlew build` (runs `test`) must pass
 2. `./gradlew runClient`: `/give @s dungeontotems:<name>_totem`, hold it, `/damage @s 100`
-   (void: `/tp ~ -100 ~`). F2 screenshots
+   (void: `/tp ~ -100 ~`). Morph forms without a totem: `/morph next|prev|<form>|off`. F2 screenshots
 3. Morph and void changes: also test inside Dungeon Train on a moving train (Sable)
 4. Present the Gate 2 report in plan mode and wait for approval
 

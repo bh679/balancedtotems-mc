@@ -17,7 +17,7 @@ Totems of Undying that still save your life, but curse you for carrying them. Ne
 | Totem of Breathlessness | You lose air even on land, and drown | Breathless, 4 min |
 | Totem of Insomnia | Phantoms come at night, and a quarter of the time by day (with Fire Resistance) | Insomnia, 4 min |
 | Totem of Blindness | | Blindness, 30 s |
-| Totem of Morphing | | You become a random animal for 30 s, seen in third person, with its size, speed, health and moves. Monsters leave you alone |
+| Totem of Morphing | | You become a random animal for 30 seconds, seen in third person, with its size, speed, health, jump, animations and attack: goats ram, golems throw, polar bears rear up, bees sting once and may then die, llamas spit and snow golems throw snowballs (even at range: attack the air), frogs eat small slimes with their tongue, sheep, cows and horses graze grass. With an empty hand, right-click for the animal's own move: chickens lay eggs, armadillos roll into their shell (move to unroll), camels and cats sit, bats hang, frogs croak, sniffers dig up seeds, snow golems throw snowballs, turtles lay eggs on sand, parrots imitate, axolotls play dead, pufferfish puff up, squid ink and dolphins leap. Land forms walk at twice their mob's stroll and sprint at its run (a turtle crawls, a cow bolts, a horse gallops at its ridden speed and walks at half of it), and jump at their own pace too; rabbits hop wherever they go. Every attack shows, even on the air: golems swing, bees flip to sting, chickens flap, others lunge. Turtles, frogs, iron golems and undead forms never drown; water and rain hurt striders and snow golems. Horses always make their best jump, frogs leap, camels can't jump; cats and other fall-proof mobs take no fall damage. Creepers keep away from cats, zombified piglins treat you as one of the pack, a dolphin speeds up nearby swimmers, and a mooshroom can be milked for stew. Monsters leave you alone. Bees, parrots, bats and allays fly and can't land; chickens flutter down. Die underwater and you become a fish, squid, dolphin, axolotl or tadpole, which breathe as their mob does (fish gasp after 15 seconds on land, axolotls dry out after 5 minutes, dolphins hold their breath under water) and flop about on land; die in lava and you become a strider (stands and walks on lava at its own speed, and shivers slowly along on land) or a zombified piglin |
 | Totem of Zombification | | You become a zombie: iron and snow golems hunt you. Get Weakness, then eat a golden apple within 10 minutes, or die |
 | Void Totem | | Only saves you from void death: a chorus-fruit hop onto ground near where you last stood. In Dungeon Train it puts you back on the train |
 | Feather Totem | | Only saves you from falling |
@@ -51,6 +51,8 @@ back on the train, but it works on its own.
   picks where the Void Totem sends a player.
 - Curses are plain mob effects: `dungeontotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage),
   `lonely`, `breathless`, `insomnia` and the rule curses.
-- Datapacks can change `dungeontotems:morph_pool` (entity type tag).
+- Datapacks can change `dungeontotems:flying_forms` (entity type tag), and the morph forms with the
+  `dungeontotems:morph_forms` data map: per entity type a `pool` (`land`, `water`, `lava`) and a `weight`
+  (0 leaves it out).
 
 Licence: PolyForm Shield 1.0.0.

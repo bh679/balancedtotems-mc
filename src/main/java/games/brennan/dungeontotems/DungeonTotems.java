@@ -3,6 +3,7 @@ package games.brennan.dungeontotems;
 import com.mojang.logging.LogUtils;
 import games.brennan.dungeontotems.client.TimerCurseIcons;
 import games.brennan.dungeontotems.loot.EvokerTotemLootModifier;
+import games.brennan.dungeontotems.morph.MorphForm;
 import games.brennan.dungeontotems.net.TotemNetwork;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -30,6 +31,7 @@ public final class DungeonTotems {
         TotemRegistries.register(modBus);
         EvokerTotemLootModifier.register(modBus);
         modBus.addListener(TotemNetwork::register);
+        modBus.addListener(MorphForm::register);
         if (FMLEnvironment.dist == Dist.CLIENT) modBus.addListener(TimerCurseIcons::onRegister);
         LOGGER.info("Dungeon Totems loaded");
     }
