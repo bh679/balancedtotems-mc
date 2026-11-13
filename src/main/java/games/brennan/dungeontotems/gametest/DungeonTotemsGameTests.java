@@ -140,7 +140,9 @@ public final class DungeonTotemsGameTests {
             expectEffect(helper, player, curse.effect(), curse.afterSaveTicks());
             MobEffectInstance instance = player.getEffect(curse.effect());
             check(helper, instance.getAmplifier() == curse.afterSaveAmplifier(), curse + " level " + instance.getAmplifier());
-            check(helper, Curses.isSaved(player, curse), curse + " should be shielded after the save");
+            // A curse with no timer can't kill, so there is nothing to shield (and death clears it).
+            boolean timed = curse.afterSaveTicks() > 0;
+            check(helper, Curses.isSaved(player, curse) == timed, curse + (timed ? " should" : " should not") + " be shielded after the save");
         }
         helper.succeed();
     }
@@ -1416,12 +1418,24 @@ public final class DungeonTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void zombifiedRunningOutKills(GameTestHelper helper) {
+    public static void zombifiedLastsUntilCured(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.ZOMBIFIED);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        expectEffect(helper, player, TotemRegistries.ZOMBIFIED, MobEffectInstance.INFINITE_DURATION);
+        tick(player, 200);
+        check(helper, player.isAlive(), "zombification should not kill");
+        check(helper, player.hasEffect(TotemRegistries.ZOMBIFIED), "zombification should not wear off");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void anOldTimedZombifiedEndsWithoutKilling(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(TotemRegistries.ZOMBIFIED, 2, 0));
+        player.addEffect(new MobEffectInstance(TotemRegistries.ZOMBIFIED, 2, 0)); // from before it had no timer
         Morphs.setForm(player, EntityType.ZOMBIE);
         tick(player, 5);
-        check(helper, !player.isAlive(), "player should die when zombification runs out");
+        check(helper, player.isAlive(), "a zombification that runs out should not kill");
+        check(helper, !player.hasEffect(TotemRegistries.ZOMBIFIED), "it should be gone");
         helper.succeed();
     }
 
@@ -1489,15 +1503,14 @@ public final class DungeonTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void expiredZombifiedStaysGoneAfterDeath(GameTestHelper helper) {
+    public static void deathClearsZombified(GameTestHelper helper) {
         ServerPlayer dead = player(helper);
-        dead.addEffect(new MobEffectInstance(TotemRegistries.ZOMBIFIED, 2, 0));
-        tick(dead, 5);
-        check(helper, !dead.isAlive(), "zombification should have killed");
+        pop(dead, Curse.ZOMBIFIED);
+        check(helper, dead.hasEffect(TotemRegistries.ZOMBIFIED), "the totem should have zombified you");
         ServerPlayer respawned = player(helper);
         CurseMemory.onClone(new PlayerEvent.Clone(respawned, dead, true));
         CurseMemory.onRespawn(new PlayerEvent.PlayerRespawnEvent(respawned, false));
-        check(helper, !respawned.hasEffect(TotemRegistries.ZOMBIFIED), "the curse that killed you should not come back");
+        check(helper, !respawned.hasEffect(TotemRegistries.ZOMBIFIED), "dying should clear zombification");
         helper.succeed();
     }
 

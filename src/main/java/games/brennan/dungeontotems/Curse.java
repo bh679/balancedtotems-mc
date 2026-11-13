@@ -6,6 +6,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 
 import javax.annotation.Nullable;
@@ -17,7 +18,8 @@ import java.util.function.Supplier;
  *   <li>{@link Kind#HELD}: the curse is on you while you hold the totem, and for {@code afterSaveTicks}
  *       once it has saved you. Rage and Lonely also stay {@code letGoTicks} after you let go. Some stack
  *       (see {@link #maxStack()}): each totem in the stack adds a level.</li>
- *   <li>{@link Kind#AFTER}: nothing while held; the curse starts when it saves you.</li>
+ *   <li>{@link Kind#AFTER}: nothing while held; the curse starts when it saves you. Zombified's has no
+ *       timer ({@link MobEffectInstance#INFINITE_DURATION}): it lasts until cured, or until you die.</li>
  *   <li>{@link Kind#NARROW}: saves you from one kind of death only, and leaves no curse.</li>
  * </ul>
  */
@@ -29,7 +31,7 @@ public enum Curse {
     SLOWNESS("slowness_totem", Kind.HELD, () -> MobEffects.MOVEMENT_SLOWDOWN, 0, 0, Ticks.MINUTE * 4),
     BLINDNESS("blindness_totem", Kind.AFTER, () -> MobEffects.BLINDNESS, 0, 0, Ticks.SECOND * 30),
     MORPHING("morphing_totem", Kind.AFTER, () -> TotemRegistries.MORPHED, 0, 0, Ticks.SECOND * 30),
-    ZOMBIFIED("zombification_totem", Kind.AFTER, () -> TotemRegistries.ZOMBIFIED, 0, 0, Ticks.MINUTE * 10),
+    ZOMBIFIED("zombification_totem", Kind.AFTER, () -> TotemRegistries.ZOMBIFIED, 0, 0, MobEffectInstance.INFINITE_DURATION),
     /** Hit something within the timer (see {@code curse/CurseTimers}). */
     RAGE("rage_totem", Kind.HELD, () -> TotemRegistries.RAGE, 0, 1, Ticks.MINUTE * 5, Ticks.MINUTE),
     /** Give a gift within the timer (see {@code curse/CurseTimers}). */
