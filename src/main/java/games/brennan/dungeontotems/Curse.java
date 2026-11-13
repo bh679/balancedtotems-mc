@@ -30,9 +30,9 @@ public enum Curse {
     MORPHING("morphing_totem", Kind.AFTER, () -> TotemRegistries.MORPHED, 0, 0, Ticks.SECOND * 30),
     ZOMBIFIED("zombified_totem", Kind.AFTER, () -> TotemRegistries.ZOMBIFIED, 0, 0, Ticks.MINUTE * 10),
     /** Hit something within the timer (see {@code curse/CurseTimers}). */
-    RAMPAGE("rampage_totem", Kind.HELD, () -> TotemRegistries.RAMPAGE, 0, 1, Ticks.MINUTE * 5, 1, Ticks.MINUTE),
+    RAMPAGE("rampage_totem", Kind.HELD, () -> TotemRegistries.RAMPAGE, 0, 1, Ticks.MINUTE * 5, 0, Ticks.MINUTE),
     /** Give a gift within the timer (see {@code curse/CurseTimers}). */
-    LONELINESS("loneliness_totem", Kind.HELD, () -> TotemRegistries.LONELY, 0, 1, Ticks.MINUTE * 5, 1, Ticks.MINUTE),
+    LONELINESS("loneliness_totem", Kind.HELD, () -> TotemRegistries.LONELY, 0, 1, Ticks.MINUTE * 5, 0, Ticks.MINUTE),
     /** Hurt anything and the held totem pops; after a save, you drop to half a heart. */
     PACIFISM("pacifism_totem", Kind.HELD, () -> TotemRegistries.VOW_OF_PEACE, 0, 0, Ticks.MINUTE * 4),
     /** Eat anything but melon and the held totem pops; after a save, you drop to half a heart. */

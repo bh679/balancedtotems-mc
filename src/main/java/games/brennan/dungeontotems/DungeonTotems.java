@@ -1,13 +1,16 @@
 package games.brennan.dungeontotems;
 
 import com.mojang.logging.LogUtils;
+import games.brennan.dungeontotems.client.TimerCurseIcons;
 import games.brennan.dungeontotems.loot.EvokerTotemLootModifier;
 import games.brennan.dungeontotems.net.TotemNetwork;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
 import org.slf4j.Logger;
 
 /**
@@ -27,6 +30,7 @@ public final class DungeonTotems {
         TotemRegistries.register(modBus);
         EvokerTotemLootModifier.register(modBus);
         modBus.addListener(TotemNetwork::register);
+        if (FMLEnvironment.dist == Dist.CLIENT) modBus.addListener(TimerCurseIcons::onRegister);
         LOGGER.info("Dungeon Totems loaded");
     }
 

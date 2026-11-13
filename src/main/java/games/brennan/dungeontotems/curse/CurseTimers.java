@@ -24,7 +24,8 @@ import java.util.function.Supplier;
 /**
  * Rage and Lonely are timers. Rage: hit something before it runs out. Lonely: give a Player Mob or a
  * villager a gift ({@link LonelyGifts}). Miss it and you take true damage at Poison's rate until you do.
- * The higher the level, the shorter the timer. The seconds left go to your client for the hover text.
+ * The higher the level, the shorter the timer. The time left goes to your client for the countdown
+ * border and the hover text.
  */
 @EventBusSubscriber(modid = DungeonTotems.MOD_ID)
 public final class CurseTimers {
@@ -34,6 +35,8 @@ public final class CurseTimers {
     /** Ticks between hits once the timer has run out: Poison's rate. */
     public static final int DAMAGE_INTERVAL_TICKS = 25;
     public static final float DAMAGE = 1.0F;
+    /** How often the timer goes to your client, often enough for the countdown border to drain smoothly. */
+    private static final int SYNC_TICKS = 5;
 
     private static final List<Curse> TIMED = List.of(Curse.RAMPAGE, Curse.LONELINESS);
 
@@ -76,9 +79,9 @@ public final class CurseTimers {
         if (overdue >= 0 && overdue % DAMAGE_INTERVAL_TICKS == 0) {
             player.hurt(damage(player, curse), DAMAGE);
         }
-        if (player.tickCount % 20 == 0) {
-            int left = (int) Math.max(0, -overdue / 20);
-            TotemNetwork.sendTo(player, new CurseTimerPayload(curse.name(), left));
+        if (player.tickCount % SYNC_TICKS == 0) {
+            int total = seconds(instance.getAmplifier()) * 20;
+            TotemNetwork.sendTo(player, new CurseTimerPayload(curse.name(), (int) Math.max(0, -overdue), total));
         }
     }
 

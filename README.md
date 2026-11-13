@@ -27,13 +27,15 @@ Totems of Undying that still save your life, but curse you for carrying them. Ne
 Each one pops like a vanilla totem (Regeneration, Absorption, Fire Resistance; the Void, Feather and
 Boom Totems skip Fire Resistance) when held in either hand. A vanilla totem in hand is used first.
 
-A held curse comes off when you let go, except Rage and Lonely, which stay at level II for a minute.
+A held curse comes off when you let go, except Rage and Lonely, which stay for another minute at level I.
 Rage and Lonely are timers: miss one and you take true damage at Poison's rate until you hit something
-or give a gift (a villager trade, food a villager picks up, or a PlayerMob gift). Break Pacifism,
+or give a gift (a villager trade, food a villager picks up, or a PlayerMob gift). Their effect box's
+border is the countdown: it drains from the curse's colour to grey, then flashes when time is up. Break Pacifism,
 Melon Diet or Restraint while holding the totem and it pops, saving you, with a line in chat.
 
 For its time after a save, a curse can't kill you: a broken rule, a missed timer or Breathless drowning
-leaves you on half a heart. Those after-save curses come back after you respawn; held ones don't.
+leaves you on half a heart, and starts that curse over at its full time. Food off the Melon Diet doesn't
+fill you. Those after-save curses come back after you respawn; held ones don't.
 Milk doesn't lift the Morphed, Zombified, Rage or other rule curses. Hover a curse in the inventory to see
 the hearts taken, the cure, the rule or the seconds left.
 

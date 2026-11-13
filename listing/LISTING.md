@@ -28,8 +28,10 @@ Dungeon Totems adds Totems of Undying that still save your life, but curse you f
 
 - **Evokers drop them.** An evoker drops one at random instead of the vanilla Totem of Undying. Its emeralds are unchanged.
 - **Hold it in either hand.** A vanilla totem in hand is used first.
-- **Let go and it ends.** A held curse comes off when you put the totem away. Rage and Loneliness stay at level II for a minute.
-- **After a save, a curse can't kill you.** A broken rule, a missed timer or drowning on land leaves you on half a heart, and the curse comes back after you respawn.
+- **Let go and it ends.** A held curse comes off when you put the totem away. Rage and Loneliness stay for another minute.
+- **After a save, a curse can't kill you.** A broken rule, a missed timer or drowning on land leaves you on half a heart and starts that curse over. Curses from a save come back after you respawn.
+- **Watch the border.** Rage and Loneliness count down on their effect box's border, which flashes when time is up.
+- **Melon means melon.** Other food doesn't fill you while you're on the Melon Diet.
 - **Milk won't save you.** It doesn't lift the Morphed, Zombified or Rage curses.
 - **Gifts.** Trading with a villager, food a villager picks up, or a gift to a Player Mob all count for Loneliness.
 

@@ -28,8 +28,8 @@ public final class ClientPayloads {
     /** The view a morph switches you to. */
     private static final CameraType MORPH_CAMERA = CameraType.THIRD_PERSON_BACK;
 
-    /** Seconds left on each timed curse, by Curse name. */
-    private static final Map<String, Integer> TIMERS = new ConcurrentHashMap<>();
+    /** The last timer the server sent for each timed curse, by Curse name. */
+    private static final Map<String, CurseTimerPayload> TIMERS = new ConcurrentHashMap<>();
 
     private ClientPayloads() {}
 
@@ -72,11 +72,19 @@ public final class ClientPayloads {
     }
 
     public static void onCurseTimer(CurseTimerPayload payload) {
-        TIMERS.put(payload.curse(), payload.secondsLeft());
+        TIMERS.put(payload.curse(), payload);
     }
 
     /** Seconds left on your Rage or Lonely timer, as the server last said; 0 when unknown. */
     public static int secondsLeft(Curse curse) {
-        return TIMERS.getOrDefault(curse.name(), 0);
+        CurseTimerPayload timer = TIMERS.get(curse.name());
+        return timer == null ? 0 : (timer.ticksLeft() + 19) / 20;
+    }
+
+    /** How much of the Rage or Lonely timer is left, 1 (full) to 0 (time's up); 1 when unknown. */
+    public static float fractionLeft(Curse curse) {
+        CurseTimerPayload timer = TIMERS.get(curse.name());
+        if (timer == null || timer.totalTicks() <= 0) return 1.0F;
+        return Math.min(1.0F, timer.ticksLeft() / (float) timer.totalTicks());
     }
 }

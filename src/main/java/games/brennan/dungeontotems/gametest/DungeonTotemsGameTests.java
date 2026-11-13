@@ -47,6 +47,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -108,7 +109,7 @@ public final class DungeonTotemsGameTests {
     public static void afterSaveTimesMatchTheTable(GameTestHelper helper) {
         check(helper, Curse.MELON.afterSaveTicks() == 10 * 60 * 20, "melon diet lasts 10 minutes");
         check(helper, Curse.RAMPAGE.afterSaveTicks() == 5 * 60 * 20 && Curse.RAMPAGE.afterSaveAmplifier() == 1, "rage II for 5 minutes");
-        check(helper, Curse.LONELINESS.letGoTicks() == 60 * 20 && Curse.LONELINESS.letGoAmplifier() == 1, "lonely II for 1 minute");
+        check(helper, Curse.LONELINESS.letGoTicks() == 60 * 20 && Curse.LONELINESS.letGoAmplifier() == 0, "lonely I for 1 minute after letting go");
         for (Curse curse : List.of(Curse.WEAKNESS, Curse.FATIGUE, Curse.HEARTBREAK, Curse.HUNGER, Curse.SLOWNESS,
                 Curse.PACIFISM, Curse.RESTRAINT, Curse.BREATHLESSNESS, Curse.INSOMNIA)) {
             check(helper, curse.afterSaveTicks() == 4 * 60 * 20, curse + " lasts 4 minutes after a save");
@@ -220,12 +221,30 @@ public final class DungeonTotemsGameTests {
     public static void brokenRuleAfterASaveLeavesHalfAHeart(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.RESTRAINT);
+        tick(player, 20);
         player.setHealth(20.0F);
         player.invulnerableTime = 0; // the pop's own hit would otherwise swallow the doom
         openBarrel(helper, player);
         tick(player, 2);
         check(helper, player.isAlive(), "a curse can't kill you after a save");
         check(helper, player.getHealth() == 1.0F, "should be on half a heart, was " + player.getHealth());
+        MobEffectInstance restrained = player.getEffect(TotemRegistries.RESTRAINED);
+        check(helper, restrained != null && restrained.getDuration() >= Curse.RESTRAINT.afterSaveTicks() - 2,
+            "half a heart should restart Restrained, it has " + restrained);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void foodOffTheMelonDietDoesNotFillYou(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MELON);
+        player.getFoodData().setFoodLevel(10);
+        player.getFoodData().setSaturation(1.0F);
+        ItemStack bread = new ItemStack(Items.BREAD);
+        NeoForge.EVENT_BUS.post(new LivingEntityUseItemEvent.Start(player, bread, 32));
+        player.getFoodData().eat(5, 6.0F); // what eating the bread did
+        EventHooks.onItemUseFinish(player, bread, 0, ItemStack.EMPTY);
+        check(helper, player.getFoodData().getFoodLevel() == 10, "bread should not fill you, food " + player.getFoodData().getFoodLevel());
+        check(helper, player.getMainHandItem().isEmpty(), "and the totem still pops");
         helper.succeed();
     }
 
@@ -304,6 +323,9 @@ public final class DungeonTotemsGameTests {
         player.invulnerableTime = 0;
         tick(player, 1);
         check(helper, player.isAlive() && player.getHealth() == 1.0F, "rage after a save stops at half a heart");
+        MobEffectInstance rage = player.getEffect(TotemRegistries.RAMPAGE);
+        check(helper, rage != null && rage.getAmplifier() == 1 && rage.getDuration() >= Curse.RAMPAGE.afterSaveTicks() - 2,
+            "half a heart should restart Rage II, it has " + rage);
         helper.succeed();
     }
 

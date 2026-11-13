@@ -33,7 +33,8 @@ class CurseTest {
             assertEquals(lingers, curse.letGoTicks() > 0, curse.name());
         }
         assertEquals(60 * 20, Curse.RAMPAGE.letGoTicks());
-        assertEquals(1, Curse.RAMPAGE.letGoAmplifier());
+        assertEquals(0, Curse.RAMPAGE.letGoAmplifier());
+        assertEquals(0, Curse.LONELINESS.letGoAmplifier());
     }
 
     @Test

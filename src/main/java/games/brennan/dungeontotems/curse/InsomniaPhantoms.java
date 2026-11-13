@@ -26,8 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Insomnia: phantoms come for you whether you have slept or not. Vanilla's {@code PhantomSpawner} rules,
- * minus its time-since-rest roll and its night-only check: every 60 to 119 seconds, if you can see the sky
- * at or above sea level and the local difficulty allows it, phantoms spawn above you. At night they always
+ * minus its time-since-rest roll, its local-difficulty roll and its night-only check: every 60 to 119
+ * seconds, if you can see the sky at or above sea level, phantoms spawn above you. At night they always
  * do (vanilla's chance at the longest insomnia); by day a quarter of the time, and those day phantoms get
  * Fire Resistance so the sun can't burn them. Your real time since rest is left alone.
  */
@@ -74,7 +74,6 @@ public final class InsomniaPhantoms {
         boolean skylit = level.dimensionType().hasSkyLight();
         if (skylit && (pos.getY() < level.getSeaLevel() || !level.canSeeSky(pos))) return 0;
         DifficultyInstance difficulty = level.getCurrentDifficultyAt(pos);
-        if (!difficulty.isHarderThan(random.nextFloat() * 3.0F)) return 0;
         boolean day = skylit && level.getSkyDarken() < NIGHT_SKY_DARKEN;
         if (random.nextFloat() >= (day ? DAY_CHANCE : NIGHT_CHANCE)) return 0;
         BlockPos spawnAt = pos.above(20 + random.nextInt(15)).east(-10 + random.nextInt(21)).south(-10 + random.nextInt(21));
