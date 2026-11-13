@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 /**
  * Held curses: a totem of {@link Curse.Kind#HELD} curses you while it is in either hand. The curse goes
  * on with no timer and comes off once you let go, or turns into its shorter let-go curse (Rage, Lonely).
+ * Each totem in a stack adds a level (see {@link Curse#maxStack()}); a let-go curse keeps the level you held.
  * A timed curse already on you at a higher level (after a save, say) is left to run out first.
  */
 @EventBusSubscriber(modid = DungeonTotems.MOD_ID)
@@ -35,19 +36,22 @@ public final class HeldCurses {
     /** Puts on what you hold and takes off what you let go of. */
     public static void update(ServerPlayer player) {
         for (Curse curse : Curse.values()) {
-            if (curse.isHeld()) update(player, curse, heldTotem(player, curse) != null);
+            if (curse.isHeld()) update(player, curse, heldTotem(player, curse));
         }
     }
 
-    private static void update(ServerPlayer player, Curse curse, boolean holding) {
+    private static void update(ServerPlayer player, Curse curse, @Nullable ItemStack totem) {
         MobEffectInstance current = player.getEffect(curse.effect());
-        boolean fromHolding = current != null && current.isInfiniteDuration() && Curses.curseOf(current) == curse;
-        if (holding) {
-            if (fromHolding || (current != null && Curses.curseOf(current) == curse && current.getAmplifier() > curse.heldAmplifier())) return;
-            Curses.apply(player, curse, curse.heldAmplifier(), MobEffectInstance.INFINITE_DURATION);
+        boolean ours = current != null && Curses.curseOf(current) == curse;
+        boolean fromHolding = ours && current.isInfiniteDuration();
+        if (totem != null) {
+            // A stack's level follows its size, so picking one up or popping one off changes it.
+            int level = curse.heldAmplifier(totem.getCount());
+            if (fromHolding ? current.getAmplifier() == level : ours && current.getAmplifier() > level) return;
+            Curses.apply(player, curse, level, MobEffectInstance.INFINITE_DURATION);
         } else if (fromHolding) {
             if (curse.letGoTicks() > 0) {
-                Curses.apply(player, curse, curse.letGoAmplifier(), curse.letGoTicks());
+                Curses.apply(player, curse, current.getAmplifier(), curse.letGoTicks());
             } else {
                 player.removeEffect(curse.effect());
             }

@@ -149,7 +149,7 @@ public final class DungeonTotemsGameTests {
     public static void afterSaveTimesMatchTheTable(GameTestHelper helper) {
         check(helper, Curse.MELON_DIET.afterSaveTicks() == 10 * 60 * 20, "melon diet lasts 10 minutes");
         check(helper, Curse.RAGE.afterSaveTicks() == 5 * 60 * 20 && Curse.RAGE.afterSaveAmplifier() == 1, "rage II for 5 minutes");
-        check(helper, Curse.LONELINESS.letGoTicks() == 60 * 20 && Curse.LONELINESS.letGoAmplifier() == 0, "lonely I for 1 minute after letting go");
+        check(helper, Curse.LONELINESS.letGoTicks() == 60 * 20, "lonely I for 1 minute after letting go");
         for (Curse curse : List.of(Curse.WEAKNESS, Curse.FATIGUE, Curse.HEARTBREAK, Curse.HUNGER, Curse.SLOWNESS,
                 Curse.PACIFISM, Curse.RESTRAINT, Curse.BREATHLESSNESS, Curse.INSOMNIA)) {
             check(helper, curse.afterSaveTicks() == 4 * 60 * 20, curse + " lasts 4 minutes after a save");
@@ -200,12 +200,61 @@ public final class DungeonTotemsGameTests {
             tick(player, HeldCurses.CHECK_TICKS);
             MobEffectInstance after = player.getEffect(curse.effect());
             if (curse.letGoTicks() > 0) {
-                check(helper, after != null && !after.isInfiniteDuration() && after.getAmplifier() == curse.letGoAmplifier()
+                check(helper, after != null && !after.isInfiniteDuration() && after.getAmplifier() == curse.heldAmplifier()
                     && after.getDuration() > curse.letGoTicks() - HeldCurses.CHECK_TICKS, curse + " should leave its let-go curse, was " + after);
             } else {
                 check(helper, after == null, curse + " should end when let go, was " + after);
             }
         }
+        helper.succeed();
+    }
+
+    // ---- stacks ----
+
+    @GameTest(template = EMPTY)
+    public static void totemsStackAsHighAsTheirLevels(GameTestHelper helper) {
+        for (Curse curse : Curse.values()) {
+            int max = new ItemStack(TotemRegistries.TOTEMS.get(curse).get()).getMaxStackSize();
+            check(helper, max == curse.maxStack(), curse + " stacks to " + max + ", expected " + curse.maxStack());
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void aBiggerStackIsAStrongerCurse(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.SLOWNESS, 3);
+        tick(player, HeldCurses.CHECK_TICKS);
+        MobEffectInstance three = player.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
+        check(helper, three != null && three.isInfiniteDuration() && three.getAmplifier() == 2, "a stack of 3 should be Slowness III, was " + three);
+        player.getMainHandItem().shrink(1);
+        tick(player, HeldCurses.CHECK_TICKS);
+        MobEffectInstance two = player.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
+        check(helper, two != null && two.isInfiniteDuration() && two.getAmplifier() == 1, "one fewer should be Slowness II, was " + two);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void aStackSavesOnceAndCursesAtItsLevel(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.RAGE, 2);
+        tick(player, HeldCurses.CHECK_TICKS);
+        check(helper, player.getEffect(TotemRegistries.RAGE).getAmplifier() == 1, "a stack of 2 should be Rage II while held");
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, player.isAlive() && player.getMainHandItem().getCount() == 1, "the pop should use one of the two");
+        MobEffectInstance saved = player.getEffect(TotemRegistries.RAGE);
+        check(helper, saved != null && saved.getAmplifier() == 2 && !saved.isInfiniteDuration(), "two totems' save should be Rage III, was " + saved);
+        tick(player, HeldCurses.CHECK_TICKS);
+        check(helper, player.getEffect(TotemRegistries.RAGE).getAmplifier() == 2, "the stronger after-save curse should run out first");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void lettingGoOfAStackKeepsItsLevel(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.LONELINESS, 3);
+        tick(player, HeldCurses.CHECK_TICKS);
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+        tick(player, HeldCurses.CHECK_TICKS);
+        MobEffectInstance after = player.getEffect(TotemRegistries.LONELY);
+        check(helper, after != null && !after.isInfiniteDuration() && after.getAmplifier() == 2, "letting go of 3 should leave Lonely III, was " + after);
         helper.succeed();
     }
 
@@ -1643,8 +1692,12 @@ public final class DungeonTotemsGameTests {
     }
 
     private static ServerPlayer holding(GameTestHelper helper, Curse curse) {
+        return holding(helper, curse, 1);
+    }
+
+    private static ServerPlayer holding(GameTestHelper helper, Curse curse, int count) {
         ServerPlayer player = player(helper);
-        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(TotemRegistries.TOTEMS.get(curse).get()));
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(TotemRegistries.TOTEMS.get(curse).get(), count));
         return player;
     }
 

@@ -15,7 +15,8 @@ import java.util.function.Supplier;
  * What each totem does to you. Amplifiers are levels (0 is level I); times are in ticks.
  * <ul>
  *   <li>{@link Kind#HELD}: the curse is on you while you hold the totem, and for {@code afterSaveTicks}
- *       once it has saved you. Rage and Lonely also stay {@code letGoTicks} after you let go.</li>
+ *       once it has saved you. Rage and Lonely also stay {@code letGoTicks} after you let go. Some stack
+ *       (see {@link #maxStack()}): each totem in the stack adds a level.</li>
  *   <li>{@link Kind#AFTER}: nothing while held; the curse starts when it saves you.</li>
  *   <li>{@link Kind#NARROW}: saves you from one kind of death only, and leaves no curse.</li>
  * </ul>
@@ -30,9 +31,9 @@ public enum Curse {
     MORPHING("morphing_totem", Kind.AFTER, () -> TotemRegistries.MORPHED, 0, 0, Ticks.SECOND * 30),
     ZOMBIFIED("zombification_totem", Kind.AFTER, () -> TotemRegistries.ZOMBIFIED, 0, 0, Ticks.MINUTE * 10),
     /** Hit something within the timer (see {@code curse/CurseTimers}). */
-    RAGE("rage_totem", Kind.HELD, () -> TotemRegistries.RAGE, 0, 1, Ticks.MINUTE * 5, 0, Ticks.MINUTE),
+    RAGE("rage_totem", Kind.HELD, () -> TotemRegistries.RAGE, 0, 1, Ticks.MINUTE * 5, Ticks.MINUTE),
     /** Give a gift within the timer (see {@code curse/CurseTimers}). */
-    LONELINESS("loneliness_totem", Kind.HELD, () -> TotemRegistries.LONELY, 0, 1, Ticks.MINUTE * 5, 0, Ticks.MINUTE),
+    LONELINESS("loneliness_totem", Kind.HELD, () -> TotemRegistries.LONELY, 0, 1, Ticks.MINUTE * 5, Ticks.MINUTE),
     /** Hurt anything and the held totem pops; after a save, you drop to half a heart. */
     PACIFISM("pacifism_totem", Kind.HELD, () -> TotemRegistries.VOW_OF_PEACE, 0, 0, Ticks.MINUTE * 4),
     /** Eat anything but melon and the held totem pops; after a save, you drop to half a heart. */
@@ -60,23 +61,21 @@ public enum Curse {
     private final int heldAmplifier;
     private final int afterSaveAmplifier;
     private final int afterSaveTicks;
-    private final int letGoAmplifier;
     private final int letGoTicks;
 
     Curse(String itemName, Kind kind, @Nullable Supplier<Holder<MobEffect>> effect,
           int heldAmplifier, int afterSaveAmplifier, int afterSaveTicks) {
-        this(itemName, kind, effect, heldAmplifier, afterSaveAmplifier, afterSaveTicks, 0, 0);
+        this(itemName, kind, effect, heldAmplifier, afterSaveAmplifier, afterSaveTicks, 0);
     }
 
     Curse(String itemName, Kind kind, @Nullable Supplier<Holder<MobEffect>> effect,
-          int heldAmplifier, int afterSaveAmplifier, int afterSaveTicks, int letGoAmplifier, int letGoTicks) {
+          int heldAmplifier, int afterSaveAmplifier, int afterSaveTicks, int letGoTicks) {
         this.itemName = itemName;
         this.kind = kind;
         this.effect = effect;
         this.heldAmplifier = heldAmplifier;
         this.afterSaveAmplifier = afterSaveAmplifier;
         this.afterSaveTicks = afterSaveTicks;
-        this.letGoAmplifier = letGoAmplifier;
         this.letGoTicks = letGoTicks;
     }
 
@@ -102,15 +101,41 @@ public enum Curse {
         return afterSaveAmplifier;
     }
 
+    /** The held level a stack of {@code count} gives: a level per totem, up to {@link #maxStack()}. */
+    public int heldAmplifier(int count) {
+        return stacked(heldAmplifier, count);
+    }
+
+    /** The after-save level when a stack of {@code count} saves you (Rage and Lonely: one above held, up to III). */
+    public int afterSaveAmplifier(int count) {
+        return stacked(afterSaveAmplifier, count);
+    }
+
+    private int stacked(int amplifier, int count) {
+        return Math.min(amplifier + Math.max(count, 1) - 1, Math.max(amplifier, maxStack() - 1));
+    }
+
+    /**
+     * How many fit in a stack: as many as the curse has levels. Weakness II already leaves a sword
+     * near useless; Rage and Lonely have three timers (60, 40, 30 s); the rest have no levels.
+     */
+    public int maxStack() {
+        return switch (this) {
+            case WEAKNESS -> 2;
+            case FATIGUE, HEARTBREAK, HUNGER, SLOWNESS, RAGE, LONELINESS -> 3;
+            default -> 1;
+        };
+    }
+
+    public boolean isStackable() {
+        return maxStack() > 1;
+    }
+
     public int afterSaveTicks() {
         return afterSaveTicks;
     }
 
-    public int letGoAmplifier() {
-        return letGoAmplifier;
-    }
-
-    /** How long the curse stays once you let go of the totem; 0 when it ends at once. */
+    /** How long the curse stays once you let go of the totem, at the level you held; 0 when it ends at once. */
     public int letGoTicks() {
         return letGoTicks;
     }

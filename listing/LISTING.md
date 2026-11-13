@@ -28,6 +28,7 @@ Dungeon Totems adds Totems of Undying that still save your life, but curse you f
 
 - **Evokers drop them.** An evoker drops one at random instead of the vanilla Totem of Undying. Its emeralds are unchanged.
 - **Hold it in either hand.** A vanilla totem in hand is used first.
+- **Stack them for more saves, and a worse curse.** Weakness stacks to 2; Fatigue, Heartbreak, Hunger, Slowness, Rage and Loneliness stack to 3. Each totem in the stack adds a level: a stack of 3 Totems of Heartbreak takes 9 hearts, and Rage III wants a hit every 30 seconds. A save uses one totem, so the curse eases as the stack shrinks. The other totems don't stack.
 - **Let go and it ends.** A held curse comes off when you put the totem away. Rage and Loneliness stay for another minute.
 - **After a save, a curse can't kill you.** A broken rule, a missed timer or drowning on land leaves you on half a heart and starts that curse over. Curses from a save come back after you respawn.
 - **Watch the border.** Rage and Loneliness count down on their effect box's border, which flashes when time is up.

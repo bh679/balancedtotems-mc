@@ -22,6 +22,8 @@ through the approval gates (plan, test, merge) with full human oversight at each
   - NARROW (one death only, no curse): Void (chorus-fruit hop near the last safe ground, or the API rescue
     target), Feather (falls), Boom (explosions), Fire (fire and lava, keeps Fire Resistance).
   Curse totems are named "Totem of X"; the narrow ones "X Totem". After-save curses survive death.
+  Stacking (`Curse.maxStack`): Weakness 2; Fatigue, Heartbreak, Hunger, Slowness, Rage, Lonely 3; rest 1.
+  Each totem in a held stack adds a level, held and after the save; a pop uses one.
 - **Built for Dungeon Train** (`bh679/dungeon-train-mc`), which jarJars it and sets the Void Totem's
   rescue target to the train. Works standalone: the Void Totem then uses the last safe ground.
 - **Mod Loader:** NeoForge 1.21.1 (`neo_version` 21.1.228), Java 21. No mod dependencies.

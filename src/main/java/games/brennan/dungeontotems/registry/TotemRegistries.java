@@ -143,7 +143,7 @@ public final class TotemRegistries {
         Map<Curse, DeferredItem<TotemItem>> totems = new EnumMap<>(Curse.class);
         for (Curse curse : Curse.values()) {
             totems.put(curse, ITEMS.register(curse.itemName(),
-                () -> new TotemItem(curse, new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON))));
+                () -> new TotemItem(curse, new Item.Properties().stacksTo(curse.maxStack()).rarity(Rarity.UNCOMMON))));
         }
         return Map.copyOf(totems);
     }

@@ -23,8 +23,10 @@ public final class TotemPop {
 
     private TotemPop() {}
 
-    /** Uses one totem from {@code held}, saves {@code player} at 1 HP and applies the curse. */
+    /** Uses one totem from {@code held} (its curse at the level of the whole stack), saves {@code player} at 1 HP and applies the curse. */
     public static void pop(ServerPlayer player, ItemStack held, Curse curse) {
+        // A stack's curse is as strong as the stack that saved you, before this one is used up.
+        int count = held.getCount();
         ItemStack used = held.copyWithCount(1);
         held.shrink(1);
 
@@ -38,7 +40,7 @@ public final class TotemPop {
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));
         // A single-purpose totem (void, fall, explosion) gives no Fire Resistance; the Fire Totem does.
         if (curse.givesFireResistance()) player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
-        applyCurse(player, curse);
+        applyCurse(player, curse, count);
         CurseTrials.onPop(player, curse);
 
         TotemNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));
@@ -55,7 +57,7 @@ public final class TotemPop {
     }
 
     /** Earlier curses survive the clear above (curses carry no totem cure), so this one stacks on them. */
-    private static void applyCurse(ServerPlayer player, Curse curse) {
-        if (curse.effect() != null) Curses.pop(player, curse);
+    private static void applyCurse(ServerPlayer player, Curse curse, int count) {
+        if (curse.effect() != null) Curses.pop(player, curse, count);
     }
 }

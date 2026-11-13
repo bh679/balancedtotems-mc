@@ -33,8 +33,41 @@ class CurseTest {
             assertEquals(lingers, curse.letGoTicks() > 0, curse.name());
         }
         assertEquals(60 * 20, Curse.RAGE.letGoTicks());
-        assertEquals(0, Curse.RAGE.letGoAmplifier());
-        assertEquals(0, Curse.LONELINESS.letGoAmplifier());
+    }
+
+    @Test
+    void onlyLevelledCursesStack() {
+        for (Curse curse : Curse.values()) {
+            int expected = switch (curse) {
+                case WEAKNESS -> 2;
+                case FATIGUE, HEARTBREAK, HUNGER, SLOWNESS, RAGE, LONELINESS -> 3;
+                default -> 1;
+            };
+            assertEquals(expected, curse.maxStack(), curse.name());
+            assertEquals(expected > 1, curse.isStackable(), curse.name());
+        }
+    }
+
+    @Test
+    void eachTotemInAStackAddsALevelUpToItsLimit() {
+        for (Curse curse : Curse.values()) {
+            for (int count = 1; count <= curse.maxStack(); count++) {
+                assertEquals(curse.heldAmplifier() + count - 1, curse.heldAmplifier(count), curse.name() + " x" + count);
+            }
+            assertEquals(curse.heldAmplifier(), curse.heldAmplifier(1), curse.name());
+            assertEquals(curse.afterSaveAmplifier(), curse.afterSaveAmplifier(1), curse.name());
+        }
+        assertEquals(1, Curse.WEAKNESS.heldAmplifier(5));
+    }
+
+    @Test
+    void rageAndLonelyGoOneLevelUpAfterASaveUpToThree() {
+        for (Curse curse : new Curse[] {Curse.RAGE, Curse.LONELINESS}) {
+            assertEquals(1, curse.afterSaveAmplifier(1), curse.name());
+            assertEquals(2, curse.afterSaveAmplifier(2), curse.name());
+            assertEquals(2, curse.afterSaveAmplifier(3), curse.name());
+        }
+        assertEquals(2, Curse.HEARTBREAK.afterSaveAmplifier(3));
     }
 
     @Test
