@@ -18,6 +18,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderArmEvent;
 import net.neoforged.neoforge.client.event.RenderHandEvent;
 import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 
@@ -38,6 +39,7 @@ public final class MorphRenderer {
     private static final Map<UUID, LivingEntity> DUMMIES = new ConcurrentHashMap<>();
     /** How far a form without an eat pose lowers its head to eat. */
     private static final float EATING_PITCH = 60.0F;
+    private static int handsReached;
 
     private MorphRenderer() {}
 
@@ -79,11 +81,30 @@ public final class MorphRenderer {
         pose.translate(0.0F, -pivot, 0.0F);
     }
 
-    /** A morphed player has no hands to show in first person. */
+    /**
+     * A morphed player has no hands to show in first person. {@code ItemInHandRendererMixin} skips the hand pass
+     * before these events fire; they stay for anything that draws hands or arms another way.
+     */
     @SubscribeEvent
     public static void onRenderHand(RenderHandEvent event) {
         Player player = Minecraft.getInstance().player;
-        if (player != null && Morphs.formOf(player).isPresent()) event.setCanceled(true);
+        if (player != null && Morphs.formOf(player).isPresent()) {
+            handsReached++;
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRenderArm(RenderArmEvent event) {
+        if (Morphs.formOf(event.getPlayer()).isPresent()) {
+            handsReached++;
+            event.setCanceled(true);
+        }
+    }
+
+    /** How often a morphed player's first-person hands got as far as these events ({@link FormSelfTest} expects 0). */
+    static int handsReached() {
+        return handsReached;
     }
 
     /** Animations advance once a tick (see {@link FormAnimator}). */

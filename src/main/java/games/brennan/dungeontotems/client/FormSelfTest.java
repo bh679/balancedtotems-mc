@@ -72,6 +72,7 @@ public final class FormSelfTest {
     private static float lastRealPosition = Float.NaN;
     private static int pigId = -1;
     private static int realArmadilloId = -1;
+    private static int handsBefore;
 
     private FormSelfTest() {}
 
@@ -131,6 +132,15 @@ public final class FormSelfTest {
         String name = BuiltInRegistries.ENTITY_TYPE.getKey(form).getPath();
         Player player = minecraft.player;
         if (t == 0) begin(server, player, form);
+        if (t == 3) {
+            minecraft.options.setCameraType(CameraType.FIRST_PERSON); // the form's eye view: no player arms
+            minecraft.options.hideGui = false;
+            handsBefore = MorphRenderer.handsReached();
+        }
+        if (t == 4) {
+            shot(minecraft, name, "0_first_person");
+            REPORT.add(name + ": first-person hands drawn " + (MorphRenderer.handsReached() - handsBefore) + " times");
+        }
         if (t == 5) {
             minecraft.options.setCameraType(CameraType.THIRD_PERSON_FRONT); // its face, and its legs as it walks past
             minecraft.options.hideGui = true;
