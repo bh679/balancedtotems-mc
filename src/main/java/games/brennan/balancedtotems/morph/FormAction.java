@@ -33,5 +33,11 @@ public enum FormAction {
     /** A sniffer digging. */
     DIG,
     /** A polar bear rearing up to strike. */
-    STAND
+    STAND,
+    /** A bee tipping up to bring its stinger round. */
+    FLIP,
+    /** A chicken or parrot flapping its wings. */
+    FLAP,
+    /** Any other form's attack: a quick dip forward. */
+    LUNGE
 }

@@ -52,6 +52,14 @@ final class FormAnimator {
     /** {@code Armadillo.ArmadilloState} durations: rolling into the ball, and unrolling out of it. */
     private static final int ROLL_UP_TICKS = 10;
     private static final int UNROLL_TICKS = 30;
+    /** A bee's sting flip: it tips nose-up until its stinger swings round underneath, then back. */
+    private static final int FLIP_TICKS = 10;
+    private static final float FLIP_DEGREES = -100.0F;
+    /** Any other form's attack: a quick dip forward from its feet. */
+    private static final int LUNGE_TICKS = 6;
+    private static final float LUNGE_DEGREES = 20.0F;
+    /** How long a chicken or parrot flaps for when it attacks. */
+    private static final int FLAP_TICKS = 8;
     /** Moving further than this in a tick ends a sit or a hang. */
     private static final double STILL_DISTANCE_SQR = 0.0025;
 
@@ -61,6 +69,9 @@ final class FormAnimator {
     private static final Map<UUID, Integer> EATING = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> DASHING = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> STANDING = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> FLAPPING = new ConcurrentHashMap<>();
+    /** A whole-body tilt the renderer draws (a bee's flip, a lunge). */
+    private static final Map<UUID, Tilt> TILTS = new ConcurrentHashMap<>();
     /** A curled armadillo keeps the way it faced when it rolled up. */
     private static final Map<UUID, Float> CURLED_YAW = new ConcurrentHashMap<>();
     /** Armadillos all the way into their ball (not rolling up or out). */
@@ -70,6 +81,8 @@ final class FormAnimator {
     /** Sitting cats and hanging bats, until the player moves. */
     private static final Set<UUID> RESTING = ConcurrentHashMap.newKeySet();
     private static final Set<Class<?>> FAILED = ConcurrentHashMap.newKeySet();
+    /** The last action each stand-in showed (for the self-test). */
+    private static final Map<UUID, FormAction> LAST_ACTION = new ConcurrentHashMap<>();
 
     private FormAnimator() {}
 
@@ -80,6 +93,7 @@ final class FormAnimator {
 
         standIn.setOldPosAndRot();
         follow(standIn, player);
+        if (FLAPPING.containsKey(id)) standIn.setOnGround(false); // a chicken's wings beat while it's off the ground
         runOwnTick(standIn);
         follow(standIn, player);
         if (standIn instanceof Armadillo armadillo && armadillo.isScared()) {
@@ -92,6 +106,8 @@ final class FormAnimator {
         if (jumped) onJump(standIn, id);
         if (RESTING.contains(id) && (jumped || moved(player))) stopResting(standIn, id);
         if (standIn instanceof Camel camel && DASHING.containsKey(id)) camel.setDashing(true); // its tick ends a dash on landing
+        countDown(FLAPPING, id, () -> {});
+        tickTilt(id);
         countDown(STANDING, id, () -> {
             if (standIn instanceof PolarBear bear) bear.setStanding(false);
         });
@@ -123,6 +139,7 @@ final class FormAnimator {
 
     /** A form's action, shown with the mob's own animation (its entity events where it has them). */
     static void perform(LivingEntity standIn, UUID player, FormAction action) {
+        LAST_ACTION.put(player, action);
         switch (action) {
             case RAM -> {
                 standIn.handleEntityEvent((byte) 58); // goat lowers its head
@@ -178,6 +195,9 @@ final class FormAnimator {
             }
             case CROAK -> holdPose(standIn, player, Pose.CROAKING, CROAK_TICKS);
             case TONGUE -> holdPose(standIn, player, Pose.USING_TONGUE, TONGUE_TICKS);
+            case FLIP -> TILTS.put(player, new Tilt(FLIP_TICKS, FLIP_TICKS, FLIP_DEGREES, true));
+            case LUNGE -> TILTS.put(player, new Tilt(LUNGE_TICKS, LUNGE_TICKS, LUNGE_DEGREES, false));
+            case FLAP -> FLAPPING.put(player, FLAP_TICKS);
             case DIG -> {
                 if (!(standIn instanceof Sniffer sniffer)) return;
                 sniffer.transitionTo(Sniffer.State.DIGGING);
@@ -226,6 +246,30 @@ final class FormAnimator {
 
     private record Timed(int left, Runnable end) {}
 
+    /** A tilt of {@code degrees} at its peak, {@code left} of {@code total} ticks to go, about the body's middle or its feet. */
+    private record Tilt(int left, int total, float degrees, boolean aboutMiddle) {}
+
+    private static void tickTilt(UUID player) {
+        Tilt tilt = TILTS.get(player);
+        if (tilt == null) return;
+        if (tilt.left() <= 0) TILTS.remove(player);
+        else TILTS.put(player, new Tilt(tilt.left() - 1, tilt.total(), tilt.degrees(), tilt.aboutMiddle()));
+    }
+
+    /** How far the body is tipped forward right now (negative: nose up), rising and falling over the tilt. */
+    static float tiltDegrees(UUID player, float partialTick) {
+        Tilt tilt = TILTS.get(player);
+        if (tilt == null) return 0.0F;
+        float progress = Math.min(1.0F, (tilt.total() - tilt.left() + partialTick) / tilt.total());
+        return tilt.degrees() * (float) Math.sin(Math.PI * progress);
+    }
+
+    /** Whether the current tilt turns about the body's middle (a bee's flip) rather than its feet. */
+    static boolean tiltsAboutMiddle(UUID player) {
+        Tilt tilt = TILTS.get(player);
+        return tilt != null && tilt.aboutMiddle();
+    }
+
     /** Whether an armadillo is all the way curled up, so moving would unroll it. */
     static boolean isCurled(UUID player) {
         return CURLED.contains(player);
@@ -254,6 +298,11 @@ final class FormAnimator {
         EATING.put(id, Math.max(EATING.getOrDefault(id, 0), 2));
     }
 
+    /** Test seam: the last action shown for the player, then forgotten. */
+    static FormAction takeLastAction(UUID player) {
+        return LAST_ACTION.remove(player);
+    }
+
     /** Stand-in classes whose own tick threw, so they're drawn without animation. */
     static Set<Class<?>> failures() {
         return Set.copyOf(FAILED);
@@ -266,6 +315,9 @@ final class FormAnimator {
         EATING.remove(player);
         DASHING.remove(player);
         STANDING.remove(player);
+        FLAPPING.remove(player);
+        TILTS.remove(player);
+        LAST_ACTION.remove(player);
         CURLED_YAW.remove(player);
         CURLED.remove(player);
         TIMED.remove(player);

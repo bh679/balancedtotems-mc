@@ -3,9 +3,11 @@ package games.brennan.balancedtotems.client;
 import games.brennan.balancedtotems.BalancedTotems;
 import games.brennan.balancedtotems.morph.FormAction;
 import games.brennan.balancedtotems.morph.Morphs;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -18,6 +20,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderHandEvent;
 import net.neoforged.neoforge.client.event.RenderPlayerEvent;
+
+import org.joml.Quaternionf;
 
 import java.util.Map;
 import java.util.UUID;
@@ -57,8 +61,22 @@ public final class MorphRenderer {
         poseLike(dummy, player);
         EntityRenderer<Entity> renderer =
             (EntityRenderer<Entity>) Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(dummy);
-        renderer.render(dummy, player.getYRot(), event.getPartialTick(), event.getPoseStack(),
-            event.getMultiBufferSource(), event.getPackedLight());
+        PoseStack pose = event.getPoseStack();
+        pose.pushPose();
+        tilt(pose, dummy, player, event.getPartialTick());
+        renderer.render(dummy, player.getYRot(), event.getPartialTick(), pose, event.getMultiBufferSource(), event.getPackedLight());
+        pose.popPose();
+    }
+
+    /** An attack's whole-body tilt ({@link FormAnimator#tiltDegrees}), forward about the axis across the body. */
+    private static void tilt(PoseStack pose, LivingEntity dummy, Player player, float partialTick) {
+        float degrees = FormAnimator.tiltDegrees(player.getUUID(), partialTick);
+        if (degrees == 0.0F) return;
+        float pivot = FormAnimator.tiltsAboutMiddle(player.getUUID()) ? dummy.getBbHeight() / 2.0F : 0.0F;
+        float yaw = Mth.lerp(partialTick, dummy.yBodyRotO, dummy.yBodyRot) * Mth.DEG_TO_RAD;
+        pose.translate(0.0F, pivot, 0.0F);
+        pose.mulPose(new Quaternionf().rotateAxis(degrees * Mth.DEG_TO_RAD, Mth.cos(yaw), 0.0F, Mth.sin(yaw))); // nose toward the facing
+        pose.translate(0.0F, -pivot, 0.0F);
     }
 
     /** A morphed player has no hands to show in first person. */

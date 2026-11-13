@@ -1,6 +1,7 @@
 package games.brennan.balancedtotems.client;
 
 import games.brennan.balancedtotems.BalancedTotems;
+import games.brennan.balancedtotems.morph.FormAction;
 import games.brennan.balancedtotems.morph.FormUse;
 import games.brennan.balancedtotems.morph.MobGaits;
 import games.brennan.balancedtotems.morph.MorphForm;
@@ -65,6 +66,9 @@ public final class FormSelfTest {
     private static final List<Double> sprintSteps = new ArrayList<>();
     private static Vec3 lastPlayerPosition;
     private static float lastPosition = Float.NaN;
+    /** Times the form left the ground while walking and sprinting (a rabbit's hops). */
+    private static int hops;
+    private static boolean wasOnGround = true;
     private static float lastRealPosition = Float.NaN;
     private static int pigId = -1;
     private static int realArmadilloId = -1;
@@ -142,7 +146,11 @@ public final class FormSelfTest {
         if (t == 16) face(player, 90.0F, 10.0F); // walk west, facing the camera
         if (t >= 16 && t < 56) minecraft.options.keyUp.setDown(true);
         if (t >= 36 && t < 56) minecraft.options.keySprint.setDown(true);
-        if (t >= 20 && t < 56) measure(minecraft, form);
+        if (t >= 20 && t < 56) {
+            measure(minecraft, form);
+            if (wasOnGround && !player.onGround()) hops++;
+            wasOnGround = player.onGround();
+        }
         if (t == 20 || t == 55) ageAt(minecraft, form, t == 20);
         if (t == 25 || t == 45) lastPlayerPosition = null; // past the speed-up into each gait
         if (t >= 25 && t < 36) step(player, walkSteps);
@@ -170,6 +178,16 @@ public final class FormSelfTest {
             KeyMapping.click(minecraft.options.keyAttack.getKey());
         }
         if (t == 90) REPORT.add(name + ": pig health after attack " + pigHealth(minecraft));
+        if (t == 84) {
+            FormAnimator.takeLastAction(player.getUUID());
+            face(player, player.getYRot(), -80.0F); // the sky: an attack on nothing
+        }
+        if (t == 85) KeyMapping.click(minecraft.options.keyAttack.getKey());
+        if (t == 89) {
+            FormAction shown = FormAnimator.takeLastAction(player.getUUID());
+            REPORT.add(name + ": attack on air shows " + shown + String.format(", tilt %.0f deg", FormAnimator.tiltDegrees(player.getUUID(), 0.0F)));
+        }
+        if (t == 91) aimAtPig(minecraft);
         if (t == 83) shot(minecraft, name, "5_attack");
         if (t == 90) shot(minecraft, name, "6_attack_after");
         if (t == 95) KeyMapping.click(minecraft.options.keyUse.getKey());
@@ -197,6 +215,7 @@ public final class FormSelfTest {
         walkRates.clear();
         realRates.clear();
         walkSteps.clear();
+        hops = 0;
         sprintSteps.clear();
         lastPlayerPosition = null;
         lastPosition = Float.NaN;
@@ -291,7 +310,7 @@ public final class FormSelfTest {
     private static void report(String name, EntityType<?> form) {
         StringBuilder line = new StringBuilder(name).append(": walk-cycle/tick ").append(stats(walkRates));
         if (!realRates.isEmpty()) line.append(", real armadillo ").append(stats(realRates));
-        line.append(String.format(", walks %.2f b/s, sprints %.2f b/s", perSecond(walkSteps), perSecond(sprintSteps)));
+        line.append(String.format(", walks %.2f b/s, sprints %.2f b/s, leaves the ground %d times", perSecond(walkSteps), perSecond(sprintSteps), hops));
         MobGaits.Gait gait = MobGaits.of(form);
         if (gait != null && form.create(Minecraft.getInstance().level) instanceof LivingEntity mob) {
             double mobSpeed = mob.getAttributeBaseValue(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED);

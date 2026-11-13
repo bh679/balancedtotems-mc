@@ -98,10 +98,12 @@ public final class FormAttacks {
         } else if (form == EntityType.IRON_GOLEM) {
             swing(player, target);
         } else if (form == EntityType.BEE) {
+            show(player, FormAction.FLIP);
             if (STUNG.containsKey(player.getUUID())) event.setCanceled(true); // no stinger left
             else sting(player, target);
         } else if (form == EntityType.PUFFERFISH) {
             event.setCanceled(true);
+            show(player, FormAction.LUNGE);
             if (target instanceof LivingEntity living) {
                 living.addEffect(new MobEffectInstance(MobEffects.POISON, PUFFERFISH_POISON_TICKS, 0), player);
                 player.level().playSound(null, player.blockPosition(), SoundEvents.PUFFER_FISH_STING, SoundSource.PLAYERS, 1.0F, 1.0F);
@@ -111,13 +113,26 @@ public final class FormAttacks {
             attackAir(player);
         } else if (form == EntityType.FROG) {
             if (tongue(player, target)) event.setCanceled(true);
-        } else if (!hasAttack(form)) {
-            event.setCanceled(true); // nothing to hit with: just the noise
-        } else if (form == EntityType.POLAR_BEAR) {
-            show(player, FormAction.STAND);
         } else {
-            show(player, FormAction.SWING_ARM); // a zombified piglin's or zombie's arm swing
+            if (!hasAttack(form)) event.setCanceled(true); // nothing to hit with: just the noise and the look
+            show(player, attackAnimation(form));
         }
+    }
+
+    /**
+     * The animation a form attacks with, on a mob or on the air: the mob's own where it has one (a golem's
+     * swing, a zombified piglin's arm, a polar bear rearing, a frog's tongue), a bee's sting flip, a
+     * chicken's or parrot's flap, and for any other form a quick lunge.
+     */
+    static FormAction attackAnimation(EntityType<?> form) {
+        if (form == EntityType.IRON_GOLEM) return FormAction.SWING;
+        if (form == EntityType.ZOMBIFIED_PIGLIN) return FormAction.SWING_ARM;
+        if (form == EntityType.POLAR_BEAR) return FormAction.STAND;
+        if (form == EntityType.FROG) return FormAction.TONGUE;
+        if (form == EntityType.GOAT) return FormAction.RAM;
+        if (form == EntityType.BEE) return FormAction.FLIP;
+        if (form == EntityType.CHICKEN || form == EntityType.PARROT) return FormAction.FLAP;
+        return FormAction.LUNGE;
     }
 
     /**
@@ -149,11 +164,10 @@ public final class FormAttacks {
             && DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).hasAttribute(Attributes.ATTACK_DAMAGE);
     }
 
-    /** A goat charges into the ram: you sprint forward at the target as it is knocked away. */
+    /** A goat charges into the ram: you lunge forward at the target as it is knocked away. */
     private static void ram(ServerPlayer player, Entity target) {
         Vec3 charge = new Vec3(target.getX() - player.getX(), 0.0, target.getZ() - player.getZ());
         if (charge.lengthSqr() > 1.0E-4) {
-            player.setSprinting(true);
             player.setDeltaMovement(charge.normalize().scale(RAM_CHARGE).add(0.0, RAM_HOP, 0.0));
             player.connection.send(new ClientboundSetEntityMotionPacket(player)); // the client moves the player
         }
@@ -183,7 +197,7 @@ public final class FormAttacks {
 
     /**
      * Attacking the air: a llama spits and a snow golem throws a snowball where you look, a goat charges
-     * into a ram, and every other form makes its noise.
+     * into a ram, and every other form makes its noise and plays its attack ({@link #attackAnimation}).
      */
     public static void attackAir(ServerPlayer player) {
         EntityType<?> form = Morphs.formOf(player).orElse(null);
@@ -191,14 +205,16 @@ public final class FormAttacks {
         if (form == EntityType.SNOW_GOLEM) LandMoves.throwSnowball(player);
         else if (form == EntityType.LLAMA || form == EntityType.TRADER_LLAMA) spit(player);
         else if (form == EntityType.GOAT) chargeRam(player);
-        else FormSounds.speak(player);
+        else {
+            FormSounds.speak(player);
+            show(player, attackAnimation(form));
+        }
     }
 
     /** {@code RamTarget} with no target: a goat lowers its head and charges where you look. */
     private static void chargeRam(ServerPlayer player) {
         if (!FormTimers.ready(player, "ram", AIR_RAM_COOLDOWN)) return;
         Vec3 look = player.getLookAngle().multiply(1.0, 0.0, 1.0).normalize();
-        player.setSprinting(true);
         player.setDeltaMovement(look.scale(RAM_CHARGE).add(0.0, RAM_HOP, 0.0));
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
         player.level().playSound(null, player.blockPosition(), SoundEvents.GOAT_PREPARE_RAM, SoundSource.PLAYERS, 1.0F, 1.0F);

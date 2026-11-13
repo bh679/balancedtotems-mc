@@ -41,11 +41,12 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * What a form is like to live in, beyond its stats and flight:
  * <ul>
- *   <li>Chickens fall slowly; water forms swim fast; turtles breathe underwater; lava forms and
+ *   <li>Chickens fall slowly; water forms and turtles swim fast; lava forms and
  *       zombified piglins shrug off fire and lava. Each is a
  *       hidden, endless effect that lasts exactly as long as the form.</li>
  *   <li>Water forms breathe and get about on land as their mobs do ({@link WaterLife}).</li>
- *   <li>Snow golems leave snow where they walk and melt in warm biomes, rain and water.</li>
+ *   <li>Snow golems leave snow where they walk and melt in warm biomes. Water and rain hurt snow golems
+ *       and striders.</li>
  *   <li>Falls hurt as they hurt the mob: cats, chickens, golems and flyers take none (the vanilla
  *       {@code fall_damage_immune} tag), frogs and goats fall further first, horses take half.</li>
  *   <li>Land forms walk at their mob's stroll and sprint at its run: a cow's panic, a horse's ridden
@@ -99,6 +100,9 @@ public final class FormTraits {
         if (wanted != 0.0) speed.addTransientModifier(new AttributeModifier(RUN_ID, wanted, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
     }
 
+    /** {@code isSensitiveToWater}: water, rain and bubble columns hurt these forms, as they hurt the mobs. */
+    private static final Set<EntityType<?>> WATER_SENSITIVE = Set.of(EntityType.SNOW_GOLEM, EntityType.STRIDER);
+
     /** {@code Strider#SUFFOCATING_MODIFIER}: a strider off lava moves at two thirds of its speed. */
     public static final double STRIDER_COLD = 0.66;
     private static final ResourceLocation STRIDER_COLD_ID = BalancedTotems.id("morph.strider_cold");
@@ -147,7 +151,7 @@ public final class FormTraits {
     private static Set<Holder<MobEffect>> effectsFor(@Nullable EntityType<?> form) {
         if (form == null) return Set.of();
         if (form == EntityType.CHICKEN) return Set.of(MobEffects.SLOW_FALLING);
-        if (form == EntityType.TURTLE) return Set.of(MobEffects.WATER_BREATHING, MobEffects.DOLPHINS_GRACE);
+        if (form == EntityType.TURTLE) return Set.of(MobEffects.DOLPHINS_GRACE); // it breathes under water (WaterLife)
         if (isLavaForm(form) || form.fireImmune()) return Set.of(MobEffects.FIRE_RESISTANCE);
         if (isWaterForm(form)) return Set.of(MobEffects.DOLPHINS_GRACE);
         return Set.of();
@@ -167,14 +171,14 @@ public final class FormTraits {
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         run(player, form);
         chill(player, form);
+        if (form != null && WATER_SENSITIVE.contains(form) && player.isInWaterRainOrBubble()) player.hurt(player.damageSources().drown(), 1.0F);
         if (form == EntityType.SNOW_GOLEM) beSnowGolem(player);
     }
 
-    /** {@code SnowGolem#aiStep}: melt where it's warm or wet, and leave snow underfoot. */
+    /** {@code SnowGolem#aiStep}: melt where it's warm, and leave snow underfoot. */
     private static void beSnowGolem(ServerPlayer player) {
         ServerLevel level = player.serverLevel();
         if (level.getBiome(player.blockPosition()).is(BiomeTags.SNOW_GOLEM_MELTS)) player.hurt(player.damageSources().onFire(), 1.0F);
-        if (player.isInWaterRainOrBubble()) player.hurt(player.damageSources().drown(), 1.0F);
         if (!level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) return;
         BlockState snow = Blocks.SNOW.defaultBlockState();
         for (int i = 0; i < 4; i++) {

@@ -15,8 +15,9 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 /**
  * A fish or dolphin out of water flops ({@code AbstractFish#aiStep}, {@code Dolphin#tick}): each time it
- * lands it bounces up and a little to one side. Jumping flops you toward where you look. The client moves
- * its own player, so this runs there.
+ * lands it bounces up and a little to one side. Jumping flops you toward where you look. A rabbit has no
+ * walk: it gets about by hopping ({@code Rabbit#getJumpPower}), so a moving rabbit form hops each time it
+ * lands, and its stand-in plays the hop. The client moves its own player, so this runs there.
  */
 @EventBusSubscriber(modid = BalancedTotems.MOD_ID, value = Dist.CLIENT)
 public final class FormFlop {
@@ -26,6 +27,8 @@ public final class FormFlop {
     private static final double DOLPHIN_SWAY = 0.1;
     /** A jump's flop toward where you look. */
     private static final double AIMED_FLOP = 0.25;
+    /** {@code Rabbit#getJumpPower}: a rabbit's hop on the move. */
+    private static final double RABBIT_HOP = 0.3;
 
     private FormFlop() {}
 
@@ -33,6 +36,10 @@ public final class FormFlop {
     public static void onPlayerTick(PlayerTickEvent.Pre event) {
         if (!(event.getEntity() instanceof LocalPlayer player) || player != Minecraft.getInstance().player) return;
         EntityType<?> form = Morphs.formOf(player).orElse(null);
+        if (form == EntityType.RABBIT) {
+            hop(player);
+            return;
+        }
         Double lift = WaterLife.flopLift(form);
         if (lift == null || player.isInWater() || !player.onGround()) return;
         RandomSource random = player.getRandom();
@@ -45,6 +52,15 @@ public final class FormFlop {
             flop = new Vec3((random.nextFloat() * 2.0F - 1.0F) * sway, 0.0, (random.nextFloat() * 2.0F - 1.0F) * sway);
         }
         player.setDeltaMovement(player.getDeltaMovement().add(flop.x, lift, flop.z));
+        player.setOnGround(false);
+    }
+
+    /** A rabbit on the move hops as it lands; a jump is still its own, higher leap. */
+    private static void hop(LocalPlayer player) {
+        boolean moving = player.input.getMoveVector().lengthSquared() > 0.0F;
+        if (!moving || player.input.jumping || !player.onGround() || player.isInWater()) return;
+        Vec3 motion = player.getDeltaMovement();
+        player.setDeltaMovement(motion.x, RABBIT_HOP, motion.z);
         player.setOnGround(false);
     }
 }

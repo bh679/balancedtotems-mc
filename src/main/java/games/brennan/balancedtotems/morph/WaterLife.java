@@ -5,12 +5,14 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.living.LivingBreatheEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import javax.annotation.Nullable;
@@ -30,6 +32,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *       surface; on land they dry out over 2 minutes ({@code Dolphin#tick}), then 1 damage a tick.</li>
  *   <li>Fish, tadpoles, squid and dolphins can't walk on land; fish and dolphins flop about
  *       ({@code client/FormFlop}).</li>
+ *   <li>Land forms hold their breath under water as long as a player, 15 seconds, except those whose mob
+ *       never drowns: turtles, frogs and the undead (the vanilla {@code can_breathe_under_water} tag) and
+ *       iron golems ({@code IronGolem#decreaseAirSupply}).</li>
  * </ul>
  * The air bar shows whatever's running out, scaled to its 10 bubbles.
  */
@@ -71,6 +76,19 @@ public final class WaterLife {
     public static Double flopLift(@Nullable EntityType<?> form) {
         if (form == EntityType.DOLPHIN) return 0.5;
         return form != null && FLOP_SOUNDS.containsKey(form) ? 0.4 : null;
+    }
+
+    /** Whether the form's mob never runs out of air under water (land forms; water forms breathe here). */
+    public static boolean breathesUnderWater(@Nullable EntityType<?> form) {
+        if (form == null || FormTraits.isWaterForm(form)) return false;
+        return form == EntityType.IRON_GOLEM || form.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
+    }
+
+    @SubscribeEvent
+    public static void onBreathe(LivingBreatheEvent event) {
+        if (event.getEntity() instanceof Player player && breathesUnderWater(Morphs.formOf(player).orElse(null))) {
+            event.setCanBreathe(true);
+        }
     }
 
     @SubscribeEvent

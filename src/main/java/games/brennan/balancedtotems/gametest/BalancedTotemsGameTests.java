@@ -8,6 +8,7 @@ import games.brennan.balancedtotems.compat.PlayerMobGifts;
 import games.brennan.balancedtotems.curse.Curses;
 import games.brennan.balancedtotems.curse.Tallies;
 import games.brennan.balancedtotems.loot.EvokerTotemLootModifier;
+import games.brennan.balancedtotems.morph.FormAir;
 import games.brennan.balancedtotems.morph.FormAttacks;
 import games.brennan.balancedtotems.morph.FormTraits;
 import games.brennan.balancedtotems.morph.FormUse;
@@ -328,7 +329,7 @@ public final class BalancedTotemsGameTests {
         double push = pig.getDeltaMovement().horizontalDistance();
         check(helper, push > 0.5, "a ram should knock the target far, was " + push);
         double charge = player.getDeltaMovement().horizontalDistance();
-        check(helper, charge > 0.5 && player.isSprinting(), "a goat should charge into the ram, moved " + charge);
+        check(helper, charge > 0.5 && !player.isSprinting(), "a goat should charge (and not be left sprinting) into the ram, moved " + charge);
         pig.discard();
         helper.succeed();
     }
@@ -744,6 +745,82 @@ public final class BalancedTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void landFormsHoldTheirBreathLikeTheirMobs(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COW);
+        submerge(helper, player, Blocks.WATER);
+        tick(player, 40);
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "a cow runs out of air under water");
+        for (EntityType<?> form : List.of(EntityType.TURTLE, EntityType.FROG, EntityType.IRON_GOLEM, EntityType.ZOMBIFIED_PIGLIN,
+                EntityType.SKELETON_HORSE, EntityType.ZOMBIE_HORSE)) {
+            Morphs.setForm(player, form);
+            player.setAirSupply(player.getMaxAirSupply());
+            tick(player, 40);
+            check(helper, player.getAirSupply() == player.getMaxAirSupply(), form.getDescriptionId() + " should never run out of air under water");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void waterHurtsStridersAndSnowGolems(GameTestHelper helper) {
+        for (EntityType<?> form : List.of(EntityType.STRIDER, EntityType.SNOW_GOLEM)) {
+            ServerPlayer player = player(helper);
+            Morphs.setForm(player, form);
+            submerge(helper, player, Blocks.WATER);
+            tick(player, 20);
+            DamageSource last = player.getLastDamageSource(); // regeneration on a full stomach heals as fast as it hurts
+            check(helper, last != null && last.is(DamageTypes.DROWN), form.getDescriptionId() + " should be hurt by water");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void slowFormsJumpAtTheirOwnPace(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        check(helper, FormAir.paceOverPlayer(player) == 1.0, "a player keeps a player's air speed");
+        Morphs.setForm(player, EntityType.TURTLE);
+        tick(player, 1);
+        double pace = FormAir.paceOverPlayer(player);
+        check(helper, pace > 0.0 && pace < 0.2, "a turtle walks at a fraction of a player's pace, got " + pace);
+        player.setSprinting(true);
+        tick(player, 1);
+        player.setDeltaMovement(Vec3.ZERO);
+        player.jumpFromGround();
+        double push = player.getDeltaMovement().horizontalDistance();
+        check(helper, push < 0.2 * 0.2, "a turtle's sprint-jump pushes it " + push + ", a player's 0.2");
+        Morphs.setForm(player, EntityType.HORSE);
+        player.setSprinting(true);
+        tick(player, 1);
+        check(helper, FormAir.paceOverPlayer(player) > 1.0, "a galloping horse carries more speed into a jump than a player");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void tunedFormsMoveAtTheirSetSpeeds(GameTestHelper helper) {
+        Map<EntityType<?>, double[]> expected = Map.of(
+            EntityType.HORSE, new double[] {4.86, 9.71},
+            EntityType.DONKEY, new double[] {3.78, 7.55},
+            EntityType.LLAMA, new double[] {3.78, 7.55},
+            EntityType.CAMEL, new double[] {2.85, 8.20},
+            EntityType.ZOMBIFIED_PIGLIN, new double[] {3.0, 3.9},
+            EntityType.POLAR_BEAR, new double[] {3.3, 4.3},
+            EntityType.FOX, new double[] {4.0, 7.0},
+            EntityType.WOLF, new double[] {4.0, 7.0});
+        List<String> wrong = new ArrayList<>();
+        expected.forEach((form, speeds) -> {
+            MobGaits.Gait gait = MobGaits.of(form);
+            double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).getBaseValue(Attributes.MOVEMENT_SPEED);
+            double walk = MobGaits.toBlocksPerSecond(MobGaits.walkSpeed(gait, mobSpeed));
+            double run = MobGaits.toBlocksPerSecond(MobGaits.runSpeed(gait, mobSpeed));
+            if (Math.abs(walk - speeds[0]) > 0.02 || Math.abs(run - speeds[1]) > 0.02) {
+                wrong.add(form.getDescriptionId() + " " + String.format("%.2f/%.2f", walk, run));
+            }
+        });
+        check(helper, wrong.isEmpty(), "speeds off the table: " + wrong);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void squidInkBlindsNearbyPlayers(GameTestHelper helper) {
         ServerPlayer squid = player(helper);
         ServerPlayer other = player(helper);
@@ -793,7 +870,7 @@ public final class BalancedTotemsGameTests {
         ServerPlayer player = player(helper);
         helper.getLevel().setBlockAndUpdate(player.blockPosition().below(), Blocks.SAND.defaultBlockState());
         Morphs.setForm(player, EntityType.TURTLE);
-        check(helper, player.hasEffect(MobEffects.WATER_BREATHING), "a turtle breathes underwater");
+        check(helper, WaterLife.breathesUnderWater(EntityType.TURTLE), "a turtle breathes underwater");
         FormUse.use(player);
         check(helper, helper.getLevel().getBlockState(player.blockPosition()).is(Blocks.TURTLE_EGG), "a turtle should lay an egg on sand");
         helper.succeed();
