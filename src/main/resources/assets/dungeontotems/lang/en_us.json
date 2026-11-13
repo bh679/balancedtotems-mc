@@ -21,7 +21,7 @@
   "item.dungeontotems.morphing_totem": "Totem of Morphing",
   "item.dungeontotems.morphing_totem.saved": "After it saves you: you morph, 30s",
   "item.dungeontotems.zombification_totem": "Totem of Zombification",
-  "item.dungeontotems.zombification_totem.saved": "After it saves you: Zombified, 10m",
+  "item.dungeontotems.zombification_totem.saved": "After it saves you: Zombified, until cured",
   "item.dungeontotems.rage_totem": "Totem of Rage",
   "item.dungeontotems.rage_totem.held": "While held: Rage, hit something every 60s",
   "item.dungeontotems.rage_totem.saved": "After it saves you: Rage, a level up, 5m",
@@ -80,8 +80,6 @@
   "message.dungeontotems.restraint_totem.broken": "You couldn't keep your hands off the loot. Your Totem of Restraint took your life and gave it back.",
   "message.dungeontotems.spared": "%s left you on half a heart.",
 
-  "death.attack.dungeontotems.zombification": "%1$s was lost to zombification",
-  "death.attack.dungeontotems.zombification.player": "%1$s was lost to zombification",
   "death.attack.dungeontotems.rage_failed": "%1$s was lost to their own rage",
   "death.attack.dungeontotems.rage_failed.player": "%1$s was lost to their own rage",
   "death.attack.dungeontotems.loneliness": "%1$s died of loneliness",

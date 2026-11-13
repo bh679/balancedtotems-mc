@@ -13,14 +13,12 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
-import net.neoforged.neoforge.event.entity.living.MobEffectEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 import java.util.Map;
@@ -28,11 +26,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Curses that end in death. <b>Zombified</b> (10 min): eat a golden apple while you have Weakness, like
- * curing a zombie villager, or die when it runs out. Any Weakness counts: a potion, a splash, or a
- * Totem of Weakness's curse. Also the rule curses' doom ({@link #doom}), which after a save only takes
- * you to half a heart ({@link SavedCurseShield}). The death comes on your next tick, never inside the
- * effect-tick loop or event that caused it.
+ * Curses that end in death: the rule curses' doom ({@link #doom}), which after a save only takes you to
+ * half a heart ({@link SavedCurseShield}). The death comes on your next tick, never inside the event that
+ * caused it. Also the cure for <b>Zombified</b>, which has no timer and lasts until cured: eat a golden
+ * apple while you have Weakness, like curing a zombie villager. Any Weakness counts: a potion, a splash,
+ * or a Totem of Weakness's curse.
  */
 @EventBusSubscriber(modid = DungeonTotems.MOD_ID)
 public final class DeadlineCurses {
@@ -40,13 +38,6 @@ public final class DeadlineCurses {
     private static final Map<UUID, ResourceKey<DamageType>> PENDING_DEATHS = new ConcurrentHashMap<>();
 
     private DeadlineCurses() {}
-
-    @SubscribeEvent
-    public static void onExpired(MobEffectEvent.Expired event) {
-        MobEffectInstance instance = event.getEffectInstance();
-        if (instance == null || !(event.getEntity() instanceof ServerPlayer player)) return;
-        if (instance.is(TotemRegistries.ZOMBIFIED)) PENDING_DEATHS.put(player.getUUID(), TotemRegistries.ZOMBIFICATION);
-    }
 
     /** Kills the player on their next tick with {@code cause}, outside whatever event is running now. */
     public static void doom(ServerPlayer player, ResourceKey<DamageType> cause) {
@@ -77,11 +68,9 @@ public final class DeadlineCurses {
         return stack.is(Items.GOLDEN_APPLE) || stack.is(Items.ENCHANTED_GOLDEN_APPLE);
     }
 
-    /** Lifts {@code curse}: no more deadline, a message and a sound. */
+    /** Lifts {@code curse}: a message and a sound. */
     static void cure(ServerPlayer player, Holder<MobEffect> curse, String name) {
         player.removeEffect(curse);
-        // Only this curse's own deadline: a broken vow in the same tick still kills.
-        PENDING_DEATHS.remove(player.getUUID(), TotemRegistries.ZOMBIFICATION);
         Curse lifted = Curse.forEffect(curse);
         if (lifted != null) CurseTrials.onLifted(player, lifted);
         player.displayClientMessage(Component.translatable("message.dungeontotems." + name + ".lifted"), false);

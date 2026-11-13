@@ -110,8 +110,6 @@ public final class TotemRegistries {
     public static final TagKey<EntityType<?>> FLYING_FORMS =
         TagKey.create(Registries.ENTITY_TYPE, DungeonTotems.id("flying_forms"));
 
-    public static final ResourceKey<DamageType> ZOMBIFICATION =
-        ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("zombification"));
     public static final ResourceKey<DamageType> RAGE_FAILED =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("rage_failed"));
     public static final ResourceKey<DamageType> LONELINESS =
