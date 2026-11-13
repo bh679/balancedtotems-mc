@@ -6,7 +6,7 @@ a colour named in that totem's palette.
 """
 from PIL import Image, ImageOps
 
-from pixel import Vanilla, cols, hexc, luminance_ramp, over, ramp, render, scaled
+from pixel import Vanilla, cols, hexc, luminance_ramp, outlined, over, ramp, render, scaled
 
 GOLD = ramp("85400f", "a05b23", "c58742", "d1a75d", "eadb84", "f8eea5", "fdfbee")
 GOLD_EYES = cols(g="41e67f", h="00bb46")
@@ -151,7 +151,7 @@ def zombified(vanilla: Vanilla) -> Image.Image:
     return im
 
 
-def rampage(vanilla: Vanilla) -> Image.Image:
+def rage(vanilla: Vanilla) -> Image.Image:
     """Blood red, angry brows, glowing eyes."""
     grid = [
         "................",
@@ -249,6 +249,83 @@ def boom(vanilla: Vanilla) -> Image.Image:
     return im
 
 
+def hunger(vanilla: Vanilla) -> Image.Image:
+    """Deep rust, hollow cheeks, clutching the vanilla hunger-bar shank, outlined so it reads in the hotbar."""
+    grid = list(VANILLA)
+    grid[5] = "....0hh33hh0...."
+    grid[6] = "....0gh65hg0...."
+    grid[7] = "....0c3543c0...."
+    palette = {**ramp("260a06", "42120a", "641e12", "7c2a18", "963c22", "b05630", "cc7a48"),
+               **cols(g="cc7a48", h="260a06", c="42120a")}
+    shank = outlined(vanilla.load("gui/sprites/hud/food_full.png"), hexc("140402"))
+    return over(render(grid, palette), shank, (2, 6))
+
+def slowness(vanilla: Vanilla) -> Image.Image:
+    """Slate blue, eyes shut, its feet caught in a 10px vanilla cobweb (every other pixel of the real one)."""
+    grid = list(VANILLA)
+    grid[5] = "....06333360...."
+    grid[6] = "....0hh65hh0...."
+    palette = {**ramp("1a2232", "2a3650", "3e4e70", "4c5e84", "62769c", "7e92b4", "a4b4cc"), **cols(h="1a2232")}
+    web = vanilla.load("block/cobweb.png")
+    small = Image.new("RGBA", (10, 10))
+    for y in range(10):
+        for x in range(10):
+            small.putpixel((x, y), web.getpixel((round(x * 15 / 9), round(y * 15 / 9))))
+    return over(render(grid, palette), small, (3, 6))
+
+
+# A smaller air bubble drawn in the vanilla air sprite's four colours (a shrunk copy blurs).
+SMALL_BUBBLE = ["..aa..", ".abba.", "abc.da", "ab..da", ".adda.", "..aa.."]
+BUBBLE_COLOURS = cols(a="000000", b="0094ff", c="d1ebff", d="56b8ff")
+
+
+def breathlessness(vanilla: Vanilla) -> Image.Image:
+    """Gold with a 20% blue tint, gasping, a vanilla air bubble rising and a small one below on the left."""
+    grid = list(VANILLA)
+    grid[5] = "....0gg33gg0...."
+    grid[6] = "....0hh65hh0...."
+    grid[7] = "....023kk320...."
+    blue = ramp("101a3a", "1a2a5a", "28407e", "345096", "4c6cb0", "6c8cc8", "a0b8e4")
+    tinted = {key: tuple(round(g * 0.8 + b * 0.2) for g, b in zip(GOLD[key], blue[key])) for key in GOLD}
+    palette = {**tinted, **cols(g="fdfbee", h="85400f", k="3a1a04")}
+    im = over(render(grid, palette), vanilla.load("gui/sprites/hud/air.png"), (7, 0))
+    return over(im, render(SMALL_BUBBLE, BUBBLE_COLOURS), (2, 9))
+
+
+def insomnia(vanilla: Vanilla) -> Image.Image:
+    """Night navy, wide awake: pinpoint red pupils, softened lower lids and dark bags under the eyes."""
+    grid = [
+        "................",
+        ".....111111.....",
+        "....14444441....",
+        "....www44www....",
+        "....wrw33wrw....",
+        "....cwc33cwc....",
+        "....Kk3653kK....",
+        "....2K3543K2....",
+    ] + BODY
+    palette = {**ramp("0a0c1e", "141834", "222a50", "2c3664", "404c80", "5a68a0", "8492c8"),
+               **cols(w="ffffff", c="b8bcd0", r="c01818", k="3a2a6a", K="241848")}
+    return render(grid, palette)
+
+
+def fire(vanilla: Vanilla) -> Image.Image:
+    """Ember red with fire eyes; the tips of the vanilla fire, made yellow-hot, rise behind both shoulders."""
+    palette = {**ramp("3a0a02", "6a1804", "a02a06", "c2400a", "e0641a", "f49434", "fcd070"), **cols(g="fff060", h="ff8000")}
+    flames = Image.new("RGBA", (16, 16))
+    flames.alpha_composite(vanilla.load("block/fire_0.png").crop((0, 0, 16, 16)).resize((14, 14), Image.NEAREST), (1, 0))
+    for y in range(8, 16):  # only above the arms
+        for x in range(16):
+            flames.putpixel((x, y), (0, 0, 0, 0))
+    flames.alpha_composite(ImageOps.mirror(flames))
+    for y in range(16):
+        for x in range(16):
+            r, g, b, a = flames.getpixel((x, y))
+            if a:
+                flames.putpixel((x, y), (255, min(255, g + 90), min(255, b + 30), a))
+    return over(flames, render(VANILLA, palette))
+
+
 def pig_head_alternate(vanilla: Vanilla) -> Image.Image:
     """Unused alternate Morphing design: big-snout pig head on the gold body."""
     head = [
@@ -270,13 +347,18 @@ TOTEMS = {
     "heartbreak_totem": heartbreak,
     "blindness_totem": blindness,
     "morphing_totem": morphing,
-    "zombified_totem": zombified,
-    "rampage_totem": rampage,
+    "zombification_totem": zombified,
+    "rage_totem": rage,
     "loneliness_totem": loneliness,
     "pacifism_totem": pacifism,
-    "melon_totem": melon,
+    "melon_diet_totem": melon,
     "restraint_totem": restraint,
     "void_totem": void,
     "feather_totem": feather,
     "boom_totem": boom,
+    "hunger_totem": hunger,
+    "slowness_totem": slowness,
+    "breathlessness_totem": breathlessness,
+    "insomnia_totem": insomnia,
+    "fire_totem": fire,
 }

@@ -25,7 +25,6 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -38,7 +37,7 @@ public final class TotemRegistries {
     private static final DeferredRegister<AttachmentType<?>> ATTACHMENTS =
         DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, DungeonTotems.MOD_ID);
 
-    /** Two fewer hearts per level, never below half a heart (see {@link HeartbreakEffect}). */
+    /** Three fewer hearts per level, never below half a heart (see {@link HeartbreakEffect}). */
     public static final DeferredHolder<MobEffect, MobEffect> HEARTBREAK = EFFECTS.register("heartbreak",
         () -> new HeartbreakEffect(0xB0213A));
 
@@ -53,58 +52,61 @@ public final class TotemRegistries {
     public static final DeferredHolder<MobEffect, MobEffect> ZOMBIFIED = EFFECTS.register("zombified",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x3E6B2F, false));
 
-    /** Kill {@link #RAMPAGE_KILLS_NEEDED} players or PlayerMobs per level before it runs out, or die. */
-    public static final DeferredHolder<MobEffect, MobEffect> RAMPAGE = EFFECTS.register("rampage",
+    /** Hit something within the timer, or take damage until you do (see {@code curse/CurseTimers}). */
+    public static final DeferredHolder<MobEffect, MobEffect> RAGE = EFFECTS.register("rage",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x8B0000, false));
 
-    /** Make {@link #RAMPAGE_KILLS_NEEDED} friends per level before it runs out, or die (see {@code curse/LonelyFriends}). */
+    /** Give a gift within the timer, or take damage until you do (see {@code curse/CurseTimers}). */
     public static final DeferredHolder<MobEffect, MobEffect> LONELY = EFFECTS.register("lonely",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xE68C9C, false));
 
-    /** Hurt anything while it lasts and you die (see {@code curse/VowOfPeace}). Milk does not lift it. */
+    /** Hurt anything and it costs you (see {@code curse/VowOfPeace}). Milk does not lift it. */
     public static final DeferredHolder<MobEffect, MobEffect> VOW_OF_PEACE = EFFECTS.register("vow_of_peace",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0xE4E4EC, false));
 
-    /** Eat anything but melon while it lasts and you die (see {@code curse/RuleCurses}). */
+    /** Eat anything but melon and it costs you (see {@code curse/RuleCurses}). */
     public static final DeferredHolder<MobEffect, MobEffect> MELON_DIET = EFFECTS.register("melon_diet",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x62A236, false));
 
-    /** Open a chest, barrel or ender chest while it lasts and you die (see {@code curse/RuleCurses}). */
+    /** Open a chest, barrel or ender chest and it costs you (see {@code curse/RuleCurses}). */
     public static final DeferredHolder<MobEffect, MobEffect> RESTRAINED = EFFECTS.register("restrained",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x8A6A3A, false));
 
-    /** Kills (Rage) or friends (Lonely) needed per level. */
-    public static final int RAMPAGE_KILLS_NEEDED = 3;
+    /** You lose air even out of water, and drown on land (see {@code curse/Breathless}). */
+    public static final DeferredHolder<MobEffect, MobEffect> BREATHLESS = EFFECTS.register("breathless",
+        () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x56B8FF, false));
+
+    /** Phantoms come for you, by day as well as night (see {@code curse/InsomniaPhantoms}). */
+    public static final DeferredHolder<MobEffect, MobEffect> INSOMNIA = EFFECTS.register("insomnia",
+        () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x2C3664, false));
 
     /** The entity type a player is shown and played as, by id; empty for their own body. */
     public static final Supplier<AttachmentType<String>> FORM = ATTACHMENTS.register("form",
         () -> AttachmentType.builder(() -> "").serialize(Codec.STRING).build());
 
-    /** Rampage kills so far in the current rampage. */
-    public static final Supplier<AttachmentType<Integer>> RAMPAGE_KILLS = ATTACHMENTS.register("rampage_kills",
-        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT).build());
+    /** Game time each curse's after-save protection ends (by Curse name); see {@code curse/SavedCurseShield}. */
+    public static final Supplier<AttachmentType<Map<String, Long>>> SAVED_UNTIL = ATTACHMENTS.register("saved_until",
+        () -> AttachmentType.<Map<String, Long>>builder(() -> Map.of())
+            .serialize(Codec.unboundedMap(Codec.STRING, Codec.LONG)).build());
 
-    /** Friends made so far while Lonely. */
-    public static final Supplier<AttachmentType<Integer>> LONELY_FRIENDS = ATTACHMENTS.register("lonely_friends",
-        () -> AttachmentType.builder(() -> 0).serialize(Codec.INT).build());
+    /** Game time of your last hit, for Rage. */
+    public static final Supplier<AttachmentType<Long>> LAST_HIT = ATTACHMENTS.register("last_hit",
+        () -> AttachmentType.builder(() -> 0L).serialize(Codec.LONG).build());
 
-    /** Who those friends are (entity UUIDs), so each one counts once. */
-    public static final Supplier<AttachmentType<List<String>>> LONELY_FRIEND_IDS = ATTACHMENTS.register("lonely_friend_ids",
-        () -> AttachmentType.<List<String>>builder(() -> List.of()).serialize(Codec.STRING.listOf()).build());
+    /** Game time of your last gift, for Lonely. */
+    public static final Supplier<AttachmentType<Long>> LAST_GIFT = ATTACHMENTS.register("last_gift",
+        () -> AttachmentType.builder(() -> 0L).serialize(Codec.LONG).build());
 
     public static final Map<Curse, DeferredItem<TotemItem>> TOTEMS = registerTotems();
 
     /** Forms that fly: always airborne, no walking or jumping (see {@code morph/MorphFlight}). */
     public static final TagKey<EntityType<?>> FLYING_FORMS =
         TagKey.create(Registries.ENTITY_TYPE, DungeonTotems.id("flying_forms"));
-    /** What counts as a Rampage kill besides real players (PlayerMob, when it is installed). */
-    public static final TagKey<EntityType<?>> RAMPAGE_TARGETS =
-        TagKey.create(Registries.ENTITY_TYPE, DungeonTotems.id("rampage_targets"));
 
     public static final ResourceKey<DamageType> ZOMBIFICATION =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("zombification"));
-    public static final ResourceKey<DamageType> RAMPAGE_FAILED =
-        ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("rampage_failed"));
+    public static final ResourceKey<DamageType> RAGE_FAILED =
+        ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("rage_failed"));
     public static final ResourceKey<DamageType> LONELINESS =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("loneliness"));
     public static final ResourceKey<DamageType> BROKEN_VOW =
@@ -113,6 +115,8 @@ public final class TotemRegistries {
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("broken_diet"));
     public static final ResourceKey<DamageType> BROKEN_RESTRAINT =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("broken_restraint"));
+    public static final ResourceKey<DamageType> SUFFOCATION =
+        ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("breathless"));
     /** A bee-form player who stung and didn't turn back in time. */
     public static final ResourceKey<DamageType> LOST_STINGER =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("lost_stinger"));

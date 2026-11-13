@@ -1,7 +1,7 @@
 """The curse effect icons (18x18), each built from vanilla sprites."""
 from PIL import Image
 
-from pixel import Vanilla, over
+from pixel import Vanilla, cols, over, render
 
 HEART = "gui/sprites/hud/heart/"
 # Zigzag crack through the 2x heart: row -> column.
@@ -42,7 +42,7 @@ def zombified(vanilla: Vanilla) -> Image.Image:
     return outlined_face(skin.crop((8, 9, 16, 17)), (14, 30, 10))
 
 
-def rampage(vanilla: Vanilla) -> Image.Image:
+def rage(vanilla: Vanilla) -> Image.Image:
     """Vanilla Weakness sword between a half heart and an empty heart: kill, or lose them."""
     container = vanilla.load(HEART + "container.png")
     half = over(container, vanilla.load(HEART + "half.png"))
@@ -77,13 +77,40 @@ def restrained(vanilla: Vanilla) -> Image.Image:
     return icon
 
 
+def insomnia(vanilla: Vanilla) -> Image.Image:
+    """A Zzz rising to the top right, three sizes of Z with a pale shade on the bottom stroke (vanilla has no Zzz)."""
+    shades = cols(W="ffffff", S="b8c6e0")
+    icon = Image.new("RGBA", (18, 18))
+    icon.alpha_composite(render(["WWW", ".W.", "W..", "SSS"], shades), (1, 14))
+    icon.alpha_composite(render(["WWWW", "..W.", ".W..", "SSSS"], shades), (5, 9))
+    icon.alpha_composite(render(["WWWWWW", "....W.", "...W..", "..W...", ".W....", "SSSSSS"], shades), (11, 2))
+    return icon
+
+
+# Hand-drawn air bubbles in the vanilla air sprite's four colours (a shrunk copy blurs).
+BUBBLE_COLOURS = cols(a="000000", b="0094ff", c="d1ebff", d="56b8ff")
+BUBBLE_7 = ["..aaa..", ".abbba.", "abc..da", "ab...da", "ab...da", ".addda.", "..aaa.."]
+BUBBLE_6 = ["..aa..", ".abba.", "abc.da", "ab..da", ".adda.", "..aa.."]
+
+
+def breathless(vanilla: Vanilla) -> Image.Image:
+    """The vanilla air bubble rising, with two smaller ones below it, like the Totem of Breathlessness."""
+    icon = Image.new("RGBA", (18, 18))
+    icon.alpha_composite(vanilla.load("gui/sprites/hud/air.png"), (8, 0))
+    icon.alpha_composite(render(BUBBLE_6, BUBBLE_COLOURS), (1, 10))
+    icon.alpha_composite(render(BUBBLE_7, BUBBLE_COLOURS), (9, 11))
+    return icon
+
+
 ICONS = {
     "heartbreak": heartbreak,
     "morphed": morphed,
     "zombified": zombified,
-    "rampage": rampage,
+    "rage": rage,
     "lonely": lonely,
     "vow_of_peace": vow_of_peace,
     "melon_diet": melon_diet,
     "restrained": restrained,
+    "insomnia": insomnia,
+    "breathless": breathless,
 }

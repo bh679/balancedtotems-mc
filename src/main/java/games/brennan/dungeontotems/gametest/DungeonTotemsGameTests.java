@@ -6,7 +6,9 @@ import games.brennan.dungeontotems.api.DungeonTotemsApi;
 import games.brennan.dungeontotems.curse.CurseMemory;
 import games.brennan.dungeontotems.compat.PlayerMobGifts;
 import games.brennan.dungeontotems.curse.Curses;
-import games.brennan.dungeontotems.curse.Tallies;
+import games.brennan.dungeontotems.curse.CurseTimers;
+import games.brennan.dungeontotems.curse.HeldCurses;
+import games.brennan.dungeontotems.curse.InsomniaPhantoms;
 import games.brennan.dungeontotems.loot.EvokerTotemLootModifier;
 import games.brennan.dungeontotems.morph.FormAir;
 import games.brennan.dungeontotems.morph.FormAttacks;
@@ -48,6 +50,7 @@ import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Evoker;
+import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
@@ -71,6 +74,7 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -112,18 +116,33 @@ public final class DungeonTotemsGameTests {
         check(helper, player.hasEffect(MobEffects.REGENERATION), "vanilla regeneration");
         check(helper, player.hasEffect(MobEffects.ABSORPTION), "vanilla absorption");
         check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a curse totem still gives Fire Resistance");
-        expectEffect(helper, player, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
+        expectEffect(helper, player, MobEffects.WEAKNESS, Curse.WEAKNESS.afterSaveTicks());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
-    public static void everyCurseTotemAppliesItsEffect(GameTestHelper helper) {
+    public static void everyCurseTotemAppliesItsAfterSaveCurse(GameTestHelper helper) {
         for (Curse curse : Curse.values()) {
             if (curse.effect() == null) continue;
             ServerPlayer player = holding(helper, curse);
             player.hurt(player.damageSources().generic(), LETHAL);
             check(helper, player.isAlive(), curse + ": player should survive");
-            expectEffect(helper, player, curse.effect(), curse.durationTicks());
+            expectEffect(helper, player, curse.effect(), curse.afterSaveTicks());
+            MobEffectInstance instance = player.getEffect(curse.effect());
+            check(helper, instance.getAmplifier() == curse.afterSaveAmplifier(), curse + " level " + instance.getAmplifier());
+            check(helper, Curses.isSaved(player, curse), curse + " should be shielded after the save");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void afterSaveTimesMatchTheTable(GameTestHelper helper) {
+        check(helper, Curse.MELON_DIET.afterSaveTicks() == 10 * 60 * 20, "melon diet lasts 10 minutes");
+        check(helper, Curse.RAGE.afterSaveTicks() == 5 * 60 * 20 && Curse.RAGE.afterSaveAmplifier() == 1, "rage II for 5 minutes");
+        check(helper, Curse.LONELINESS.letGoTicks() == 60 * 20 && Curse.LONELINESS.letGoAmplifier() == 0, "lonely I for 1 minute after letting go");
+        for (Curse curse : List.of(Curse.WEAKNESS, Curse.FATIGUE, Curse.HEARTBREAK, Curse.HUNGER, Curse.SLOWNESS,
+                Curse.PACIFISM, Curse.RESTRAINT, Curse.BREATHLESSNESS, Curse.INSOMNIA)) {
+            check(helper, curse.afterSaveTicks() == 4 * 60 * 20, curse + " lasts 4 minutes after a save");
         }
         helper.succeed();
     }
@@ -136,7 +155,7 @@ public final class DungeonTotemsGameTests {
         check(helper, player.isAlive(), "player should survive");
         check(helper, player.getOffhandItem().isEmpty(), "vanilla totem should be used");
         check(helper, !player.getMainHandItem().isEmpty(), "ours should be kept");
-        check(helper, !player.hasEffect(MobEffects.WEAKNESS), "no curse from a vanilla pop");
+        check(helper, !Curses.isSaved(player, Curse.WEAKNESS), "no after-save curse from a vanilla pop");
         helper.succeed();
     }
 
@@ -149,10 +168,333 @@ public final class DungeonTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void heartbreakTakesTwoHearts(GameTestHelper helper) {
+    public static void heartbreakTakesThreeHearts(GameTestHelper helper) {
         ServerPlayer player = holding(helper, Curse.HEARTBREAK);
         player.hurt(player.damageSources().generic(), LETHAL);
-        check(helper, player.getMaxHealth() == 16.0F, "max health should be 16, was " + player.getMaxHealth());
+        check(helper, player.getMaxHealth() == 14.0F, "max health should be 14, was " + player.getMaxHealth());
+        helper.succeed();
+    }
+
+    // ---- held curses ----
+
+    @GameTest(template = EMPTY)
+    public static void heldTotemsCurseOnlyWhileHeld(GameTestHelper helper) {
+        for (Curse curse : Curse.values()) {
+            if (!curse.isHeld()) continue;
+            ServerPlayer player = holding(helper, curse);
+            tick(player, HeldCurses.CHECK_TICKS);
+            MobEffectInstance held = player.getEffect(curse.effect());
+            check(helper, held != null && held.isInfiniteDuration() && held.getAmplifier() == curse.heldAmplifier(),
+                curse + " should be on while held, was " + held);
+            player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+            tick(player, HeldCurses.CHECK_TICKS);
+            MobEffectInstance after = player.getEffect(curse.effect());
+            if (curse.letGoTicks() > 0) {
+                check(helper, after != null && !after.isInfiniteDuration() && after.getAmplifier() == curse.letGoAmplifier()
+                    && after.getDuration() > curse.letGoTicks() - HeldCurses.CHECK_TICKS, curse + " should leave its let-go curse, was " + after);
+            } else {
+                check(helper, after == null, curse + " should end when let go, was " + after);
+            }
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void offHandCountsAsHeld(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(TotemRegistries.TOTEMS.get(Curse.SLOWNESS).get()));
+        tick(player, HeldCurses.CHECK_TICKS);
+        check(helper, player.hasEffect(MobEffects.MOVEMENT_SLOWDOWN), "an off-hand totem curses too");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void fatigueIsMiningFatigueOne(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FATIGUE);
+        tick(player, HeldCurses.CHECK_TICKS);
+        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
+        check(helper, fatigue != null && fatigue.getAmplifier() == 0, "fatigue should be Mining Fatigue I, was " + fatigue);
+        helper.succeed();
+    }
+
+    // ---- rule totems ----
+
+    @GameTest(template = EMPTY)
+    public static void hurtingAnythingPopsAHeldPacifismTotem(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.PACIFISM);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        pig.hurt(player.damageSources().playerAttack(player), 1.0F);
+        tick(player, 2);
+        expectRulePop(helper, player, Curse.PACIFISM);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void eatingBreadPopsAHeldMelonTotem(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MELON_DIET);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.BREAD), 0, ItemStack.EMPTY);
+        tick(player, 2);
+        expectRulePop(helper, player, Curse.MELON_DIET);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void openingABarrelPopsAHeldRestraintTotem(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.RESTRAINT);
+        openBarrel(helper, player);
+        tick(player, 2);
+        expectRulePop(helper, player, Curse.RESTRAINT);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void brokenRuleAfterASaveLeavesHalfAHeart(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.RESTRAINT);
+        tick(player, 20);
+        player.setHealth(20.0F);
+        player.invulnerableTime = 0; // the pop's own hit would otherwise swallow the doom
+        openBarrel(helper, player);
+        tick(player, 2);
+        check(helper, player.isAlive(), "a curse can't kill you after a save");
+        check(helper, player.getHealth() == 1.0F, "should be on half a heart, was " + player.getHealth());
+        MobEffectInstance restrained = player.getEffect(TotemRegistries.RESTRAINED);
+        check(helper, restrained != null && restrained.getDuration() >= Curse.RESTRAINT.afterSaveTicks() - 2,
+            "half a heart should restart Restrained, it has " + restrained);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void foodOffTheMelonDietDoesNotFillYou(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MELON_DIET);
+        player.getFoodData().setFoodLevel(10);
+        player.getFoodData().setSaturation(1.0F);
+        ItemStack bread = new ItemStack(Items.BREAD);
+        NeoForge.EVENT_BUS.post(new LivingEntityUseItemEvent.Start(player, bread, 32));
+        player.getFoodData().eat(5, 6.0F); // what eating the bread did
+        EventHooks.onItemUseFinish(player, bread, 0, ItemStack.EMPTY);
+        check(helper, player.getFoodData().getFoodLevel() == 10, "bread should not fill you, food " + player.getFoodData().getFoodLevel());
+        check(helper, player.getMainHandItem().isEmpty(), "and the totem still pops");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void brokenRuleWithoutAShieldKills(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.MELON_DIET, 0, 400);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.BREAD), 0, ItemStack.EMPTY);
+        tick(player, 2);
+        check(helper, !player.isAlive(), "a melon diet with no totem and no save still kills");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void melonAndDrinksKeepTheMelonDiet(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.MELON_DIET, 0, 400);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.MELON_SLICE), 0, ItemStack.EMPTY);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.HONEY_BOTTLE), 0, ItemStack.EMPTY);
+        EventHooks.onItemUseFinish(player, new ItemStack(Items.MILK_BUCKET), 0, ItemStack.EMPTY);
+        tick(player, 2);
+        check(helper, player.isAlive(), "melon and drinks are allowed");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void takingDamageKeepsTheVow(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.PACIFISM);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        player.invulnerableTime = 0;
+        player.hurt(player.damageSources().mobAttack(pig), 1.0F);
+        tick(player, 2);
+        check(helper, !player.getMainHandItem().isEmpty(), "being hurt does not break the vow");
+        helper.succeed();
+    }
+
+    // ---- rage and lonely timers ----
+
+    @GameTest(template = EMPTY)
+    public static void timersShortenWithLevel(GameTestHelper helper) {
+        check(helper, CurseTimers.seconds(0) == 60 && CurseTimers.seconds(1) == 40 && CurseTimers.seconds(2) == 30,
+            "60, 40 and 30 seconds");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void rageHurtsOnceTheTimerRunsOut(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.RAGE, 0, 400);
+        overdue(player, TotemRegistries.LAST_HIT, 0);
+        tick(player, 1);
+        check(helper, player.getHealth() < 20.0F, "rage should hurt once the timer runs out");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void aHitStopsRage(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.RAGE, 0, 400);
+        overdue(player, TotemRegistries.LAST_HIT, 0);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        pig.hurt(player.damageSources().playerAttack(player), 1.0F);
+        tick(player, 2);
+        check(helper, player.getHealth() == 20.0F, "a hit should reset the timer, health " + player.getHealth());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void rageAfterASaveCantKill(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.RAGE);
+        player.removeAllEffects();
+        Curses.apply(player, Curse.RAGE, 1, 400);
+        player.setHealth(1.0F);
+        overdue(player, TotemRegistries.LAST_HIT, 1);
+        player.invulnerableTime = 0;
+        tick(player, 1);
+        check(helper, player.isAlive() && player.getHealth() == 1.0F, "rage after a save stops at half a heart");
+        MobEffectInstance rage = player.getEffect(TotemRegistries.RAGE);
+        check(helper, rage != null && rage.getAmplifier() == 1 && rage.getDuration() >= Curse.RAGE.afterSaveTicks() - 2,
+            "half a heart should restart Rage II, it has " + rage);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void heldRageTotemSavesYouFromRage(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.RAGE);
+        tick(player, HeldCurses.CHECK_TICKS);
+        player.setHealth(1.0F);
+        player.invulnerableTime = 0;
+        overdue(player, TotemRegistries.LAST_HIT, 0);
+        tick(player, 1);
+        check(helper, player.isAlive(), "the held totem should save you from its own rage");
+        check(helper, player.getMainHandItem().isEmpty(), "and be used up");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void aTradeIsAGiftForLonely(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.LONELINESS, 0, 400);
+        overdue(player, TotemRegistries.LAST_GIFT, 0);
+        trade(player, villager(helper));
+        check(helper, player.getData(TotemRegistries.LAST_GIFT) == player.level().getGameTime(), "a trade should restart the timer");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void aPlayerMobGiftIsAGiftForLonely(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.LONELINESS, 0, 400);
+        overdue(player, TotemRegistries.LAST_GIFT, 0);
+        PlayerMobGifts.gift(player, UUID.randomUUID(), false);
+        check(helper, player.getData(TotemRegistries.LAST_GIFT) != player.level().getGameTime(), "a gift to you is not yours");
+        PlayerMobGifts.gift(player, UUID.randomUUID(), true);
+        check(helper, player.getData(TotemRegistries.LAST_GIFT) == player.level().getGameTime(), "your gift restarts the timer");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void lonelyHurtsOnceTheTimerRunsOut(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.LONELINESS, 0, 400);
+        overdue(player, TotemRegistries.LAST_GIFT, 0);
+        tick(player, 1);
+        check(helper, player.getHealth() < 20.0F, "lonely should hurt once the timer runs out");
+        helper.succeed();
+    }
+
+    // ---- breathless ----
+
+    @GameTest(template = EMPTY)
+    public static void breathlessDrainsAirOnLand(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.BREATHLESSNESS, 0, 400);
+        tick(player, 5);
+        check(helper, player.getAirSupply() == player.getMaxAirSupply() - 5, "air should drain by one a tick, was " + player.getAirSupply());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void waterBreathingStopsBreathless(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.BREATHLESSNESS, 0, 400);
+        player.addEffect(new MobEffectInstance(MobEffects.WATER_BREATHING, 400));
+        tick(player, 5);
+        check(helper, player.getAirSupply() == player.getMaxAirSupply(), "water breathing keeps your air");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void breathlessDrownsYouOnLand(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Curses.apply(player, Curse.BREATHLESSNESS, 0, 400);
+        player.setAirSupply(-19);
+        tick(player, 1);
+        check(helper, player.getHealth() == 18.0F, "drowning on land should hurt 2, health " + player.getHealth());
+        helper.succeed();
+    }
+
+    // ---- fire ----
+
+    @GameTest(template = EMPTY)
+    public static void fireTotemSavesFromFireAndLava(GameTestHelper helper) {
+        ServerPlayer burnt = holding(helper, Curse.FIRE);
+        burnt.hurt(burnt.damageSources().onFire(), LETHAL);
+        check(helper, burnt.isAlive(), "fire totem should save from burning");
+        check(helper, burnt.hasEffect(MobEffects.FIRE_RESISTANCE), "and give Fire Resistance");
+        ServerPlayer swimmer = holding(helper, Curse.FIRE);
+        swimmer.hurt(swimmer.damageSources().lava(), LETHAL);
+        check(helper, swimmer.isAlive(), "fire totem should save from lava");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void fireTotemIgnoresOtherDeaths(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.FIRE);
+        player.hurt(player.damageSources().fall(), LETHAL);
+        check(helper, !player.isAlive(), "only fire and lava are saved");
+        helper.succeed();
+    }
+
+    // ---- insomnia ----
+
+    @GameTest(template = EMPTY)
+    public static void dayPhantomsComeAQuarterOfTheTime(GameTestHelper helper) {
+        check(helper, InsomniaPhantoms.DAY_CHANCE == 0.25F && InsomniaPhantoms.NIGHT_CHANCE == 1.0F, "25% by day, 100% at night");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void nightTryAlwaysSpawnsPhantoms(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        var level = helper.getLevel();
+        long time = level.getDayTime();
+        level.setDayTime(18000);
+        level.updateSkyBrightness();
+        try {
+            int spawned = 0;
+            for (int i = 0; i < 5 && spawned == 0; i++) {
+                spawned = InsomniaPhantoms.trySpawnAt(level, player.blockPosition(), level.getRandom());
+            }
+            check(helper, spawned > 0, "a night try should spawn phantoms, even below sea level in a flat world");
+        } finally {
+            level.setDayTime(time);
+            level.updateSkyBrightness();
+            level.getEntitiesOfClass(Phantom.class, player.getBoundingBox().inflate(64)).forEach(Phantom::discard);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void dayPhantomsResistFire(GameTestHelper helper) {
+        BlockPos at = helper.absolutePos(new BlockPos(2, 3, 2));
+        var level = helper.getLevel();
+        int spawned = InsomniaPhantoms.spawnGroup(level, at, level.getCurrentDifficultyAt(at), true, level.getRandom());
+        List<Phantom> phantoms = level.getEntitiesOfClass(Phantom.class, new net.minecraft.world.phys.AABB(at).inflate(3));
+        check(helper, spawned > 0 && phantoms.size() == spawned, "spawned " + spawned + ", found " + phantoms.size());
+        check(helper, phantoms.stream().allMatch(p -> p.hasEffect(MobEffects.FIRE_RESISTANCE)), "day phantoms need Fire Resistance");
+        phantoms.forEach(Phantom::discard);
         helper.succeed();
     }
 
@@ -1024,52 +1366,16 @@ public final class DungeonTotemsGameTests {
         helper.succeed();
     }
 
-    // ---- rampage ----
+    // ---- stacking and death ----
 
     @GameTest(template = EMPTY)
-    public static void rampageIsLiftedByThreeKills(GameTestHelper helper) {
-        ServerPlayer player = holding(helper, Curse.RAMPAGE);
-        player.hurt(player.damageSources().generic(), LETHAL);
-        for (int i = 0; i < TotemRegistries.RAMPAGE_KILLS_NEEDED; i++) {
-            check(helper, player.hasEffect(TotemRegistries.RAMPAGE), "rampage active before kill " + (i + 1));
-            // The GameTest server has PvP off, so fire the kill's death event directly.
-            ServerPlayer victim = player(helper);
-            CommonHooks.onLivingDeath(victim, victim.damageSources().playerAttack(player));
-        }
-        check(helper, !player.hasEffect(TotemRegistries.RAMPAGE), "three kills should lift the rampage");
-        tick(player, 3);
-        check(helper, player.isAlive(), "a lifted rampage never kills");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void rampageRunningOutKills(GameTestHelper helper) {
+    public static void milkLeavesTheCurses(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(TotemRegistries.RAMPAGE, 2, 0));
-        tick(player, 5);
-        check(helper, !player.isAlive(), "player should die when the rampage runs out");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void milkLeavesTheDeadlineCurses(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(TotemRegistries.RAMPAGE, 400, 0));
+        player.addEffect(new MobEffectInstance(TotemRegistries.RAGE, 400, 0));
         player.addEffect(new MobEffectInstance(TotemRegistries.HEARTBREAK, 400, 0));
         player.removeEffectsCuredBy(net.neoforged.neoforge.common.EffectCures.MILK);
-        check(helper, player.hasEffect(TotemRegistries.RAMPAGE), "milk should not lift rampage");
+        check(helper, player.hasEffect(TotemRegistries.RAGE), "milk should not lift rage");
         check(helper, !player.hasEffect(TotemRegistries.HEARTBREAK), "milk does lift heartbreak");
-        helper.succeed();
-    }
-
-    // ---- stacking, levels and death ----
-
-    @GameTest(template = EMPTY)
-    public static void fatigueIsMiningFatigueTwo(GameTestHelper helper) {
-        ServerPlayer player = holding(helper, Curse.FATIGUE);
-        player.hurt(player.damageSources().generic(), LETHAL);
-        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
-        check(helper, fatigue != null && fatigue.getAmplifier() == 1, "fatigue should be Mining Fatigue II, was " + fatigue);
         helper.succeed();
     }
 
@@ -1084,69 +1390,41 @@ public final class DungeonTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
-    public static void sameCurseLevelsUpWithAFullTimer(GameTestHelper helper) {
+    public static void secondSaveRefreshesWithoutLevellingUp(GameTestHelper helper) {
         ServerPlayer player = player(helper);
         pop(player, Curse.WEAKNESS);
         tick(player, 20);
         pop(player, Curse.WEAKNESS);
         MobEffectInstance weakness = player.getEffect(MobEffects.WEAKNESS);
-        check(helper, weakness != null && weakness.getAmplifier() == 1, "second pop should give Weakness II, was " + weakness);
-        expectEffect(helper, player, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void fatigueAddsTimeNotLevels(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.FATIGUE);
-        tick(player, 20);
-        pop(player, Curse.FATIGUE);
-        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
-        check(helper, fatigue != null && fatigue.getAmplifier() == 1, "fatigue should stay Mining Fatigue II, was " + fatigue);
-        expectEffect(helper, player, MobEffects.DIG_SLOWDOWN, 2 * Curse.FATIGUE.durationTicks() - 20);
+        check(helper, weakness != null && weakness.getAmplifier() == 0, "a second save stays Weakness I, was " + weakness);
+        expectEffect(helper, player, MobEffects.WEAKNESS, Curse.WEAKNESS.afterSaveTicks());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
     public static void heartbreakStopsAtHalfAHeart(GameTestHelper helper) {
         ServerPlayer player = player(helper);
-        for (int i = 0; i < 6; i++) pop(player, Curse.HEARTBREAK);
+        Curses.apply(player, Curse.HEARTBREAK, 4, 400);
         check(helper, player.getMaxHealth() == 1.0F, "max health should stop at half a heart, was " + player.getMaxHealth());
-        MobEffectInstance heartbreak = player.getEffect(TotemRegistries.HEARTBREAK);
-        check(helper, heartbreak != null && heartbreak.getAmplifier() == 4, "level should stop at V, was " + heartbreak);
-        expectEffect(helper, player, TotemRegistries.HEARTBREAK, Curse.HEARTBREAK.durationTicks());
         helper.succeed();
     }
 
     @GameTest(template = EMPTY)
-    public static void secondRampageNeedsSixKills(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.RAMPAGE);
-        pop(player, Curse.RAMPAGE);
-        for (int i = 0; i < 2 * TotemRegistries.RAMPAGE_KILLS_NEEDED; i++) {
-            check(helper, player.hasEffect(TotemRegistries.RAMPAGE), "rampage II lifted after only " + i + " kills");
-            ServerPlayer victim = player(helper);
-            CommonHooks.onLivingDeath(victim, victim.damageSources().playerAttack(player));
-        }
-        check(helper, !player.hasEffect(TotemRegistries.RAMPAGE), "six kills should lift rampage II");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void cursesComeBackAfterDeathWithAFullTimer(GameTestHelper helper) {
+    public static void afterSaveCursesComeBackAfterDeath(GameTestHelper helper) {
         ServerPlayer dead = player(helper);
-        pop(dead, Curse.WEAKNESS);
-        pop(dead, Curse.WEAKNESS);
+        pop(dead, Curse.RAGE);
         pop(dead, Curse.HEARTBREAK);
+        Curses.apply(dead, Curse.SLOWNESS, 0, MobEffectInstance.INFINITE_DURATION); // as if held
         tick(dead, 20);
         dead.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 400)); // a plain effect, not a curse
         ServerPlayer respawned = player(helper);
         CurseMemory.onClone(new PlayerEvent.Clone(respawned, dead, true));
         CurseMemory.onRespawn(new PlayerEvent.PlayerRespawnEvent(respawned, false));
-        MobEffectInstance weakness = respawned.getEffect(MobEffects.WEAKNESS);
-        check(helper, weakness != null && weakness.getAmplifier() == 1, "weakness II should come back, was " + weakness);
-        expectEffect(helper, respawned, MobEffects.WEAKNESS, Curse.WEAKNESS.durationTicks());
+        MobEffectInstance rage = respawned.getEffect(TotemRegistries.RAGE);
+        check(helper, rage != null && rage.getAmplifier() == 1, "rage II should come back, was " + rage);
+        expectEffect(helper, respawned, TotemRegistries.RAGE, Curse.RAGE.afterSaveTicks());
         check(helper, respawned.hasEffect(TotemRegistries.HEARTBREAK), "heartbreak should come back");
+        check(helper, !respawned.hasEffect(MobEffects.MOVEMENT_SLOWDOWN), "a held curse should not come back");
         check(helper, !respawned.hasEffect(MobEffects.BLINDNESS), "a plain effect should not come back");
         helper.succeed();
     }
@@ -1161,153 +1439,6 @@ public final class DungeonTotemsGameTests {
         CurseMemory.onClone(new PlayerEvent.Clone(respawned, dead, true));
         CurseMemory.onRespawn(new PlayerEvent.PlayerRespawnEvent(respawned, false));
         check(helper, !respawned.hasEffect(TotemRegistries.ZOMBIFIED), "the curse that killed you should not come back");
-        helper.succeed();
-    }
-
-    // ---- loneliness ----
-
-    @GameTest(template = EMPTY)
-    public static void lonelyIsLiftedByThreeVillagerFriends(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.LONELINESS);
-        expectEffect(helper, player, TotemRegistries.LONELY, Curse.LONELINESS.durationTicks());
-        Villager first = villager(helper);
-        trade(player, first);
-        trade(player, first); // the same villager counts once
-        check(helper, Tallies.count(player, Curse.LONELINESS) == 1, "one villager should be one friend");
-        trade(player, villager(helper));
-        trade(player, villager(helper));
-        check(helper, !player.hasEffect(TotemRegistries.LONELY), "three friends should lift Lonely");
-        tick(player, 3);
-        check(helper, player.isAlive(), "a lifted Lonely never kills");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void secondLonelyNeedsSixFriends(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.LONELINESS);
-        pop(player, Curse.LONELINESS);
-        for (int i = 0; i < 2 * TotemRegistries.RAMPAGE_KILLS_NEEDED; i++) {
-            check(helper, player.hasEffect(TotemRegistries.LONELY), "Lonely II lifted after only " + i + " friends");
-            trade(player, villager(helper));
-        }
-        check(helper, !player.hasEffect(TotemRegistries.LONELY), "six friends should lift Lonely II");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void lonelyRunningOutKills(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        player.addEffect(new MobEffectInstance(TotemRegistries.LONELY, 2, 0));
-        tick(player, 5);
-        check(helper, !player.isAlive(), "player should die when Lonely runs out");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void playerMobFriendNeedsGiftsBothWays(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.LONELINESS);
-        UUID mob = UUID.randomUUID();
-        PlayerMobGifts.gift(player, mob, true);
-        check(helper, Tallies.count(player, Curse.LONELINESS) == 0, "a gift one way is not a friend yet");
-        PlayerMobGifts.gift(player, mob, false);
-        check(helper, Tallies.count(player, Curse.LONELINESS) == 1, "gifts both ways make a friend");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void rageCountsVillagersWhenTheyStandIn(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.RAMPAGE);
-        Villager villager = villager(helper);
-        CommonHooks.onLivingDeath(villager, villager.damageSources().playerAttack(player));
-        check(helper, Tallies.count(player, Curse.RAMPAGE) == 1, "a villager kill should count without PlayerMob");
-        helper.succeed();
-    }
-
-    // ---- pacifism ----
-
-    @GameTest(template = EMPTY)
-    public static void hurtingAnythingBreaksTheVow(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.PACIFISM);
-        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
-        pig.hurt(player.damageSources().playerAttack(player), 1.0F);
-        tick(player, 2);
-        check(helper, !player.isAlive(), "hurting a pig under the vow should kill");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void takingDamageKeepsTheVow(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.PACIFISM);
-        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
-        player.invulnerableTime = 0;
-        player.hurt(player.damageSources().mobAttack(pig), 1.0F);
-        tick(player, 2);
-        check(helper, player.isAlive(), "being hurt does not break the vow");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void pacifismAddsTimeNotLevels(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.PACIFISM);
-        tick(player, 20);
-        pop(player, Curse.PACIFISM);
-        MobEffectInstance vow = player.getEffect(TotemRegistries.VOW_OF_PEACE);
-        check(helper, vow != null && vow.getAmplifier() == 0, "the vow has no levels, was " + vow);
-        expectEffect(helper, player, TotemRegistries.VOW_OF_PEACE, 2 * Curse.PACIFISM.durationTicks() - 20);
-        helper.succeed();
-    }
-
-    // ---- melon diet and restraint ----
-
-    @GameTest(template = EMPTY)
-    public static void eatingBreadBreaksTheMelonDiet(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.MELON);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.BREAD), 0, ItemStack.EMPTY);
-        tick(player, 2);
-        check(helper, !player.isAlive(), "bread under the melon diet should kill");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void melonAndDrinksKeepTheMelonDiet(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.MELON);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.MELON_SLICE), 0, ItemStack.EMPTY);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.HONEY_BOTTLE), 0, ItemStack.EMPTY);
-        EventHooks.onItemUseFinish(player, new ItemStack(Items.MILK_BUCKET), 0, ItemStack.EMPTY);
-        tick(player, 2);
-        check(helper, player.isAlive(), "melon and drinks are allowed");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void openingABarrelBreaksRestraint(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.RESTRAINT);
-        BlockPos barrel = helper.absolutePos(new BlockPos(1, 1, 1));
-        helper.getLevel().setBlockAndUpdate(barrel, Blocks.BARREL.defaultBlockState());
-        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(barrel), Direction.UP, barrel, false);
-        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, barrel, hit));
-        tick(player, 2);
-        check(helper, !player.isAlive(), "opening a barrel while restrained should kill");
-        helper.succeed();
-    }
-
-    @GameTest(template = EMPTY)
-    public static void restraintAddsTimeNotLevels(GameTestHelper helper) {
-        ServerPlayer player = player(helper);
-        pop(player, Curse.RESTRAINT);
-        tick(player, 20);
-        pop(player, Curse.RESTRAINT);
-        expectEffect(helper, player, TotemRegistries.RESTRAINED, 2 * Curse.RESTRAINT.durationTicks() - 20);
         helper.succeed();
     }
 
@@ -1376,6 +1507,26 @@ public final class DungeonTotemsGameTests {
         ServerPlayer player = player(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(TotemRegistries.TOTEMS.get(curse).get()));
         return player;
+    }
+
+    /** The held rule totem popped: gone from the hand, you alive on half a heart, its after-save curse on. */
+    private static void expectRulePop(GameTestHelper helper, ServerPlayer player, Curse curse) {
+        check(helper, player.isAlive(), curse + ": breaking the rule should not kill");
+        check(helper, player.getMainHandItem().isEmpty(), curse + ": the totem should be used up");
+        check(helper, player.getHealth() <= 1.0F + 0.01F || player.hasEffect(MobEffects.REGENERATION), curse + ": revived like a pop");
+        check(helper, Curses.isSaved(player, curse), curse + ": its after-save curse should be on");
+    }
+
+    private static void openBarrel(GameTestHelper helper, ServerPlayer player) {
+        BlockPos barrel = helper.absolutePos(new BlockPos(1, 1, 1));
+        helper.getLevel().setBlockAndUpdate(barrel, Blocks.BARREL.defaultBlockState());
+        BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(barrel), Direction.UP, barrel, false);
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.RightClickBlock(player, InteractionHand.MAIN_HAND, barrel, hit));
+    }
+
+    /** Puts the last hit or gift {@code ticksPast} ticks beyond the timer, so it has run out. */
+    private static void overdue(ServerPlayer player, java.util.function.Supplier<net.neoforged.neoforge.attachment.AttachmentType<Long>> last, int amplifier) {
+        player.setData(last, player.level().getGameTime() - CurseTimers.seconds(amplifier) * 20L);
     }
 
     private static void eatGoldenApple(ServerPlayer player) {

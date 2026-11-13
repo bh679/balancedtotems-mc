@@ -1,9 +1,7 @@
 package games.brennan.dungeontotems.compat;
 
 import games.brennan.dungeontotems.DungeonTotems;
-import games.brennan.dungeontotems.curse.LonelyFriends;
-import games.brennan.dungeontotems.curse.Targets;
-import games.brennan.dungeontotems.registry.TotemRegistries;
+import games.brennan.dungeontotems.curse.CurseTimers;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
@@ -14,13 +12,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Lonely's PlayerMob friends: a PlayerMob you gave a gift to and got a gift from while Lonely.
+ * Lonely's PlayerMob gifts: a gift you give a PlayerMob restarts Lonely's timer ({@link CurseTimers#gift}).
  *
  * <p>PlayerMob announces gifts through {@code PlayerMobSocialHooks}, which holds one observer, and
  * Dungeon Train installs its own at boot. So, with no compile dependency on PlayerMob, this reads the
@@ -32,16 +27,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class PlayerMobGifts {
 
     private static final String HOOKS = "games.brennan.playermob.compat.PlayerMobSocialHooks";
+    public static final String PLAYERMOB = "playermob";
 
-    private static final Map<UUID, Set<UUID>> GIVEN = new ConcurrentHashMap<>();
-    private static final Map<UUID, Set<UUID>> RECEIVED = new ConcurrentHashMap<>();
     private static volatile boolean installed;
 
     private PlayerMobGifts() {}
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
-        if (installed || !ModList.get().isLoaded(Targets.PLAYERMOB)) return;
+        if (installed || !ModList.get().isLoaded(PLAYERMOB)) return;
         try {
             Class<?> hooks = Class.forName(HOOKS);
             Class<?> observerType = Class.forName(HOOKS + "$GiftObserver");
@@ -62,9 +56,9 @@ public final class PlayerMobGifts {
         return (proxy, method, args) -> {
             if (method.getDeclaringClass() == Object.class) return objectMethod(proxy, method, args);
             Object result = method.invoke(previous, args);
-            if (args != null && args.length == 2 && args[0] instanceof ServerPlayer player && args[1] instanceof UUID mob) {
-                if (method.getName().equals("onPlayerGift")) record(player, mob, GIVEN, RECEIVED);
-                if (method.getName().equals("onMobGift")) record(player, mob, RECEIVED, GIVEN);
+            if (args != null && args.length == 2 && args[0] instanceof ServerPlayer player && args[1] instanceof UUID mob
+                && method.getName().equals("onPlayerGift")) {
+                gift(player, mob, true);
             }
             return result;
         };
@@ -78,22 +72,8 @@ public final class PlayerMobGifts {
         };
     }
 
-    /** Notes one direction of a gift; once both directions happened with the same mob, it is a friend. */
-    static void record(ServerPlayer player, UUID mob, Map<UUID, Set<UUID>> direction, Map<UUID, Set<UUID>> other) {
-        if (!player.hasEffect(TotemRegistries.LONELY)) return;
-        direction.computeIfAbsent(player.getUUID(), id -> ConcurrentHashMap.newKeySet()).add(mob);
-        if (other.getOrDefault(player.getUUID(), Set.of()).contains(mob)) LonelyFriends.befriend(player, mob);
-    }
-
-    /** A fresh Lonely curse: earlier gifts no longer count. */
-    public static void forget(ServerPlayer player) {
-        GIVEN.remove(player.getUUID());
-        RECEIVED.remove(player.getUUID());
-    }
-
-    /** Test seam: a gift between {@code player} and {@code mob}, as PlayerMob would announce it. */
+    /** A gift between {@code player} and {@code mob}, as PlayerMob announces it; only the player's own gift counts. */
     public static void gift(ServerPlayer player, UUID mob, boolean fromPlayer) {
-        if (fromPlayer) record(player, mob, GIVEN, RECEIVED);
-        else record(player, mob, RECEIVED, GIVEN);
+        if (fromPlayer) CurseTimers.gift(player);
     }
 }
