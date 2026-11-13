@@ -1,0 +1,172 @@
+{
+  "values": {
+    "minecraft:allay": {
+      "pool": "land",
+      "weight": 1
+    },
+    "minecraft:armadillo": {
+      "pool": "land",
+      "weight": 10
+    },
+    "minecraft:axolotl": {
+      "pool": "water",
+      "weight": 3
+    },
+    "minecraft:bat": {
+      "pool": "land",
+      "weight": 2
+    },
+    "minecraft:bee": {
+      "pool": "land",
+      "weight": 3
+    },
+    "minecraft:camel": {
+      "pool": "land",
+      "weight": 4
+    },
+    "minecraft:cat": {
+      "pool": "land",
+      "weight": 5
+    },
+    "minecraft:chicken": {
+      "pool": "land",
+      "weight": 10
+    },
+    "minecraft:cod": {
+      "pool": "water",
+      "weight": 10
+    },
+    "minecraft:cow": {
+      "pool": "land",
+      "weight": 10
+    },
+    "minecraft:dolphin": {
+      "pool": "water",
+      "weight": 7
+    },
+    "minecraft:donkey": {
+      "pool": "land",
+      "weight": 5
+    },
+    "minecraft:fox": {
+      "pool": "land",
+      "weight": 6
+    },
+    "minecraft:frog": {
+      "pool": "land",
+      "weight": 7
+    },
+    "minecraft:glow_squid": {
+      "pool": "water",
+      "weight": 1
+    },
+    "minecraft:goat": {
+      "pool": "land",
+      "weight": 10
+    },
+    "minecraft:horse": {
+      "pool": "land",
+      "weight": 5
+    },
+    "minecraft:iron_golem": {
+      "pool": "land",
+      "weight": 1
+    },
+    "minecraft:llama": {
+      "pool": "land",
+      "weight": 6
+    },
+    "minecraft:mooshroom": {
+      "pool": "land",
+      "weight": 6
+    },
+    "minecraft:mule": {
+      "pool": "land",
+      "weight": 5
+    },
+    "minecraft:ocelot": {
+      "pool": "land",
+      "weight": 1
+    },
+    "minecraft:panda": {
+      "pool": "land",
+      "weight": 5
+    },
+    "minecraft:parrot": {
+      "pool": "land",
+      "weight": 2
+    },
+    "minecraft:pig": {
+      "pool": "land",
+      "weight": 10
+    },
+    "minecraft:polar_bear": {
+      "pool": "land",
+      "weight": 5
+    },
+    "minecraft:pufferfish": {
+      "pool": "water",
+      "weight": 10
+    },
+    "minecraft:rabbit": {
+      "pool": "land",
+      "weight": 8
+    },
+    "minecraft:salmon": {
+      "pool": "water",
+      "weight": 10
+    },
+    "minecraft:sheep": {
+      "pool": "land",
+      "weight": 10
+    },
+    "minecraft:skeleton_horse": {
+      "pool": "land",
+      "weight": 1
+    },
+    "minecraft:sniffer": {
+      "pool": "land",
+      "weight": 1
+    },
+    "minecraft:snow_golem": {
+      "pool": "land",
+      "weight": 3
+    },
+    "minecraft:squid": {
+      "pool": "water",
+      "weight": 10
+    },
+    "minecraft:strider": {
+      "pool": "lava",
+      "weight": 10
+    },
+    "minecraft:tadpole": {
+      "pool": "water",
+      "weight": 3
+    },
+    "minecraft:trader_llama": {
+      "pool": "land",
+      "weight": 3
+    },
+    "minecraft:tropical_fish": {
+      "pool": "water",
+      "weight": 10
+    },
+    "minecraft:turtle": {
+      "pool": "land",
+      "weight": 3
+    },
+    "minecraft:wolf": {
+      "pool": "land",
+      "weight": 5
+    },
+    "minecraft:zombie_horse": {
+      "pool": "land",
+      "weight": 1
+    },
+    "minecraft:zombified_piglin": {
+      "pool": "lava",
+      "weight": 10
+    }
+  }
+}

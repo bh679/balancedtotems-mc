@@ -94,8 +94,9 @@ public final class TotemRegistries {
 
     public static final Map<Curse, DeferredItem<TotemItem>> TOTEMS = registerTotems();
 
-    public static final TagKey<EntityType<?>> MORPH_POOL =
-        TagKey.create(Registries.ENTITY_TYPE, DungeonTotems.id("morph_pool"));
+    /** Forms that fly: always airborne, no walking or jumping (see {@code morph/MorphFlight}). */
+    public static final TagKey<EntityType<?>> FLYING_FORMS =
+        TagKey.create(Registries.ENTITY_TYPE, DungeonTotems.id("flying_forms"));
     /** What counts as a Rampage kill besides real players (PlayerMob, when it is installed). */
     public static final TagKey<EntityType<?>> RAMPAGE_TARGETS =
         TagKey.create(Registries.ENTITY_TYPE, DungeonTotems.id("rampage_targets"));
@@ -112,6 +113,9 @@ public final class TotemRegistries {
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("broken_diet"));
     public static final ResourceKey<DamageType> BROKEN_RESTRAINT =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("broken_restraint"));
+    /** A bee-form player who stung and didn't turn back in time. */
+    public static final ResourceKey<DamageType> LOST_STINGER =
+        ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("lost_stinger"));
 
     private TotemRegistries() {}
 

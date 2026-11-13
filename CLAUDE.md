@@ -32,7 +32,7 @@ through the approval gates (plan, test, merge) with full human oversight at each
 |---|---|
 | `Curse`, `TotemItem`, `registry/TotemRegistries` | The totem table, items, effects, attachments, tags, damage keys |
 | `TotemTriggerEvents`, `TotemPop` | `LivingDeathEvent` at HIGHEST → vanilla pop + curse; vanilla totem still wins |
-| `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn |
+| `morph/` | Form engine: stats (`MorphStats`, pure + tested), hitbox, mob aggro, zombie sunburn, flight (`MorphFlight`), attacks (`FormAttacks`), empty-hand right-click moves (`FormUse` → `LandMoves`/`WaterMoves`, `FormTimers`), traits (`FormTraits`), how mobs treat a form (`FormAllies`); `client/FormAnimator` plays each move on the stand-in |
 | `curse/DeadlineCurses` | Zombified, Rage, Lonely: cures and death on expiry |
 | `curse/Curses`, `CurseMemory` | Applying a curse (stacking, levels), keeping curses through death |
 | `curse/Tallies`, `Targets`, `LonelyFriends` | Rage kills / Lonely friends; who counts (PlayerMobs, villagers without PlayerMob and Dungeon Train) |
@@ -40,11 +40,21 @@ through the approval gates (plan, test, merge) with full human oversight at each
 | `curse/RuleCurses` | Melon Diet (food other than melon) and Restrained (chests, barrels, ender chests) |
 | `compat/PlayerMobGifts` | PlayerMob gifts both ways = a friend; chains PlayerMob's single gift observer by reflection |
 | `voidtotem/VoidRescue` | Rescue target if set (DT: the train); else a chorus-fruit hop around the last safe ground (else spawn) |
+| `mixin/` | `LivingEntityMixin`: a strider-form player stands on lava; `EntityMixin`: fire-immune forms don't burn; `PlayerMixin`: land forms' air speed follows their pace (`morph/FormAir`) |
 | `client/` | Pop animation with the right item; `MorphRenderer` draws the form instead of the player |
 | `api/DungeonTotemsApi` | `setRescueTarget`; a signature change is a MAJOR bump |
 
 Other mods find curses by effect id (`dungeontotems:zombified` etc.), with no compile dependency.
-Data: `tags/entity_type/morph_pool.json` (morph forms), `rampage_targets.json` (PlayerMob, optional).
+Data: `data_maps/entity_type/morph_forms.json` (morph forms: pool land/water/lava + weight, generated from
+Brennan's weight table https://claude.ai/artifact/PVn2fag5iJMDGtEvi7bsDe; pull it before committing),
+`tags/entity_type/flying_forms.json`, `rampage_targets.json` (PlayerMob, optional).
+`MobGaits` gives land forms their mob's walk and run speed (vanilla's stroll and panic multipliers; GameTest
+`mobsWalkAtTheirOwnPace` measures the real mobs against it). `client/FormAnimator` runs each stand-in mob's own tick for vanilla animations; `FormAttacks` and
+`FormTraits` give forms their mob's attack and traits.
+Testing every form without a person: GameTest `everyFormFightsLikeItsMob` (server: each form's attack,
+moves, jump, flight) and `./gradlew runSelfTest [-Dforms=goat,llama]` (client/`FormSelfTest`: a real client
+plays each form, writes `run-selftest/selftest/report.txt` with walk-cycle rates and attack results, and
+screenshots to `run-selftest/screenshots/`). It needs a world named "New World" in `run-selftest/saves`.
 Textures come from `art/make_textures.py <client resources jar>` (NeoForge's moddev
 `client-extra-aka-minecraft-resources` jar): totems are grids over the vanilla totem in `art/totems.py`,
 effect icons combine vanilla sprites in `art/icons.py`. Build effect icons from vanilla sprites where they exist.
@@ -75,7 +85,7 @@ to `dev/<feature-slug>`.
 
 1. `./gradlew build` (runs `test`) must pass
 2. `./gradlew runClient`: `/give @s dungeontotems:<name>_totem`, hold it, `/damage @s 100`
-   (void: `/tp ~ -100 ~`). F2 screenshots
+   (void: `/tp ~ -100 ~`). Morph forms without a totem: `/morph next|prev|<form>|off`. F2 screenshots
 3. Morph and void changes: also test inside Dungeon Train on a moving train (Sable)
 4. Present the Gate 2 report in plan mode and wait for approval
 

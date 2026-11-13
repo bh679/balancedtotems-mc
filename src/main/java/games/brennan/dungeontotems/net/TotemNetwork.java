@@ -12,7 +12,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
  */
 public final class TotemNetwork {
 
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "3";
 
     private TotemNetwork() {}
 
@@ -28,6 +28,27 @@ public final class TotemNetwork {
         registrar.playToClient(CurseCountPayload.TYPE, CurseCountPayload.STREAM_CODEC,
             (payload, context) -> context.enqueueWork(
                 () -> games.brennan.dungeontotems.client.ClientPayloads.onCurseCount(payload)));
+        registrar.playToServer(FormUsePayload.TYPE, FormUsePayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(() -> {
+                if (context.player() instanceof net.minecraft.server.level.ServerPlayer player) {
+                    games.brennan.dungeontotems.morph.FormUse.use(player);
+                }
+            }));
+        registrar.playToServer(FormAttackPayload.TYPE, FormAttackPayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(() -> {
+                if (context.player() instanceof net.minecraft.server.level.ServerPlayer player) {
+                    games.brennan.dungeontotems.morph.FormAttacks.attackAir(player);
+                }
+            }));
+        registrar.playToServer(FormJumpPayload.TYPE, FormJumpPayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(() -> {
+                if (context.player() instanceof net.minecraft.server.level.ServerPlayer player) {
+                    games.brennan.dungeontotems.morph.FormUse.jump(player);
+                }
+            }));
+        registrar.playToClient(MorphActionPayload.TYPE, MorphActionPayload.STREAM_CODEC,
+            (payload, context) -> context.enqueueWork(
+                () -> games.brennan.dungeontotems.client.ClientPayloads.onMorphAction(payload)));
     }
 
     /**

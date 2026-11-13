@@ -2,6 +2,7 @@ package games.brennan.dungeontotems.client;
 
 import games.brennan.dungeontotems.net.MorphSyncPayload;
 import games.brennan.dungeontotems.net.CurseCountPayload;
+import games.brennan.dungeontotems.net.MorphActionPayload;
 import games.brennan.dungeontotems.net.TotemPopPayload;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.client.CameraType;
@@ -62,6 +63,13 @@ public final class ClientPayloads {
         } else if (form.isEmpty() && cameraBeforeMorph != null) {
             if (mc.options.getCameraType() == MORPH_CAMERA) mc.options.setCameraType(cameraBeforeMorph);
             cameraBeforeMorph = null;
+        }
+    }
+
+    public static void onMorphAction(MorphActionPayload payload) {
+        ClientLevel level = Minecraft.getInstance().level;
+        if (level != null && level.getEntity(payload.entityId()) instanceof Player player) {
+            MorphRenderer.perform(player, payload.action());
         }
     }
 

@@ -8,9 +8,21 @@ import games.brennan.dungeontotems.compat.PlayerMobGifts;
 import games.brennan.dungeontotems.curse.Curses;
 import games.brennan.dungeontotems.curse.Tallies;
 import games.brennan.dungeontotems.loot.EvokerTotemLootModifier;
+import games.brennan.dungeontotems.morph.FormAir;
+import games.brennan.dungeontotems.morph.FormAttacks;
+import games.brennan.dungeontotems.morph.FormTraits;
+import games.brennan.dungeontotems.morph.FormUse;
+import games.brennan.dungeontotems.morph.MorphForm;
 import games.brennan.dungeontotems.morph.Morphs;
+import games.brennan.dungeontotems.morph.WaterLife;
+import games.brennan.dungeontotems.morph.WaterMoves;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import games.brennan.dungeontotems.voidtotem.VoidRescue;
+import net.minecraft.core.registries.BuiltInRegistries;
+import games.brennan.dungeontotems.morph.MobGaits;
+import games.brennan.dungeontotems.morph.MorphFlight;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -18,15 +30,28 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
+import net.minecraft.world.entity.ai.memory.WalkTarget;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Evoker;
+import net.minecraft.world.entity.monster.Slime;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.monster.ZombifiedPiglin;
+import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -34,7 +59,9 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -44,14 +71,17 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -232,7 +262,8 @@ public final class DungeonTotemsGameTests {
         player.hurt(player.damageSources().generic(), LETHAL);
         EntityType<?> form = Morphs.formOf(player).orElse(null);
         check(helper, form != null, "player should have a form");
-        check(helper, form.is(TotemRegistries.MORPH_POOL), "form should come from the pool: " + form);
+        check(helper, Morphs.formData(form).filter(f -> f.pool() == MorphForm.Pool.LAND && f.weight() > 0).isPresent(),
+            "form should come from the land pool: " + form);
         check(helper, player.getBbHeight() == form.getDimensions().height(), "hitbox should be the form's");
         helper.succeed();
     }
@@ -245,6 +276,682 @@ public final class DungeonTotemsGameTests {
         Morphs.setForm(player, null);
         check(helper, player.getMaxHealth() == 20.0F, "max health back to 20");
         check(helper, player.getAttribute(Attributes.MOVEMENT_SPEED).getModifiers().isEmpty(), "no speed modifier left");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void flyingFormsFlyAndStopWhenTheFormEnds(GameTestHelper helper) {
+        for (EntityType<?> flyer : List.of(EntityType.BEE, EntityType.PARROT, EntityType.BAT)) {
+            ServerPlayer player = player(helper);
+            Morphs.setForm(player, flyer);
+            check(helper, player.getAbilities().mayfly && player.getAbilities().flying, flyer + " form should fly");
+            player.getAbilities().flying = false; // as vanilla does on touching the ground
+            tick(player, 1);
+            check(helper, player.getAbilities().flying, flyer + " form should take off again at once");
+            Morphs.setForm(player, null);
+            check(helper, !player.getAbilities().mayfly && !player.getAbilities().flying, "flight should end with the form");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void beeFormStingsOnceAndMayDie(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.BEE);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        player.attack(pig);
+        check(helper, pig.hasEffect(MobEffects.POISON), "a sting should poison");
+        check(helper, FormAttacks.hasStung(player), "the bee has lost its stinger");
+        Morphs.setForm(player, EntityType.COW);
+        check(helper, !FormAttacks.hasStung(player), "turning back in time saves you");
+        pig.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void formsWithoutAnAttackDoNoDamage(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COW);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        float before = pig.getHealth();
+        player.attack(pig);
+        check(helper, pig.getHealth() == before, "a cow can't hurt anything");
+        pig.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void goatFormRams(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.GOAT);
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 3);
+        player.attack(pig);
+        double push = pig.getDeltaMovement().horizontalDistance();
+        check(helper, push > 0.5, "a ram should knock the target far, was " + push);
+        double charge = player.getDeltaMovement().horizontalDistance();
+        check(helper, charge > 0.5 && !player.isSprinting(), "a goat should charge (and not be left sprinting) into the ram, moved " + charge);
+        pig.discard();
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void sheepFormGrazes(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.SHEEP);
+        BlockPos grass = helper.absolutePos(new BlockPos(1, 1, 1));
+        helper.getLevel().setBlockAndUpdate(grass, Blocks.GRASS_BLOCK.defaultBlockState());
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.LeftClickBlock(player, grass, Direction.UP,
+            PlayerInteractEvent.LeftClickBlock.Action.START));
+        check(helper, helper.getLevel().getBlockState(grass).is(Blocks.DIRT), "a sheep should eat the grass");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void dyingUnderwaterGivesAWaterForm(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MORPHING);
+        submerge(helper, player, Blocks.WATER);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        check(helper, FormTraits.isWaterForm(form), "an underwater pop should give a water form, gave " + form);
+        check(helper, player.hasEffect(MobEffects.DOLPHINS_GRACE), "water forms swim fast");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void dyingInLavaGivesALavaForm(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MORPHING);
+        submerge(helper, player, Blocks.LAVA);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        check(helper, form != null && Morphs.formData(form).map(MorphForm::pool).orElse(null) == MorphForm.Pool.LAVA,
+            "a lava pop should give a lava form, gave " + form);
+        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a lava form can't burn");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void fishFormDriesOutOnLand(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COD);
+        tick(player, 150);
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "a fish on land runs out of air");
+        tick(player, 200);
+        DamageSource last = player.getLastDamageSource();
+        check(helper, last != null && last.is(DamageTypes.DROWN), "a fish out of water too long takes damage, last was " + last);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void catFormTakesNoFallDamage(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAT);
+        float before = player.getHealth();
+        player.causeFallDamage(20.0F, 1.0F, player.damageSources().fall());
+        check(helper, player.getHealth() == before, "a cat lands on its feet");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void camelCantJumpAndHorsesGallop(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAMEL);
+        check(helper, player.getAttributeValue(Attributes.JUMP_STRENGTH) == 0.0, "camels can't jump");
+        Morphs.setForm(player, EntityType.HORSE);
+        double walking = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+        player.setSprinting(true);
+        tick(player, 1);
+        check(helper, player.getAttributeValue(Attributes.MOVEMENT_SPEED) > walking * 1.6, "a sprinting horse should gallop");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void chickenLaysAndArmadilloRolls(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CHICKEN);
+        FormUse.use(player);
+        check(helper, !helper.getLevel().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(2),
+            item -> item.getItem().is(Items.EGG) && item.hasPickUpDelay()).isEmpty(), "a chicken should lay an egg you see before picking up");
+        Morphs.setForm(player, EntityType.ARMADILLO);
+        FormUse.use(player);
+        check(helper, FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0, "a rolled armadillo can't move");
+        Morphs.setForm(player, EntityType.COW);
+        check(helper, !FormUse.isRolled(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) > 0.0, "changing form unrolls");
+        helper.succeed();
+    }
+
+    /** How each form's attack should land, from its vanilla mob. */
+    private enum Hit { NONE, MELEE, POISON, SHOT }
+
+    private static final Map<EntityType<?>, Hit> FORM_HITS = Map.ofEntries(
+        Map.entry(EntityType.ALLAY, Hit.NONE), Map.entry(EntityType.ARMADILLO, Hit.NONE), Map.entry(EntityType.BAT, Hit.NONE),
+        Map.entry(EntityType.CAMEL, Hit.NONE), Map.entry(EntityType.CHICKEN, Hit.NONE), Map.entry(EntityType.COW, Hit.NONE),
+        Map.entry(EntityType.DONKEY, Hit.NONE), Map.entry(EntityType.HORSE, Hit.NONE), Map.entry(EntityType.MULE, Hit.NONE),
+        Map.entry(EntityType.MOOSHROOM, Hit.NONE), Map.entry(EntityType.PIG, Hit.NONE), Map.entry(EntityType.SHEEP, Hit.NONE),
+        Map.entry(EntityType.SNIFFER, Hit.NONE), Map.entry(EntityType.STRIDER, Hit.NONE), Map.entry(EntityType.TURTLE, Hit.NONE),
+        Map.entry(EntityType.SKELETON_HORSE, Hit.NONE), Map.entry(EntityType.ZOMBIE_HORSE, Hit.NONE), Map.entry(EntityType.PARROT, Hit.NONE),
+        Map.entry(EntityType.RABBIT, Hit.NONE), Map.entry(EntityType.COD, Hit.NONE), Map.entry(EntityType.SALMON, Hit.NONE),
+        Map.entry(EntityType.TROPICAL_FISH, Hit.NONE), Map.entry(EntityType.TADPOLE, Hit.NONE), Map.entry(EntityType.SQUID, Hit.NONE),
+        Map.entry(EntityType.GLOW_SQUID, Hit.NONE),
+        Map.entry(EntityType.CAT, Hit.MELEE), Map.entry(EntityType.OCELOT, Hit.MELEE), Map.entry(EntityType.FOX, Hit.MELEE),
+        Map.entry(EntityType.WOLF, Hit.MELEE), Map.entry(EntityType.PANDA, Hit.MELEE), Map.entry(EntityType.DOLPHIN, Hit.MELEE),
+        Map.entry(EntityType.AXOLOTL, Hit.MELEE), Map.entry(EntityType.POLAR_BEAR, Hit.MELEE), Map.entry(EntityType.ZOMBIFIED_PIGLIN, Hit.MELEE),
+        Map.entry(EntityType.GOAT, Hit.MELEE), Map.entry(EntityType.IRON_GOLEM, Hit.MELEE), Map.entry(EntityType.FROG, Hit.MELEE),
+        Map.entry(EntityType.BEE, Hit.MELEE),
+        Map.entry(EntityType.PUFFERFISH, Hit.POISON),
+        Map.entry(EntityType.LLAMA, Hit.SHOT), Map.entry(EntityType.TRADER_LLAMA, Hit.SHOT), Map.entry(EntityType.SNOW_GOLEM, Hit.SHOT));
+
+    /** {@code AbstractHorse}'s best roll, and a camel's no-jump. */
+    private static final Map<EntityType<?>, Double> FORM_JUMPS = Map.of(EntityType.HORSE, 1.0, EntityType.SKELETON_HORSE, 1.0,
+        EntityType.ZOMBIE_HORSE, 1.0, EntityType.CAMEL, 0.0);
+
+    /**
+     * Every form in the data map: hitting a pig (living, so poison takes) lands as the mob's attack would (nothing, a melee hit,
+     * poison, or a shot), its right-click move runs, horses jump their best, flyers fly, and a second of
+     * life in the form goes by cleanly.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 200)
+    @SuppressWarnings("unchecked")
+    public static void everyFormFightsLikeItsMob(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        List<EntityType<?>> forms = BuiltInRegistries.ENTITY_TYPE.stream().filter(type -> Morphs.formData(type).isPresent()).toList();
+        Set<EntityType<?>> unlisted = new HashSet<>(forms);
+        unlisted.removeAll(FORM_HITS.keySet());
+        check(helper, unlisted.isEmpty(), "forms with no expected attack: " + unlisted);
+        List<String> wrong = new ArrayList<>();
+        for (EntityType<?> form : forms) {
+            String name = BuiltInRegistries.ENTITY_TYPE.getKey(form).getPath();
+            try {
+                Morphs.setForm(player, form);
+                Vec3 start = helper.absoluteVec(new Vec3(2.5, 1, 2.5));
+                player.teleportTo(start.x, start.y, start.z);
+                player.setYRot(0.0F); // facing +z, at the target
+                player.setXRot(0.0F);
+                tick(player, 20); // a full attack charge
+                Pig target = helper.spawnWithNoFreeWill(EntityType.PIG, 2, 1, 4);
+                int shotsBefore = shots(helper);
+                float before = target.getHealth();
+                player.attack(target);
+                boolean hurt = target.getHealth() < before;
+                boolean poisoned = target.hasEffect(MobEffects.POISON);
+                boolean shot = shots(helper) > shotsBefore;
+                Hit expected = FORM_HITS.get(form);
+                Hit got = shot ? Hit.SHOT : poisoned && !hurt ? Hit.POISON : hurt ? Hit.MELEE : Hit.NONE;
+                if (got != expected) wrong.add(name + " attacked as " + got + ", expected " + expected);
+                target.discard();
+
+                MobGaits.Gait gait = MobGaits.of(form);
+                if (gait != null) {
+                    double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).getBaseValue(Attributes.MOVEMENT_SPEED);
+                    double chill = form == EntityType.STRIDER ? FormTraits.STRIDER_COLD * FormTraits.STRIDER_COLD : 1.0; // on stone, it's cold
+                    double walk = player.getAttributeValue(Attributes.MOVEMENT_SPEED) / chill;
+                    player.setSprinting(true);
+                    tick(player, 1);
+                    double run = player.getAttributeValue(Attributes.MOVEMENT_SPEED) / chill;
+                    player.setSprinting(false);
+                    tick(player, 1);
+                    if (Math.abs(walk - MobGaits.walkSpeed(gait, mobSpeed)) > 1.0E-6) wrong.add(name + " walks at " + walk + ", its mob at " + MobGaits.walkSpeed(gait, mobSpeed));
+                    if (Math.abs(run - MobGaits.runSpeed(gait, mobSpeed)) > 1.0E-6) wrong.add(name + " runs at " + run + ", its mob at " + MobGaits.runSpeed(gait, mobSpeed));
+                }
+                if (FormUse.USABLE.contains(form)) FormUse.use(player);
+                Double jump = FORM_JUMPS.get(form);
+                double strength = player.getAttributeValue(Attributes.JUMP_STRENGTH);
+                if (jump != null && Math.abs(strength - jump) > 1.0E-6) wrong.add(name + " jumps " + strength + ", expected " + jump);
+                if (MorphFlight.flies(form) != player.getAbilities().mayfly) wrong.add(name + (player.getAbilities().mayfly ? " flies" : " can't fly"));
+                tick(player, 20);
+                if (!player.isAlive()) wrong.add(name + " died within a second");
+            } catch (RuntimeException e) {
+                wrong.add(name + " threw " + e);
+            }
+            if (!player.isAlive()) player = player(helper);
+        }
+        Morphs.setForm(player, null);
+        check(helper, wrong.isEmpty(), forms.size() + " forms, " + wrong.size() + " wrong: " + String.join("; ", wrong));
+        helper.succeed();
+    }
+
+    /** Ticks a measured mob walks before timing starts (to reach its pace), and how long it's timed for. */
+    private static final int STROLL_WARM_UP = 40;
+    /** Long enough that a running fox (about 9 blocks a second) is still on it when timing ends. */
+    private static final int LANE_LENGTH = 130;
+    /** Far enough apart that lanes don't bother each other (an armadillo curls up near undead mobs). */
+    private static final int LANE_SPACING = 12;
+    private static final int LANES_PER_BATCH = 10;
+    private static final int STROLL_TICKS = 60;
+    /** How far a measured mob may be from {@link MobGaits}' prediction. */
+    private static final double GAIT_TOLERANCE = 0.1;
+
+    /**
+     * Every land form's real mob strolls, and runs, at its own AI's multipliers down its own stone lane
+     * high above the grid; its ground speed must match {@link MobGaits}' stroll and run for it (a form walks
+     * at twice the stroll), within 10%. The strider walks on lava, where it's warm. Lanes run {@value #LANES_PER_BATCH} at a time
+     * on one force-loaded patch. Ridden mobs' runs are the player's input on them, so only their walk is
+     * measured.
+     */
+    @GameTest(template = EMPTY, timeoutTicks = 1600)
+    @SuppressWarnings("unchecked")
+    public static void mobsWalkAtTheirOwnPace(GameTestHelper helper) {
+        List<GaitLane> lanes = new ArrayList<>();
+        List<Map.Entry<EntityType<?>, MobGaits.Gait>> gaits = MobGaits.GAITS.entrySet().stream() // the same batches every run
+            .sorted(java.util.Comparator.comparing(entry -> BuiltInRegistries.ENTITY_TYPE.getKey(entry.getKey()).toString())).toList();
+        for (Map.Entry<EntityType<?>, MobGaits.Gait> entry : gaits) {
+            MobGaits.Gait gait = entry.getValue();
+            double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) entry.getKey()).getBaseValue(Attributes.MOVEMENT_SPEED);
+            lanes.add(new GaitLane(entry.getKey(), false, gait.walk(), MobGaits.toBlocksPerSecond(MobGaits.strollSpeed(gait, mobSpeed))));
+            if (!gait.ridden()) lanes.add(new GaitLane(entry.getKey(), true, gait.run(), MobGaits.toBlocksPerSecond(MobGaits.mobRunSpeed(gait, mobSpeed))));
+        }
+        for (int x = 0; x < LANES_PER_BATCH * LANE_SPACING; x++) {
+            for (int z = -1; z <= LANE_LENGTH; z++) {
+                helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 58, z)), Blocks.STONE.defaultBlockState());
+                helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 59, z)), Blocks.STONE.defaultBlockState());
+            }
+        }
+        List<net.minecraft.world.level.ChunkPos> forced = forceLanes(helper, LANES_PER_BATCH);
+        List<String> rows = new ArrayList<>();
+        List<String> wrong = new ArrayList<>();
+        List<Mob> mobs = new ArrayList<>();
+        List<Vec3> last = new ArrayList<>();
+        List<List<Double>> steps = new ArrayList<>();
+        int batchTicks = STROLL_WARM_UP + STROLL_TICKS + 1;
+        int[] tick = {-1};
+        helper.onEachTick(() -> {
+            if (tick[0] < 0 && !lanesTicking(helper)) return; // forced chunks take a moment to start ticking
+            tick[0]++;
+            int batch = tick[0] / batchTicks;
+            int t = tick[0] % batchTicks;
+            int first = batch * LANES_PER_BATCH;
+            if (first >= lanes.size()) return;
+            List<GaitLane> current = lanes.subList(first, Math.min(first + LANES_PER_BATCH, lanes.size()));
+            if (t == 0) {
+                mobs.clear();
+                last.clear();
+                steps.clear();
+                for (int i = 0; i < LANES_PER_BATCH; i++) { // a strider walks on lava, the rest on stone
+                    boolean lava = i < current.size() && current.get(i).form() == EntityType.STRIDER;
+                    for (int x = i * LANE_SPACING; x < i * LANE_SPACING + 3; x++) {
+                        for (int z = 0; z < LANE_LENGTH; z++) {
+                            helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 59, z)),
+                                (lava ? Blocks.LAVA : Blocks.STONE).defaultBlockState());
+                        }
+                    }
+                }
+                for (int i = 0; i < current.size(); i++) {
+                    Mob mob = (Mob) current.get(i).form().create(helper.getLevel());
+                    Vec3 at = helper.absoluteVec(new Vec3(i * LANE_SPACING + 1.5, 60, 0.5));
+                    mob.moveTo(at.x, at.y, at.z, 0.0F, 0.0F);
+                    mob.goalSelector.removeAllGoals(goal -> true);
+                    mob.targetSelector.removeAllGoals(goal -> true);
+                    mob.setPersistenceRequired();
+                    if (mob.getBrain().checkMemory(MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS, MemoryStatus.REGISTERED)) {
+                        mob.getBrain().setMemory(MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS, Integer.MAX_VALUE); // a goat walks, not leaps
+                    }
+                    if (mob.getBrain().checkMemory(MemoryModuleType.RAM_COOLDOWN_TICKS, MemoryStatus.REGISTERED)) {
+                        mob.getBrain().setMemory(MemoryModuleType.RAM_COOLDOWN_TICKS, Integer.MAX_VALUE);
+                    }
+                    helper.getLevel().addFreshEntity(mob);
+                    mobs.add(mob);
+                    last.add(null);
+                    steps.add(new ArrayList<>());
+                }
+            }
+            for (int i = 0; i < mobs.size(); i++) {
+                Mob mob = mobs.get(i);
+                float modifier = (float) current.get(i).modifier();
+                Vec3 target = new Vec3(mob.getX(), mob.getY(), mob.getZ() + 20);
+                if (mob.getBrain().checkMemory(MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED)) {
+                    mob.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(target, modifier, 0));
+                } else {
+                    mob.getNavigation().moveTo(target.x, target.y, target.z, modifier);
+                }
+                if (t >= STROLL_WARM_UP && last.get(i) != null) steps.get(i).add(mob.position().subtract(last.get(i)).horizontalDistance());
+                last.set(i, mob.position());
+            }
+            if (t != batchTicks - 1) return;
+            for (int i = 0; i < mobs.size(); i++) {
+                GaitLane lane = current.get(i);
+                double measured = steps.get(i).stream().mapToDouble(Double::doubleValue).average().orElse(0.0) * 20.0;
+                String row = String.format("%s %s %.2f b/s, given %.2f", BuiltInRegistries.ENTITY_TYPE.getKey(lane.form()).getPath(),
+                    lane.run() ? "run" : "walk", measured, lane.expected());
+                rows.add(row);
+                if (Math.abs(measured - lane.expected()) > lane.expected() * GAIT_TOLERANCE) wrong.add(row);
+                mobs.get(i).discard();
+            }
+            if (first + LANES_PER_BATCH < lanes.size()) return;
+            for (int x = 0; x < LANES_PER_BATCH * LANE_SPACING; x++) { // no lava left lying about
+                for (int z = 0; z < LANE_LENGTH; z++) {
+                    helper.getLevel().setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 59, z)), Blocks.STONE.defaultBlockState());
+                }
+            }
+            forced.forEach(chunk -> helper.getLevel().setChunkForced(chunk.x, chunk.z, false));
+            DungeonTotems.LOGGER.info("Mob gaits:\n{}", String.join("\n", rows));
+            check(helper, wrong.isEmpty(), wrong.size() + " gaits off: " + String.join("; ", wrong));
+            helper.succeed();
+        });
+    }
+
+    /** One measured stroll or run: which mob, at what multiplier, and the blocks a second the form is given. */
+    private record GaitLane(EntityType<?> form, boolean run, double modifier, double expected) {}
+
+    /** Whether every chunk under the lanes ticks its entities yet. */
+    private static boolean lanesTicking(GameTestHelper helper) {
+        for (int x = 0; x <= LANES_PER_BATCH * LANE_SPACING; x += 16) {
+            for (int z = 0; z <= LANE_LENGTH; z += 16) {
+                if (!helper.getLevel().isPositionEntityTicking(helper.absolutePos(new BlockPos(x, 60, z)))) return false;
+            }
+        }
+        return true;
+    }
+
+    /** Force-loads the chunks under {@code lanes} lanes 4 blocks apart, so every lane's mob ticks. */
+    private static List<net.minecraft.world.level.ChunkPos> forceLanes(GameTestHelper helper, int lanes) {
+        BlockPos corner = helper.absolutePos(BlockPos.ZERO);
+        List<net.minecraft.world.level.ChunkPos> forced = new ArrayList<>();
+        for (int cx = (corner.getX() - 2) >> 4; cx <= (corner.getX() + lanes * LANE_SPACING + 2) >> 4; cx++) {
+            for (int cz = (corner.getZ() - 2) >> 4; cz <= (corner.getZ() + LANE_LENGTH + 4) >> 4; cz++) {
+                helper.getLevel().setChunkForced(cx, cz, true);
+                forced.add(new net.minecraft.world.level.ChunkPos(cx, cz));
+            }
+        }
+        return forced;
+    }
+
+    private static int shots(GameTestHelper helper) {
+        AABB area = new AABB(helper.absolutePos(BlockPos.ZERO)).inflate(32);
+        return helper.getLevel().getEntitiesOfClass(Projectile.class, area).size();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void morphCommandStepsThroughForms(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        net.minecraft.commands.CommandSourceStack source = player.createCommandSourceStack().withPermission(2).withSuppressedOutput();
+        net.minecraft.commands.Commands commands = helper.getLevel().getServer().getCommands();
+        commands.performPrefixedCommand(source, "morph minecraft:cow");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.COW, "/morph cow makes a cow");
+        commands.performPrefixedCommand(source, "morph next");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.DOLPHIN, "/morph next after cow is dolphin, was " + Morphs.formOf(player));
+        commands.performPrefixedCommand(source, "morph prev");
+        commands.performPrefixedCommand(source, "morph prev");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.COD, "two back from dolphin is cod, was " + Morphs.formOf(player));
+        commands.performPrefixedCommand(source, "morph minecraft:zombie");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.COD, "a zombie isn't a morph form");
+        commands.performPrefixedCommand(source, "morph off");
+        check(helper, Morphs.formOf(player).isEmpty(), "/morph off turns you back");
+        commands.performPrefixedCommand(source, "morph prev");
+        check(helper, Morphs.formOf(player).orElse(null) == EntityType.ZOMBIFIED_PIGLIN, "prev from nothing wraps to the last form");
+        commands.performPrefixedCommand(player.createCommandSourceStack().withPermission(0).withSuppressedOutput(), "morph off");
+        check(helper, Morphs.formOf(player).isPresent(), "only ops can morph");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void camelDashesOnJumpAndSitsOnUse(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAMEL);
+        player.setOnGround(true);
+        FormUse.use(player);
+        check(helper, player.getDeltaMovement().horizontalDistance() < 0.1, "right-click sits a camel down, it doesn't dash");
+        FormUse.jump(player);
+        Vec3 motion = player.getDeltaMovement();
+        check(helper, motion.horizontalDistance() > 1.0 && motion.y > 0.0, "a camel's jump is its dash, was " + motion);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void goatChargesAtNothing(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.GOAT);
+        FormAttacks.attackAir(player);
+        check(helper, player.getDeltaMovement().horizontalDistance() > 0.5, "a goat attacking the air charges into a ram");
+        Morphs.setForm(player, EntityType.CAT);
+        player.setDeltaMovement(Vec3.ZERO);
+        FormAttacks.attackAir(player); // just its noise
+        check(helper, player.getDeltaMovement().horizontalDistance() == 0.0, "a cat attacking the air doesn't move");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void waterFormsBreatheLikeTheirMobs(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COD);
+        tick(player, 100);
+        check(helper, WaterLife.airLeft(player) == 200, "a cod on land has 15 s of air, " + WaterLife.airLeft(player) + " left after 5 s");
+        check(helper, player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0, "a cod can't walk on land");
+        Morphs.setForm(player, EntityType.AXOLOTL);
+        tick(player, 100);
+        check(helper, WaterLife.airLeft(player) == 5900, "an axolotl on land has 5 min of air, " + WaterLife.airLeft(player) + " left after 5 s");
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "an axolotl's air bar runs down on land");
+        check(helper, player.getAttributeValue(Attributes.MOVEMENT_SPEED) > 0.0, "an axolotl walks on land");
+        Morphs.setForm(player, EntityType.DOLPHIN);
+        tick(player, 100);
+        check(helper, WaterLife.airLeft(player) == 4800, "a dolphin breathes air on land");
+        submerge(helper, player, Blocks.WATER);
+        tick(player, 99);
+        check(helper, WaterLife.airLeft(player) == 4700, "a dolphin holds its breath under water, " + WaterLife.airLeft(player) + " left after 5 s");
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "a dolphin's air bar runs down under water");
+        Morphs.setForm(player, EntityType.COD);
+        tick(player, 20);
+        check(helper, WaterLife.airLeft(player) == 300 && player.getAirSupply() == player.getMaxAirSupply(), "a cod breathes in water");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void doorsStillOpenAsAForm(GameTestHelper helper) {
+        BlockPos door = helper.absolutePos(new BlockPos(1, 1, 1));
+        BlockPos grass = helper.absolutePos(new BlockPos(3, 1, 3));
+        helper.getLevel().setBlockAndUpdate(door, Blocks.OAK_DOOR.defaultBlockState());
+        helper.getLevel().setBlockAndUpdate(grass, Blocks.GRASS_BLOCK.defaultBlockState());
+        check(helper, FormUse.isUsable(helper.getLevel(), door), "a door is for using");
+        check(helper, !FormUse.isUsable(helper.getLevel(), grass), "grass isn't: right-click does the form's move");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void landFormsHoldTheirBreathLikeTheirMobs(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.COW);
+        submerge(helper, player, Blocks.WATER);
+        tick(player, 40);
+        check(helper, player.getAirSupply() < player.getMaxAirSupply(), "a cow runs out of air under water");
+        for (EntityType<?> form : List.of(EntityType.TURTLE, EntityType.FROG, EntityType.IRON_GOLEM, EntityType.ZOMBIFIED_PIGLIN,
+                EntityType.SKELETON_HORSE, EntityType.ZOMBIE_HORSE)) {
+            Morphs.setForm(player, form);
+            player.setAirSupply(player.getMaxAirSupply());
+            tick(player, 40);
+            check(helper, player.getAirSupply() == player.getMaxAirSupply(), form.getDescriptionId() + " should never run out of air under water");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void waterHurtsStridersAndSnowGolems(GameTestHelper helper) {
+        for (EntityType<?> form : List.of(EntityType.STRIDER, EntityType.SNOW_GOLEM)) {
+            ServerPlayer player = player(helper);
+            Morphs.setForm(player, form);
+            submerge(helper, player, Blocks.WATER);
+            tick(player, 20);
+            DamageSource last = player.getLastDamageSource(); // regeneration on a full stomach heals as fast as it hurts
+            check(helper, last != null && last.is(DamageTypes.DROWN), form.getDescriptionId() + " should be hurt by water");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void slowFormsJumpAtTheirOwnPace(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        check(helper, FormAir.paceOverPlayer(player) == 1.0, "a player keeps a player's air speed");
+        Morphs.setForm(player, EntityType.TURTLE);
+        tick(player, 1);
+        double pace = FormAir.paceOverPlayer(player);
+        check(helper, pace > 0.0 && pace < 0.2, "a turtle walks at a fraction of a player's pace, got " + pace);
+        player.setSprinting(true);
+        tick(player, 1);
+        player.setDeltaMovement(Vec3.ZERO);
+        player.jumpFromGround();
+        double push = player.getDeltaMovement().horizontalDistance();
+        check(helper, push < 0.2 * 0.2, "a turtle's sprint-jump pushes it " + push + ", a player's 0.2");
+        Morphs.setForm(player, EntityType.HORSE);
+        player.setSprinting(true);
+        tick(player, 1);
+        check(helper, FormAir.paceOverPlayer(player) > 1.0, "a galloping horse carries more speed into a jump than a player");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void tunedFormsMoveAtTheirSetSpeeds(GameTestHelper helper) {
+        Map<EntityType<?>, double[]> expected = Map.of(
+            EntityType.HORSE, new double[] {4.86, 9.71},
+            EntityType.DONKEY, new double[] {3.78, 7.55},
+            EntityType.LLAMA, new double[] {3.78, 7.55},
+            EntityType.CAMEL, new double[] {2.85, 8.20},
+            EntityType.ZOMBIFIED_PIGLIN, new double[] {3.0, 3.9},
+            EntityType.POLAR_BEAR, new double[] {3.3, 4.3},
+            EntityType.FOX, new double[] {4.0, 7.0},
+            EntityType.WOLF, new double[] {4.0, 7.0});
+        List<String> wrong = new ArrayList<>();
+        expected.forEach((form, speeds) -> {
+            MobGaits.Gait gait = MobGaits.of(form);
+            double mobSpeed = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) form).getBaseValue(Attributes.MOVEMENT_SPEED);
+            double walk = MobGaits.toBlocksPerSecond(MobGaits.walkSpeed(gait, mobSpeed));
+            double run = MobGaits.toBlocksPerSecond(MobGaits.runSpeed(gait, mobSpeed));
+            if (Math.abs(walk - speeds[0]) > 0.02 || Math.abs(run - speeds[1]) > 0.02) {
+                wrong.add(form.getDescriptionId() + " " + String.format("%.2f/%.2f", walk, run));
+            }
+        });
+        check(helper, wrong.isEmpty(), "speeds off the table: " + wrong);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void squidInkBlindsNearbyPlayers(GameTestHelper helper) {
+        ServerPlayer squid = player(helper);
+        ServerPlayer other = player(helper);
+        Morphs.setForm(squid, EntityType.SQUID);
+        FormUse.use(squid);
+        check(helper, other.hasEffect(MobEffects.BLINDNESS), "ink should blind a nearby player");
+        check(helper, !squid.hasEffect(MobEffects.BLINDNESS), "the squid isn't blinded by its own ink");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void puffedPufferfishPoisonsOnTouch(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.PUFFERFISH);
+        FormUse.use(player);
+        check(helper, WaterMoves.isPuffed(player), "right-click should puff up");
+        Pig pig = helper.spawn(EntityType.PIG, 2, 1, 2);
+        tick(player, 1);
+        check(helper, pig.hasEffect(MobEffects.POISON), "touching a puffed pufferfish should poison");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void frogEatsSmallSlimes(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.FROG);
+        Slime slime = helper.spawn(EntityType.SLIME, 2, 1, 3);
+        slime.setSize(1, true);
+        NeoForge.EVENT_BUS.post(new AttackEntityEvent(player, slime));
+        check(helper, slime.isRemoved(), "a frog's tongue should eat a small slime whole");
+        check(helper, player.getAttributeValue(Attributes.JUMP_STRENGTH) > 0.42 * 1.4, "a frog should leap");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void snowGolemThrowsSnowballs(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.SNOW_GOLEM);
+        FormUse.use(player);
+        check(helper, !helper.getLevel().getEntitiesOfClass(Snowball.class, player.getBoundingBox().inflate(3)).isEmpty(),
+            "a snow golem should throw a snowball");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void turtleLaysEggOnSand(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        helper.getLevel().setBlockAndUpdate(player.blockPosition().below(), Blocks.SAND.defaultBlockState());
+        Morphs.setForm(player, EntityType.TURTLE);
+        check(helper, WaterLife.breathesUnderWater(EntityType.TURTLE), "a turtle breathes underwater");
+        FormUse.use(player);
+        check(helper, helper.getLevel().getBlockState(player.blockPosition()).is(Blocks.TURTLE_EGG), "a turtle should lay an egg on sand");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void axolotlPlaysDead(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.AXOLOTL);
+        FormUse.use(player);
+        check(helper, WaterMoves.isPlayingDead(player) && player.getAttributeValue(Attributes.MOVEMENT_SPEED) == 0.0,
+            "playing dead holds you still");
+        Zombie zombie = helper.spawn(EntityType.ZOMBIE, 2, 1, 4);
+        zombie.setTarget(player);
+        check(helper, zombie.getTarget() == null, "mobs ignore an axolotl playing dead");
+        Morphs.setForm(player, EntityType.COD);
+        check(helper, !WaterMoves.isPlayingDead(player), "changing form wakes you");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void mooshroomCanBeMilkedForStew(GameTestHelper helper) {
+        ServerPlayer mooshroom = player(helper);
+        ServerPlayer milker = player(helper);
+        Morphs.setForm(mooshroom, EntityType.MOOSHROOM);
+        milker.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BOWL));
+        NeoForge.EVENT_BUS.post(new PlayerInteractEvent.EntityInteract(milker, InteractionHand.MAIN_HAND, mooshroom));
+        check(helper, milker.getMainHandItem().is(Items.MUSHROOM_STEW), "a bowl on a mooshroom should give stew");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void zombifiedPiglinsAreKin(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.ZOMBIFIED_PIGLIN);
+        check(helper, player.hasEffect(MobEffects.FIRE_RESISTANCE), "a zombified piglin is fire-proof");
+        ZombifiedPiglin piglin = helper.spawn(EntityType.ZOMBIFIED_PIGLIN, 2, 1, 4);
+        piglin.setTarget(player);
+        check(helper, piglin.getTarget() == null, "zombified piglins don't turn on their own");
+        Pig pig = helper.spawn(EntityType.PIG, 4, 1, 2);
+        player.invulnerableTime = 0;
+        player.hurt(player.damageSources().mobAttack(pig), 1.0F);
+        check(helper, piglin.getTarget() == pig, "the pack turns on whoever hurts you");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void creepersKeepAwayFromCats(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CAT);
+        Creeper creeper = helper.spawn(EntityType.CREEPER, 2, 1, 4);
+        creeper.setTarget(player);
+        check(helper, creeper.getTarget() == null, "creepers won't go for a cat");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void striderFloatsOnLava(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.STRIDER);
+        check(helper, player.canStandOnFluid(Fluids.LAVA.defaultFluidState()), "a strider stands on lava");
+        check(helper, !player.canStandOnFluid(Fluids.WATER.defaultFluidState()), "but not on water");
+        submerge(helper, player, Blocks.LAVA);
+        player.setDeltaMovement(0.0, -0.5, 0.0);
+        tick(player, 10);
+        check(helper, player.isAlive() && player.getDeltaMovement().y > 0.0, "a sunk strider should bob up, was " + player.getDeltaMovement());
+        check(helper, FormTraits.isWarmStrider(player), "a strider in lava is warm");
+        check(helper, !player.isOnFire(), "a strider in lava doesn't burn");
+        Morphs.setForm(player, EntityType.PIG);
+        check(helper, !player.canStandOnFluid(Fluids.LAVA.defaultFluidState()), "a pig doesn't stand on lava");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void chickenFormFlutters(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        Morphs.setForm(player, EntityType.CHICKEN);
+        check(helper, player.hasEffect(MobEffects.SLOW_FALLING), "a chicken should fall slowly");
+        check(helper, !player.getAbilities().flying, "a chicken walks");
+        Morphs.setForm(player, EntityType.COW);
+        check(helper, !player.hasEffect(MobEffects.SLOW_FALLING), "slow falling should end with the chicken form");
         helper.succeed();
     }
 
@@ -632,7 +1339,7 @@ public final class DungeonTotemsGameTests {
                 }
                 emerald |= stack.is(Items.EMERALD);
             }
-            check(helper, totems == 1, "roll " + roll + " dropped " + totems + " Dungeon Totems, expected 1");
+            check(helper, totems == 1, "roll " + roll + " dropped " + totems + " dungeon totems, expected 1");
         }
         check(helper, seen.size() > 1, "every roll gave the same totem: " + seen);
         check(helper, emerald, "the emerald pool should still drop");
@@ -649,7 +1356,7 @@ public final class DungeonTotemsGameTests {
         List<ItemEntity> drops = helper.getLevel().getEntitiesOfClass(ItemEntity.class, evoker.getBoundingBox().inflate(2));
         check(helper, drops.stream().noneMatch(drop -> drop.getItem().is(Items.TOTEM_OF_UNDYING)), "dropped a vanilla totem");
         check(helper, drops.stream().anyMatch(drop -> drop.getItem().is(EvokerTotemLootModifier.EVOKER_TOTEMS)),
-            "no Dungeon Totem among " + drops.stream().map(drop -> drop.getItem().toString()).toList());
+            "no dungeon totem among " + drops.stream().map(drop -> drop.getItem().toString()).toList());
         helper.succeed();
     }
 
@@ -682,6 +1389,15 @@ public final class DungeonTotemsGameTests {
     private static void trade(ServerPlayer player, Villager villager) {
         MerchantOffer offer = new MerchantOffer(new ItemCost(Items.EMERALD), new ItemStack(Items.BREAD), 1, 1, 0.0F);
         NeoForge.EVENT_BUS.post(new TradeWithVillagerEvent(player, offer, villager));
+    }
+
+    /** Fills the space around the player with {@code fluid} and lets them notice it. */
+    private static void submerge(GameTestHelper helper, ServerPlayer player, Block fluid) {
+        BlockPos at = player.blockPosition();
+        for (BlockPos pos : BlockPos.betweenClosed(at.offset(-1, 0, -1), at.offset(1, 2, 1))) {
+            helper.getLevel().setBlockAndUpdate(pos, fluid.defaultBlockState());
+        }
+        tick(player, 1);
     }
 
     /** Pops {@code curse}'s totem on the player. */

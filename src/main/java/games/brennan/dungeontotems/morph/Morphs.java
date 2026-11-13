@@ -7,6 +7,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.EntityType;
@@ -25,8 +26,10 @@ import games.brennan.dungeontotems.net.TotemNetwork;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.DoubleUnaryOperator;
+import java.util.function.ToIntFunction;
 
 /**
  * The morph engine shared by the Morphing and Zombified totems: a player's form is an entity type
@@ -42,22 +45,68 @@ public final class Morphs {
     private static final ResourceLocation ATTACK_ID = DungeonTotems.id("morph.attack_damage");
     private static final ResourceLocation JUMP_ID = DungeonTotems.id("morph.jump");
     private static final ResourceLocation STEP_ID = DungeonTotems.id("morph.step_height");
+    private static final ResourceLocation FORM_JUMP_ID = DungeonTotems.id("morph.form_jump");
+    /**
+     * Jump strengths a form's default attributes don't capture: horses always make their best jump (vanilla
+     * rolls 0.4 to 1.0 per horse), camels can't jump (they step up blocks), frogs leap.
+     */
+    private static final Map<EntityType<?>, Double> FORM_JUMP = Map.of(
+        EntityType.HORSE, 1.0, EntityType.SKELETON_HORSE, 1.0, EntityType.ZOMBIE_HORSE, 1.0,
+        EntityType.CAMEL, 0.0, EntityType.FROG, 0.7);
 
     private Morphs() {}
 
-    /** Turns the player into a random mob from the morph pool that fits where they stand. */
+    /**
+     * Turns the player into a random form from the pool for where they are (in lava, underwater, or
+     * anywhere else; an empty lava or water pool falls back to land), weighted by the
+     * {@link MorphForm#DATA_MAP}, among the forms that fit where they stand.
+     */
     public static void startRandomMorph(ServerPlayer player) {
-        List<EntityType<?>> fitting = new ArrayList<>();
-        for (Holder<EntityType<?>> holder : BuiltInRegistries.ENTITY_TYPE.getTagOrEmpty(TotemRegistries.MORPH_POOL)) {
-            EntityType<?> type = holder.value();
-            if (DefaultAttributes.hasSupplier(type) && fits(player, type)) fitting.add(type);
-        }
+        MorphForm.Pool pool = poolFor(player);
+        List<EntityType<?>> fitting = fitting(player, pool);
+        if (fitting.isEmpty() && pool != MorphForm.Pool.LAND) fitting = fitting(player, MorphForm.Pool.LAND);
         if (fitting.isEmpty()) {
             DungeonTotems.LOGGER.debug("No morph fits around {}; staying a player", player.getScoreboardName());
             return;
         }
-        RandomSource random = player.getRandom();
-        setForm(player, fitting.get(random.nextInt(fitting.size())));
+        setForm(player, pick(fitting, Morphs::weightOf, player.getRandom()));
+    }
+
+    static MorphForm.Pool poolFor(Player player) {
+        if (player.isInLava()) return MorphForm.Pool.LAVA;
+        if (player.isEyeInFluid(FluidTags.WATER)) return MorphForm.Pool.WATER;
+        return MorphForm.Pool.LAND;
+    }
+
+    /** The pool's forms with weight above 0 that fit around the player. */
+    private static List<EntityType<?>> fitting(ServerPlayer player, MorphForm.Pool pool) {
+        List<EntityType<?>> fitting = new ArrayList<>();
+        BuiltInRegistries.ENTITY_TYPE.getDataMap(MorphForm.DATA_MAP).forEach((key, form) -> {
+            if (form.pool() != pool || form.weight() <= 0) return;
+            EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.get(key);
+            if (type != null && DefaultAttributes.hasSupplier(type) && fits(player, type)) fitting.add(type);
+        });
+        return fitting;
+    }
+
+    /** The form's pool and weight, if it has one. */
+    public static Optional<MorphForm> formData(EntityType<?> type) {
+        return Optional.ofNullable(BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(type).getData(MorphForm.DATA_MAP));
+    }
+
+    private static int weightOf(EntityType<?> type) {
+        return formData(type).map(MorphForm::weight).orElse(0);
+    }
+
+    /** A weighted random pick; every item needs a weight above 0. */
+    static <T> T pick(List<T> items, ToIntFunction<T> weight, RandomSource random) {
+        int total = items.stream().mapToInt(weight).sum();
+        int roll = random.nextInt(total);
+        for (T item : items) {
+            roll -= weight.applyAsInt(item);
+            if (roll < 0) return item;
+        }
+        return items.get(items.size() - 1);
     }
 
     /** Called when the Morphed or Zombified curse ends: falls back to whichever is still running. */
@@ -71,11 +120,18 @@ public final class Morphs {
 
     /** Sets (or with null, clears) the player's form, then re-applies stats, hitbox and sync. */
     public static void setForm(ServerPlayer player, @Nullable EntityType<?> type) {
+        EntityType<?> previous = formOf(player).orElse(null);
         String id = type == null ? "" : BuiltInRegistries.ENTITY_TYPE.getKey(type).toString();
         player.setData(TotemRegistries.FORM, id);
         applyStats(player, type);
         player.refreshDimensions();
         if (type != null) dropMonsterAggro(player);
+        FormTimers.onFormChanged(player);
+        MorphFlight.onFormChanged(player, previous, type);
+        FormAttacks.onFormChanged(player, type);
+        FormTraits.onFormChanged(player, type);
+        FormUse.onFormChanged(player, type);
+        WaterLife.onFormChanged(player);
         TotemNetwork.sendToTrackingAndSelf(player, new MorphSyncPayload(player.getId(), id));
     }
 
@@ -96,14 +152,29 @@ public final class Morphs {
         clear(player, Attributes.ATTACK_DAMAGE, ATTACK_ID);
         clear(player, Attributes.JUMP_STRENGTH, JUMP_ID);
         clear(player, Attributes.STEP_HEIGHT, STEP_ID);
+        clear(player, Attributes.JUMP_STRENGTH, FORM_JUMP_ID);
         if (type == null || !DefaultAttributes.hasSupplier(type)) return;
 
         AttributeSupplier mob = DefaultAttributes.getSupplier((EntityType<? extends LivingEntity>) type);
         add(player, mob, Attributes.MAX_HEALTH, MAX_HEALTH_ID, MorphStats::maxHealthDelta, AttributeModifier.Operation.ADD_VALUE);
-        add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, MorphStats::speedBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        MobGaits.Gait gait = MobGaits.of(type);
+        if (WaterLife.isLandlocked(type)) { // can't walk on land (swimming doesn't use this speed)
+            add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, mobSpeed -> -1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        } else if (gait == null) { // flyers
+            add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID, MorphStats::speedBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        } else { // land forms walk at their mob's stroll
+            add(player, mob, Attributes.MOVEMENT_SPEED, SPEED_ID,
+                mobSpeed -> MobGaits.walkSpeed(gait, mobSpeed) / MobGaits.PLAYER_WALK_SPEED - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        }
         add(player, mob, Attributes.ATTACK_DAMAGE, ATTACK_ID, MorphStats::attackDelta, AttributeModifier.Operation.ADD_VALUE);
-        add(player, mob, Attributes.JUMP_STRENGTH, JUMP_ID, MorphStats::jumpBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        if (!FORM_JUMP.containsKey(type)) {
+            add(player, mob, Attributes.JUMP_STRENGTH, JUMP_ID, MorphStats::jumpBonus, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        }
         add(player, mob, Attributes.STEP_HEIGHT, STEP_ID, MorphStats::stepDelta, AttributeModifier.Operation.ADD_VALUE);
+        AttributeInstance jump = player.getAttribute(Attributes.JUMP_STRENGTH);
+        if (jump != null && FORM_JUMP.containsKey(type)) { // to exactly this strength, from the player's own
+            jump.addTransientModifier(new AttributeModifier(FORM_JUMP_ID, FORM_JUMP.get(type) - jump.getBaseValue(), AttributeModifier.Operation.ADD_VALUE));
+        }
         if (player.getHealth() > player.getMaxHealth()) player.setHealth(player.getMaxHealth());
     }
 

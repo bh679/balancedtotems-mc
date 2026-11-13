@@ -8,7 +8,7 @@ Totems of Undying that still save your life, but leave a curse behind. NeoForge 
 | Totem of Fatigue | Mining Fatigue II for 20 minutes |
 | Totem of Heartbreak | 2 fewer hearts for 20 minutes |
 | Totem of Blindness | Blindness for 30 seconds |
-| Totem of Morphing | You become a random animal for 30 seconds, seen in third person: its size, speed, health and jump. Monsters leave you alone |
+| Totem of Morphing | You become a random animal for 30 seconds, seen in third person, with its size, speed, health, jump, animations and attack: goats ram, golems throw, polar bears rear up, bees sting once and may then die, llamas spit and snow golems throw snowballs (even at range: attack the air), frogs eat small slimes with their tongue, sheep, cows and horses graze grass. With an empty hand, right-click for the animal's own move: chickens lay eggs, armadillos roll into their shell (move to unroll), camels and cats sit, bats hang, frogs croak, sniffers dig up seeds, snow golems throw snowballs, turtles lay eggs on sand, parrots imitate, axolotls play dead, pufferfish puff up, squid ink and dolphins leap. Land forms walk at twice their mob's stroll and sprint at its run (a turtle crawls, a cow bolts, a horse gallops at its ridden speed and walks at half of it), and jump at their own pace too; rabbits hop wherever they go. Every attack shows, even on the air: golems swing, bees flip to sting, chickens flap, others lunge. Turtles, frogs, iron golems and undead forms never drown; water and rain hurt striders and snow golems. Horses always make their best jump, frogs leap, camels can't jump; cats and other fall-proof mobs take no fall damage. Creepers keep away from cats, zombified piglins treat you as one of the pack, a dolphin speeds up nearby swimmers, and a mooshroom can be milked for stew. Monsters leave you alone. Bees, parrots, bats and allays fly and can't land; chickens flutter down. Die underwater and you become a fish, squid, dolphin, axolotl or tadpole, which breathe as their mob does (fish gasp after 15 seconds on land, axolotls dry out after 5 minutes, dolphins hold their breath under water) and flop about on land; die in lava and you become a strider (stands and walks on lava at its own speed, and shivers slowly along on land) or a zombified piglin |
 | Totem of Zombification | You become a zombie: iron and snow golems hunt you. Get Weakness, then eat a golden apple within 10 minutes (like curing a zombie villager), or die |
 | Totem of Rage | Rage: kill 3 players (or PlayerMobs) within 15 minutes, or die |
 | Totem of Pacifism | Vow of Peace: hurt anything within 20 minutes and you die |
@@ -39,7 +39,9 @@ back on the train, but it works on its own.
 - `games.brennan.dungeontotems.api.DungeonTotemsApi.setRescueTarget(player -> Optional<Vec3>)`
   picks where the Void Totem sends a player.
 - Curses are plain mob effects: `dungeontotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage).
-- Datapacks can change `dungeontotems:morph_pool` and `dungeontotems:rampage_targets` (entity type tags).
+- Datapacks can change `dungeontotems:rampage_targets` and `dungeontotems:flying_forms` (entity type tags), and
+  the morph forms with the `dungeontotems:morph_forms` data map: per entity type a `pool` (`land`, `water`,
+  `lava`) and a `weight` (0 leaves it out).
 
 Without PlayerMob, villagers stand in: Rage counts villager kills, and Lonely counts a villager you
 trade with, feed, or cure. Under Dungeon Train villagers never count.

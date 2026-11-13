@@ -37,7 +37,7 @@
     {
       "file": "screenshots/06-morph-polar-bear.png",
       "title": "Morphing",
-      "description": "Turn into a random animal for 20 seconds, with its size, speed and health.",
+      "description": "Turn into a random animal for 30 seconds, with its size, speed and health.",
       "featured": false,
       "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/48e0386a68c5bf4c544665d57bb08db426ab8d26_350.webp"
     },
@@ -51,7 +51,7 @@
     {
       "file": "screenshots/08-morph-iron-golem.png",
       "title": "Even an iron golem",
-      "description": "Fourteen animals are in the pool, from chickens to iron golems.",
+      "description": "42 mobs to become, from chickens to iron golems. Die underwater and you become a fish.",
       "featured": false,
       "live_url": "https://cdn.modrinth.com/data/h18vJW8z/images/86d1183b821a5d505b97349b37b02bdb1b7a2ce6_350.webp"
     },
