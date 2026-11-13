@@ -13,6 +13,9 @@
     "defaultRequire": 1
   },
   "client": [
-    "client.AdvancementWidgetMixin"
+    "client.AdvancementWidgetMixin",
+    "client.ItemInHandRendererMixin",
+    "client.ItemInHandRendererInvoker",
+    "client.ModelPartAccessor"
   ]
 }
