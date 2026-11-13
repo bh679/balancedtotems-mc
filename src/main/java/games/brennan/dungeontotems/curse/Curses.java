@@ -23,13 +23,14 @@ public final class Curses {
     private Curses() {}
 
     /**
-     * A totem of {@code curse} just saved you: its after-save curse for its full time, at its after-save
-     * level or any higher level already on you, and protection from dying of it for that time.
+     * A stack of {@code count} totems of {@code curse} just saved you: its after-save curse for its full
+     * time, at the after-save level that stack gives or any higher level already on you, and protection
+     * from dying of it for that time.
      */
-    public static void pop(ServerPlayer player, Curse curse) {
+    public static void pop(ServerPlayer player, Curse curse, int count) {
         if (curse.effect() == null) return;
         MobEffectInstance current = player.getEffect(curse.effect());
-        int amplifier = Math.max(curse.afterSaveAmplifier(), current == null ? 0 : current.getAmplifier());
+        int amplifier = Math.max(curse.afterSaveAmplifier(count), current == null ? 0 : current.getAmplifier());
         apply(player, curse, amplifier, curse.afterSaveTicks());
         markSaved(player, curse, curse.afterSaveTicks());
     }
