@@ -18,9 +18,11 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderArmEvent;
 import net.neoforged.neoforge.client.event.RenderHandEvent;
 import net.neoforged.neoforge.client.event.RenderPlayerEvent;
 
+import javax.annotation.Nullable;
 import org.joml.Quaternionf;
 
 import java.util.Map;
@@ -38,12 +40,19 @@ public final class MorphRenderer {
     private static final Map<UUID, LivingEntity> DUMMIES = new ConcurrentHashMap<>();
     /** How far a form without an eat pose lowers its head to eat. */
     private static final float EATING_PITCH = 60.0F;
+    private static int handsReached;
 
     private MorphRenderer() {}
 
     /** The stand-in drawn for a morphed player, if there is one yet. */
     static LivingEntity standIn(Player player) {
         return DUMMIES.get(player.getUUID());
+    }
+
+    /** The stand-in for a morphed player, made now if none has been drawn yet (in first person none is). */
+    @Nullable
+    static LivingEntity standInFor(Player player) {
+        return dummyFor(player);
     }
 
     static void forget(Player player) {
@@ -79,11 +88,35 @@ public final class MorphRenderer {
         pose.translate(0.0F, -pivot, 0.0F);
     }
 
-    /** A morphed player has no hands to show in first person. */
+    /**
+     * In first person a morphed player shows no player hands: a form with arms shows its own ({@link FormArms}),
+     * any other nothing. {@code ItemInHandRendererMixin} replaces the hand pass before these events fire;
+     * they stay for anything that draws hands or arms another way.
+     */
     @SubscribeEvent
     public static void onRenderHand(RenderHandEvent event) {
         Player player = Minecraft.getInstance().player;
-        if (player != null && Morphs.formOf(player).isPresent()) event.setCanceled(true);
+        if (player != null && Morphs.formOf(player).isPresent() && !FormArms.hasArms(player)) {
+            handsReached++;
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRenderArm(RenderArmEvent event) {
+        Player player = event.getPlayer();
+        if (Morphs.formOf(player).isEmpty()) return;
+        event.setCanceled(true);
+        if (FormArms.hasArms(player)) {
+            FormArms.render(player, event.getArm(), event.getPoseStack(), event.getMultiBufferSource(), event.getPackedLight());
+        } else {
+            handsReached++;
+        }
+    }
+
+    /** How often an armless form's first-person hands got as far as these events ({@link FormSelfTest} expects 0). */
+    static int handsReached() {
+        return handsReached;
     }
 
     /** Animations advance once a tick (see {@link FormAnimator}). */

@@ -23,7 +23,7 @@ class CurseTest {
         assertEquals(5 * 60 * 20, Curse.LONELINESS.afterSaveTicks());
         assertEquals(30 * 20, Curse.BLINDNESS.afterSaveTicks());
         assertEquals(30 * 20, Curse.MORPHING.afterSaveTicks());
-        assertEquals(10 * 60 * 20, Curse.ZOMBIFIED.afterSaveTicks());
+        assertEquals(-1, Curse.ZOMBIFIED.afterSaveTicks()); // MobEffectInstance.INFINITE_DURATION: until cured
     }
 
     @Test
