@@ -44,8 +44,7 @@ public final class CurseMemory {
         Map<Curse, Integer> curses = KEPT.remove(event.getEntity().getUUID());
         if (curses == null || !(event.getEntity() instanceof ServerPlayer player)) return;
         curses.forEach((curse, amplifier) -> {
-            Curses.apply(player, curse, amplifier, curse.afterSaveTicks());
-            Curses.markSaved(player, curse, curse.afterSaveTicks());
+            Curses.markSaved(player, curse, Curses.apply(player, curse, amplifier, curse.afterSaveTicks()));
         });
     }
 }
