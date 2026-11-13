@@ -60,19 +60,22 @@ public final class Morphs {
     /**
      * Turns the player into a random form from the pool for where they are (in lava, underwater, or
      * anywhere else; an empty lava or water pool falls back to land), weighted by the
-     * {@link MorphForm#DATA_MAP}, among the forms that fit where they stand.
+     * {@link MorphForm#DATA_MAP}, among the forms that fit where they stand. Returns the form, or null
+     * when none fits and they stay a player.
      */
-    public static void startRandomMorph(ServerPlayer player) {
+    @Nullable
+    public static EntityType<?> startRandomMorph(ServerPlayer player) {
         MorphForm.Pool pool = poolFor(player);
         List<EntityType<?>> fitting = fitting(player, pool);
         if (fitting.isEmpty() && pool != MorphForm.Pool.LAND) fitting = fitting(player, MorphForm.Pool.LAND);
         if (fitting.isEmpty()) {
             DungeonTotems.LOGGER.debug("No morph fits around {}; staying a player", player.getScoreboardName());
-            return;
+            return null;
         }
         EntityType<?> form = pick(fitting, Morphs::weightOf, player.getRandom());
         setForm(player, form);
         TotemTriggers.BECAME_FORM.get().trigger(player, BuiltInRegistries.ENTITY_TYPE.getKey(form).toString());
+        return form;
     }
 
     static MorphForm.Pool poolFor(Player player) {
@@ -92,7 +95,7 @@ public final class Morphs {
         return fitting;
     }
 
-    /** The form's pool and weight, if it has one. */
+    /** The form's pool, weight and time, if it has one. */
     public static Optional<MorphForm> formData(EntityType<?> type) {
         return Optional.ofNullable(BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(type).getData(MorphForm.DATA_MAP));
     }

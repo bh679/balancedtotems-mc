@@ -137,7 +137,11 @@ public final class DungeonTotemsGameTests {
             ServerPlayer player = holding(helper, curse);
             player.hurt(player.damageSources().generic(), LETHAL);
             check(helper, player.isAlive(), curse + ": player should survive");
-            expectEffect(helper, player, curse.effect(), curse.afterSaveTicks());
+            // a morph lasts the time of the form it landed on (morphLastsItsFormsTime)
+            int ticks = curse == Curse.MORPHING
+                ? Morphs.formOf(player).flatMap(Morphs::formData).map(MorphForm::ticks).orElse(curse.afterSaveTicks())
+                : curse.afterSaveTicks();
+            expectEffect(helper, player, curse.effect(), ticks);
             MobEffectInstance instance = player.getEffect(curse.effect());
             check(helper, instance.getAmplifier() == curse.afterSaveAmplifier(), curse + " level " + instance.getAmplifier());
             check(helper, Curses.isSaved(player, curse), curse + " should be shielded after the save");
@@ -666,6 +670,20 @@ public final class DungeonTotemsGameTests {
         check(helper, Morphs.formData(form).filter(f -> f.pool() == MorphForm.Pool.LAND && f.weight() > 0).isPresent(),
             "form should come from the land pool: " + form);
         check(helper, player.getBbHeight() == form.getDimensions().height(), "hitbox should be the form's");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void morphLastsItsFormsTime(GameTestHelper helper) {
+        ServerPlayer player = holding(helper, Curse.MORPHING);
+        player.hurt(player.damageSources().generic(), LETHAL);
+        EntityType<?> form = Morphs.formOf(player).orElse(null);
+        check(helper, form != null, "player should have a form");
+        int expected = Morphs.formData(form).map(MorphForm::ticks).orElse(-1);
+        MobEffectInstance morphed = player.getEffect(TotemRegistries.MORPHED);
+        check(helper, morphed != null && morphed.getDuration() == expected,
+            form + " should last " + expected + " ticks, was " + (morphed == null ? "none" : morphed.getDuration()));
+        check(helper, Curses.isSaved(player, Curse.MORPHING), "the save should cover the form's time");
         helper.succeed();
     }
 

@@ -46,8 +46,7 @@ public final class SavedCurseShield {
         event.setAmount(spare);
         MobEffectInstance current = player.getEffect(curse.effect());
         int amplifier = current == null ? curse.afterSaveAmplifier() : current.getAmplifier();
-        Curses.apply(player, curse, amplifier, curse.afterSaveTicks());
-        Curses.markSaved(player, curse, curse.afterSaveTicks());
+        Curses.markSaved(player, curse, Curses.apply(player, curse, amplifier, curse.afterSaveTicks()));
         if (curse.isRule()) {
             player.displayClientMessage(Component.translatable("message.dungeontotems.spared",
                 curse.effect().value().getDisplayName()), false);
