@@ -1,5 +1,6 @@
 package games.brennan.dungeontotems;
 
+import games.brennan.dungeontotems.curse.CurseTrials;
 import games.brennan.dungeontotems.curse.Curses;
 import games.brennan.dungeontotems.net.TotemPopPayload;
 import net.minecraft.ChatFormatting;
@@ -38,6 +39,7 @@ public final class TotemPop {
         // A single-purpose totem (void, fall, explosion) gives no Fire Resistance; the Fire Totem does.
         if (curse.givesFireResistance()) player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));
         applyCurse(player, curse);
+        CurseTrials.onPop(player, curse);
 
         TotemNetwork.sendToTrackingAndSelf(player, new TotemPopPayload(player.getId(), used));
     }

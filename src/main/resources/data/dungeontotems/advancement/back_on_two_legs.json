@@ -1,0 +1,36 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "dungeontotems:advancements_launched"
+    }
+  ],
+  "parent": "dungeontotems:terms_and_conditions",
+  "display": {
+    "icon": {
+      "id": "minecraft:leather"
+    },
+    "title": {
+      "translate": "advancements.dungeontotems.back_on_two_legs.title"
+    },
+    "description": {
+      "translate": "advancements.dungeontotems.back_on_two_legs.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "done": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "morphing"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "done"
+    ]
+  ]
+}

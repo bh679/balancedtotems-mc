@@ -1,0 +1,63 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "dungeontotems:advancements_launched"
+    }
+  ],
+  "parent": "dungeontotems:terms_and_conditions",
+  "display": {
+    "icon": {
+      "id": "minecraft:tnt"
+    },
+    "title": {
+      "translate": "advancements.dungeontotems.close_calls.title"
+    },
+    "description": {
+      "translate": "advancements.dungeontotems.close_calls.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "void": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "void"
+      }
+    },
+    "feather": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "feather"
+      }
+    },
+    "boom": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "boom"
+      }
+    },
+    "fire": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "fire"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "void"
+    ],
+    [
+      "feather"
+    ],
+    [
+      "boom"
+    ],
+    [
+      "fire"
+    ]
+  ]
+}

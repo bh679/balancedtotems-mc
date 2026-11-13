@@ -1,0 +1,33 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "dungeontotems:advancements_launched"
+    }
+  ],
+  "parent": "dungeontotems:terms_and_conditions",
+  "display": {
+    "icon": {
+      "id": "minecraft:totem_of_undying"
+    },
+    "title": {
+      "translate": "advancements.dungeontotems.terms_and_conditions_fulfilled.title"
+    },
+    "description": {
+      "translate": "advancements.dungeontotems.terms_and_conditions_fulfilled.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "every_advancement": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "every_advancement"
+    ]
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "dungeontotems:advancements_launched"
+    }
+  ],
+  "parent": "dungeontotems:terms_and_conditions",
+  "display": {
+    "icon": {
+      "id": "minecraft:writable_book"
+    },
+    "title": {
+      "translate": "advancements.dungeontotems.promises_kept.title"
+    },
+    "description": {
+      "translate": "advancements.dungeontotems.promises_kept.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "zombified": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "zombified"
+      }
+    },
+    "rage": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "rage"
+      }
+    },
+    "loneliness": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "loneliness"
+      }
+    },
+    "pacifism": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "pacifism"
+      }
+    },
+    "melon_diet": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "melon_diet"
+      }
+    },
+    "restraint": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "restraint"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "zombified"
+    ],
+    [
+      "rage"
+    ],
+    [
+      "loneliness"
+    ],
+    [
+      "pacifism"
+    ],
+    [
+      "melon_diet"
+    ],
+    [
+      "restraint"
+    ]
+  ]
+}

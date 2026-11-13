@@ -47,6 +47,7 @@ neoForge {
         client {
             client()
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'dungeontotems.advancements', 'true' // dev runs load the advancement tab before launch
         }
 
         // ./gradlew runSelfTest: drives every morph form in a real client (client/FormSelfTest) and quits.
@@ -54,7 +55,9 @@ neoForge {
             client()
             gameDirectory = project.file('run-selftest')
             systemProperty 'dungeontotems.selftest', 'true'
+            systemProperty 'dungeontotems.advancements', 'true'
             systemProperty 'dungeontotems.selftest.forms', System.getProperty('forms', '')
+            systemProperty 'dungeontotems.selftest.advancements', System.getProperty('advancements', '')
             programArguments.addAll '--quickPlaySingleplayer', 'New World'
         }
 
@@ -67,6 +70,7 @@ neoForge {
         gameTestServer {
             type = 'gameTestServer'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            systemProperty 'dungeontotems.advancements', 'true'
         }
 
         configureEach {

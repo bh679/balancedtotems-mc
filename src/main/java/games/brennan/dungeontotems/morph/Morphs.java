@@ -1,6 +1,7 @@
 package games.brennan.dungeontotems.morph;
 
 import games.brennan.dungeontotems.DungeonTotems;
+import games.brennan.dungeontotems.advancement.TotemTriggers;
 import games.brennan.dungeontotems.net.MorphSyncPayload;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.core.Holder;
@@ -69,7 +70,9 @@ public final class Morphs {
             DungeonTotems.LOGGER.debug("No morph fits around {}; staying a player", player.getScoreboardName());
             return;
         }
-        setForm(player, pick(fitting, Morphs::weightOf, player.getRandom()));
+        EntityType<?> form = pick(fitting, Morphs::weightOf, player.getRandom());
+        setForm(player, form);
+        TotemTriggers.BECAME_FORM.get().trigger(player, BuiltInRegistries.ENTITY_TYPE.getKey(form).toString());
     }
 
     static MorphForm.Pool poolFor(Player player) {

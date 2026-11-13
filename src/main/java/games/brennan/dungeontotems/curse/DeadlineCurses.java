@@ -1,5 +1,6 @@
 package games.brennan.dungeontotems.curse;
 
+import games.brennan.dungeontotems.Curse;
 import games.brennan.dungeontotems.DungeonTotems;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.core.Holder;
@@ -81,6 +82,8 @@ public final class DeadlineCurses {
         player.removeEffect(curse);
         // Only this curse's own deadline: a broken vow in the same tick still kills.
         PENDING_DEATHS.remove(player.getUUID(), TotemRegistries.ZOMBIFICATION);
+        Curse lifted = Curse.forEffect(curse);
+        if (lifted != null) CurseTrials.onLifted(player, lifted);
         player.displayClientMessage(Component.translatable("message.dungeontotems." + name + ".lifted"), false);
         player.level().playSound(null, player.blockPosition(), SoundEvents.ZOMBIE_VILLAGER_CONVERTED, SoundSource.PLAYERS, 1.0F, 1.0F);
     }

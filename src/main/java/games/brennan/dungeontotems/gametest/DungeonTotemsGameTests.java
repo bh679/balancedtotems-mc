@@ -1,5 +1,15 @@
 package games.brennan.dungeontotems.gametest;
 
+import com.google.gson.JsonParser;
+import net.minecraft.server.packs.resources.Resource;
+import games.brennan.dungeontotems.advancement.TotemAdvancements;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.advancements.CriterionProgress;
+import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.advancements.AdvancementHolder;
+import games.brennan.dungeontotems.curse.DeadlineCurses;
+import games.brennan.dungeontotems.curse.CurseTrials;
+import games.brennan.dungeontotems.advancement.TabComplete;
 import games.brennan.dungeontotems.DungeonTotems;
 import games.brennan.dungeontotems.Curse;
 import games.brennan.dungeontotems.api.DungeonTotemsApi;
@@ -1491,6 +1501,135 @@ public final class DungeonTotemsGameTests {
         helper.succeed();
     }
 
+    // ---- advancements ----
+
+    @GameTest(template = EMPTY)
+    public static void advancementsStayOffUntilLaunch(GameTestHelper helper) {
+        check(helper, !TotemAdvancements.isLaunched(false, null) && !TotemAdvancements.isLaunched(false, "false"),
+            "before launch, only a dev run's property loads the tab");
+        check(helper, TotemAdvancements.isLaunched(true, null), "a launched release loads it");
+        Map<ResourceLocation, Resource> files = helper.getLevel().getServer().getResourceManager()
+            .listResources("advancement", path -> path.getNamespace().equals(DungeonTotems.MOD_ID) && path.getPath().endsWith(".json"));
+        check(helper, files.size() == TabComplete.TAB.size() + 1, "expected every advancement file, found " + files.keySet());
+        List<ResourceLocation> ungated = new ArrayList<>();
+        files.forEach((path, resource) -> {
+            try (var reader = resource.openAsReader()) {
+                if (!JsonParser.parseReader(reader).toString().contains("\"dungeontotems:advancements_launched\"")) ungated.add(path);
+            } catch (java.io.IOException e) {
+                ungated.add(path);
+            }
+        });
+        check(helper, ungated.isEmpty(), "these would show before launch: " + ungated);
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void everyTotemAdvancementLoads(GameTestHelper helper) {
+        List<ResourceLocation> ids = new ArrayList<>(TabComplete.TAB);
+        ids.add(TabComplete.FULFILLED);
+        for (ResourceLocation id : ids) check(helper, helper.getLevel().getServer().getAdvancements().get(id) != null, id + " didn't load");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void poppingADungeonTotemAgreesToTheTerms(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.WEAKNESS);
+        check(helper, progress(player, "terms_and_conditions").isDone(), "popping a dungeon totem should earn Terms and Conditions");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void aTimedCurseRunningOutAliveCounts(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.BLINDNESS);
+        Curses.markSaved(player, Curse.BLINDNESS, 0); // its after-save time over (game time stands still in these ticks)
+        tick(player, 5);
+        check(helper, criterionDone(player, "waiting_it_out", "blindness"), "Blindness lived through should count for Waiting It Out");
+        check(helper, !progress(player, "waiting_it_out").isDone(), "one curse of nine isn't Waiting It Out");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void dyingEndsACurseTrial(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.WEAKNESS);
+        check(helper, player.getData(TotemRegistries.CURSE_TRIALS).contains("weakness"), "a pop starts a trial");
+        player.invulnerableTime = 0;
+        player.hurt(player.damageSources().generic(), LETHAL);
+        check(helper, !player.isAlive() && player.getData(TotemRegistries.CURSE_TRIALS).isEmpty(), "dying ends every trial");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void zombifiedOnlyCountsWhenCured(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.ZOMBIFIED);
+        Curses.markSaved(player, Curse.ZOMBIFIED, 0);
+        tick(player, 3);
+        check(helper, !criterionDone(player, "promises_kept", "zombified"), "Zombified counts only once cured");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void heldTotemsStillCountOnceTheSaveIsOver(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.RAGE);
+        player.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(TotemRegistries.TOTEMS.get(Curse.RAGE).get())); // still holding one
+        Curses.markSaved(player, Curse.RAGE, 0);
+        tick(player, 5);
+        check(helper, criterionDone(player, "promises_kept", "rage"), "Rage lived through should count even with a Rage totem held");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void aCuredZombieIsBrainsOptional(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        pop(player, Curse.ZOMBIFIED);
+        player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 200));
+        eatGoldenApple(player);
+        check(helper, progress(player, "brains_optional").isDone(), "curing Zombified should earn Brains Optional");
+        check(helper, criterionDone(player, "promises_kept", "zombified"), "and count for Promises Kept");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void theThreeLifesaversAreCloseCalls(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        for (Curse curse : List.of(Curse.VOID, Curse.FEATHER, Curse.BOOM, Curse.FIRE)) {
+            check(helper, !progress(player, "close_calls").isDone(), "Close Calls before " + curse.key());
+            CurseTrials.onPop(player, curse);
+        }
+        check(helper, progress(player, "close_calls").isDone(), "Void, Feather, Boom and Fire should be Close Calls");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void greatAndSmallHasEveryForm(GameTestHelper helper) {
+        Set<String> criteria = helper.getLevel().getServer().getAdvancements().get(DungeonTotems.id("great_and_small")).value().criteria().keySet();
+        Set<String> forms = new HashSet<>();
+        BuiltInRegistries.ENTITY_TYPE.getDataMap(MorphForm.DATA_MAP).keySet().forEach(key -> forms.add(key.location().toString()));
+        check(helper, criteria.equals(forms), "Great and Small should list every morph form (run scripts/make_advancements.py): "
+            + "missing " + forms.stream().filter(f -> !criteria.contains(f)).toList());
+        ServerPlayer player = player(helper);
+        Morphs.startRandomMorph(player);
+        String form = BuiltInRegistries.ENTITY_TYPE.getKey(Morphs.formOf(player).orElseThrow()).toString();
+        check(helper, criterionDone(player, "great_and_small", form), "becoming a " + form + " should tick it off Great and Small");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
+    public static void theWholeTabFulfilsTheTerms(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        for (ResourceLocation id : TabComplete.TAB) {
+            check(helper, !progress(player, TabComplete.FULFILLED.getPath()).isDone(), "fulfilled before " + id);
+            AdvancementHolder holder = helper.getLevel().getServer().getAdvancements().get(id);
+            holder.value().criteria().keySet().forEach(criterion -> player.getAdvancements().award(holder, criterion));
+        }
+        check(helper, progress(player, TabComplete.FULFILLED.getPath()).isDone(), "every advancement should fulfil the terms");
+        helper.succeed();
+    }
+
     // ---- helpers ----
 
     @SuppressWarnings("removal")
@@ -1556,6 +1695,15 @@ public final class DungeonTotemsGameTests {
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(TotemRegistries.TOTEMS.get(curse).get()));
         player.invulnerableTime = 0; // vanilla ignores a second hit this soon
         player.hurt(player.damageSources().generic(), LETHAL);
+    }
+
+    private static AdvancementProgress progress(ServerPlayer player, String id) {
+        return player.getAdvancements().getOrStartProgress(player.server.getAdvancements().get(DungeonTotems.id(id)));
+    }
+
+    private static boolean criterionDone(ServerPlayer player, String id, String criterion) {
+        CriterionProgress done = progress(player, id).getCriterion(criterion);
+        return done != null && done.isDone();
     }
 
     private static void tick(ServerPlayer player, int ticks) {

@@ -93,5 +93,27 @@
   "death.attack.dungeontotems.breathless": "%1$s forgot how to breathe",
   "death.attack.dungeontotems.breathless.player": "%1$s forgot how to breathe",
   "death.attack.dungeontotems.lost_stinger": "%1$s lost their stinger",
-  "death.attack.dungeontotems.lost_stinger.player": "%1$s lost their stinger"
+  "death.attack.dungeontotems.lost_stinger.player": "%1$s lost their stinger",
+
+  "advancements.dungeontotems.terms_and_conditions.title": "Terms and Conditions",
+  "advancements.dungeontotems.terms_and_conditions.description": "Be saved by a dungeon totem",
+  "advancements.dungeontotems.terms_and_conditions.hint": "Its just a totem, right?",
+  "advancements.dungeontotems.back_on_two_legs.title": "Back on Two Legs",
+  "advancements.dungeontotems.back_on_two_legs.description": "Become an animal and change back alive",
+  "advancements.dungeontotems.great_and_small.title": "Great and Small",
+  "advancements.dungeontotems.great_and_small.description": "Be every animal a Totem of Morphing can make you",
+  "advancements.dungeontotems.great_and_small.hint": "Be them all",
+  "advancements.dungeontotems.brains_optional.title": "Brains Optional",
+  "advancements.dungeontotems.brains_optional.description": "Become a zombie and be cured",
+  "advancements.dungeontotems.brains_optional.hint": "Die. Un-die. Un-un-die.",
+  "advancements.dungeontotems.waiting_it_out.title": "Waiting It Out",
+  "advancements.dungeontotems.waiting_it_out.description": "Live through Weakness, Fatigue, Heartbreak, Hunger, Slowness, Breathlessness, Insomnia, Blindness and Morphing after a save",
+  "advancements.dungeontotems.promises_kept.title": "Promises Kept",
+  "advancements.dungeontotems.promises_kept.description": "Cure Zombification, and live through Rage, Loneliness, Pacifism, Melon Diet and Restraint after a save",
+  "advancements.dungeontotems.close_calls.title": "Close Calls",
+  "advancements.dungeontotems.close_calls.description": "Be saved by the Void, Feather, Boom and Fire totems",
+  "advancements.dungeontotems.close_calls.hint": "Even with limits, theyre useful",
+  "advancements.dungeontotems.terms_and_conditions_fulfilled.title": "Terms and Conditions Fulfilled",
+  "advancements.dungeontotems.terms_and_conditions_fulfilled.description": "Earn every Dungeon Totems advancement",
+  "advancements.dungeontotems.great_and_small.unknown": "????"
 }

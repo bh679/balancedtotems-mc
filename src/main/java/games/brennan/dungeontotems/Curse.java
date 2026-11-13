@@ -123,6 +123,11 @@ public enum Curse {
         return kind == Kind.NARROW;
     }
 
+    /** Its id in advancements: {@code weakness}, {@code melon_diet}, {@code void}... */
+    public String key() {
+        return name().toLowerCase(java.util.Locale.ROOT);
+    }
+
     /** A rule curse: break the rule while holding the totem and it pops. */
     public boolean isRule() {
         return this == PACIFISM || this == MELON_DIET || this == RESTRAINT;
