@@ -81,13 +81,13 @@ jobs:
       - name: Stage the NeoForge jar for release
         run: |
           mkdir -p release-artifacts
-          cp build/libs/balancedtotems-neoforge-${MOD_VERSION}.jar release-artifacts/
+          cp build/libs/dungeontotems-neoforge-${MOD_VERSION}.jar release-artifacts/
           ls -la release-artifacts/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Balanced Totems ${{ env.RELEASE_TAG }}
+          name: Dungeon Totems ${{ env.RELEASE_TAG }}
           tag_name: ${{ env.RELEASE_TAG }}
           generate_release_notes: true
           files: release-artifacts/*.jar
@@ -126,8 +126,8 @@ jobs:
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           curseforge-id: ${{ steps.publish_check.outputs.curseforge == 'true' && vars.CURSEFORGE_PROJECT_ID || '' }}
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
-          files: release-artifacts/balancedtotems-neoforge-${{ env.MOD_VERSION }}.jar
-          name: Balanced Totems ${{ env.RELEASE_TAG }}
+          files: release-artifacts/dungeontotems-neoforge-${{ env.MOD_VERSION }}.jar
+          name: Dungeon Totems ${{ env.RELEASE_TAG }}
           version: ${{ env.RELEASE_TAG }}
           version-type: ${{ steps.release_type.outputs.type }}
           loaders: neoforge
@@ -149,7 +149,7 @@ jobs:
           HTTP_CODE=$(curl -sS -o /tmp/modrinth_env.out -w "%{http_code}" \
             -X PATCH "https://api.modrinth.com/v2/project/${MODRINTH_PROJECT_ID}" \
             -H "Authorization: ${MODRINTH_TOKEN}" \
-            -H "User-Agent: bh679/balancedtotems-mc (release CI)" \
+            -H "User-Agent: bh679/dungeontotems-mc (release CI)" \
             -H "Content-Type: application/json" \
             -d '{"client_side":"required","server_side":"required"}')
           echo "Modrinth PATCH /project responded ${HTTP_CODE}"
@@ -180,5 +180,5 @@ jobs:
         run: |
           RELEASE_URL="https://github.com/${REPO}/releases/tag/${RELEASE_TAG}"
           curl -s -H "Content-Type: application/json" \
-            -d "{\"content\":\"**Balanced Totems ${RELEASE_TAG}** released! ${RELEASE_URL}\"}" \
+            -d "{\"content\":\"**Dungeon Totems ${RELEASE_TAG}** released! ${RELEASE_URL}\"}" \
             "$DISCORD_WEBHOOK_URL"

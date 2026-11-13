@@ -1,7 +1,7 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
 license="${mod_license}"
-issueTrackerURL="https://github.com/bh679/balancedtotems-mc/issues"
+issueTrackerURL="https://github.com/bh679/dungeontotems-mc/issues"
 
 [[mods]]
 modId="${mod_id}"
@@ -9,7 +9,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="${mod_authors}"
 description='''${mod_description}'''
-displayURL="https://github.com/bh679/balancedtotems-mc"
+displayURL="https://github.com/bh679/dungeontotems-mc"
 
 [[dependencies.${mod_id}]]
     modId="neoforge"
@@ -27,4 +27,4 @@ displayURL="https://github.com/bh679/balancedtotems-mc"
 
 # Morph forms: a strider stands on lava, fire-immune forms don't burn (mixin/).
 [[mixins]]
-config="balancedtotems.mixins.json"
+config="dungeontotems.mixins.json"

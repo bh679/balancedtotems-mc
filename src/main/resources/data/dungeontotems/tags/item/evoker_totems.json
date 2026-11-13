@@ -1,0 +1,19 @@
+{
+  "replace": false,
+  "values": [
+    "dungeontotems:weakness_totem",
+    "dungeontotems:fatigue_totem",
+    "dungeontotems:heartbreak_totem",
+    "dungeontotems:blindness_totem",
+    "dungeontotems:morphing_totem",
+    "dungeontotems:zombified_totem",
+    "dungeontotems:rampage_totem",
+    "dungeontotems:void_totem",
+    "dungeontotems:feather_totem",
+    "dungeontotems:loneliness_totem",
+    "dungeontotems:pacifism_totem",
+    "dungeontotems:melon_totem",
+    "dungeontotems:restraint_totem",
+    "dungeontotems:boom_totem"
+  ]
+}

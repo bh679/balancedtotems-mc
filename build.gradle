@@ -1,4 +1,4 @@
-// Balanced Totems: NeoForge 1.21.1 gameplay mod.
+// Dungeon Totems: NeoForge 1.21.1 gameplay mod.
 //
 // Totems of Undying that save you like the vanilla one but leave a curse behind
 // (weakness, fatigue, heartbreak, blindness, morphing, zombified), plus a Void
@@ -18,7 +18,7 @@ tasks.named('wrapper', Wrapper).configure {
 version = mod_version
 group = mod_group_id
 
-// Jar name contract: build/libs/balancedtotems-neoforge-<version>.jar. Dungeon Train's ivy
+// Jar name contract: build/libs/dungeontotems-neoforge-<version>.jar. Dungeon Train's ivy
 // repository resolves exactly that asset name from the GitHub release tagged v<version>.
 base {
     archivesName = "${mod_id}-neoforge"
@@ -53,8 +53,8 @@ neoForge {
         selfTest {
             client()
             gameDirectory = project.file('run-selftest')
-            systemProperty 'balancedtotems.selftest', 'true'
-            systemProperty 'balancedtotems.selftest.forms', System.getProperty('forms', '')
+            systemProperty 'dungeontotems.selftest', 'true'
+            systemProperty 'dungeontotems.selftest.forms', System.getProperty('forms', '')
             programArguments.addAll '--quickPlaySingleplayer', 'New World'
         }
 
@@ -63,7 +63,7 @@ neoForge {
             programArgument '--nogui'
         }
 
-        // ./gradlew runGameTestServer: runs gametest/BalancedTotemsGameTests and exits.
+        // ./gradlew runGameTestServer: runs gametest/DungeonTotemsGameTests and exits.
         gameTestServer {
             type = 'gameTestServer'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
