@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * Development only ({@code ./gradlew runSelfTest -Dadvancements=true}): grants part of the Dungeon Totems
- * tab, opens the advancements screen on it and points at each advancement, saving a screenshot of each
+ * tab ({@code -Dadvancements=play} plays it instead: {@link AdvancementPlayTest}), opens the advancements screen on it and points at each advancement, saving a screenshot of each
  * tooltip ({@code screenshots/selftest_advancement_*}) and the tooltip text to
  * {@code selftest/advancements.txt}. Then the client quits.
  */
@@ -39,6 +39,7 @@ import java.util.List;
 public final class AdvancementSelfTest {
 
     static final boolean ENABLED = !System.getProperty("dungeontotems.selftest.advancements", "").isEmpty();
+    private static final boolean PLAY = "play".equals(System.getProperty("dungeontotems.selftest.advancements"));
     private static final int WARM_UP_TICKS = 60;
     private static final int TICKS_PER_SHOT = 10;
     /** {@code AdvancementsScreen}: the window, and where its inside starts. */
@@ -59,13 +60,22 @@ public final class AdvancementSelfTest {
         MinecraftServer server = minecraft.getSingleplayerServer();
         if (minecraft.player == null || server == null) return;
         tick++;
+        ServerPlayer player = server.getPlayerList().getPlayer(minecraft.player.getUUID());
+        if (player == null) return;
+        int play = PLAY ? AdvancementPlayTest.ticks() : 0;
+        if (PLAY && tick >= WARM_UP_TICKS && tick < WARM_UP_TICKS + play) {
+            AdvancementPlayTest.tick(server, player, tick - WARM_UP_TICKS);
+            return;
+        }
+        int t = tick - play; // the rest runs after the play-through
         List<ResourceLocation> shots = tab();
-        if (tick == WARM_UP_TICKS) grantSome(server);
-        if (tick == WARM_UP_TICKS + 20) open(minecraft);
-        int shot = (tick - WARM_UP_TICKS - 40) / TICKS_PER_SHOT;
-        int at = (tick - WARM_UP_TICKS - 40) % TICKS_PER_SHOT;
-        if (tick < WARM_UP_TICKS + 40) return;
+        if (t == WARM_UP_TICKS && !PLAY) grantSome(server);
+        if (t == WARM_UP_TICKS + 20) open(minecraft);
+        int shot = (t - WARM_UP_TICKS - 40) / TICKS_PER_SHOT;
+        int at = (t - WARM_UP_TICKS - 40) % TICKS_PER_SHOT;
+        if (t < WARM_UP_TICKS + 40) return;
         if (shot >= shots.size()) {
+            if (PLAY) REPORT.addAll(AdvancementPlayTest.results(server, player));
             finish(minecraft);
             return;
         }
