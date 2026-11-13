@@ -18,8 +18,8 @@ class CurseTest {
                 Curse.PACIFISM, Curse.RESTRAINT, Curse.BREATHLESSNESS, Curse.INSOMNIA}) {
             assertEquals(fourMinutes, curse.afterSaveTicks(), curse.name());
         }
-        assertEquals(10 * 60 * 20, Curse.MELON.afterSaveTicks());
-        assertEquals(5 * 60 * 20, Curse.RAMPAGE.afterSaveTicks());
+        assertEquals(10 * 60 * 20, Curse.MELON_DIET.afterSaveTicks());
+        assertEquals(5 * 60 * 20, Curse.RAGE.afterSaveTicks());
         assertEquals(5 * 60 * 20, Curse.LONELINESS.afterSaveTicks());
         assertEquals(30 * 20, Curse.BLINDNESS.afterSaveTicks());
         assertEquals(30 * 20, Curse.MORPHING.afterSaveTicks());
@@ -29,11 +29,11 @@ class CurseTest {
     @Test
     void onlyRageAndLonelyStayAfterYouLetGo() {
         for (Curse curse : Curse.values()) {
-            boolean lingers = curse == Curse.RAMPAGE || curse == Curse.LONELINESS;
+            boolean lingers = curse == Curse.RAGE || curse == Curse.LONELINESS;
             assertEquals(lingers, curse.letGoTicks() > 0, curse.name());
         }
-        assertEquals(60 * 20, Curse.RAMPAGE.letGoTicks());
-        assertEquals(0, Curse.RAMPAGE.letGoAmplifier());
+        assertEquals(60 * 20, Curse.RAGE.letGoTicks());
+        assertEquals(0, Curse.RAGE.letGoAmplifier());
         assertEquals(0, Curse.LONELINESS.letGoAmplifier());
     }
 

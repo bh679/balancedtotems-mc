@@ -80,8 +80,8 @@ public final class CurseTooltips {
             lines.add(Component.translatable("effect.dungeontotems.heartbreak.hearts", heartsTaken(effect, player)).withStyle(ChatFormatting.GRAY));
         } else if (effect.is(TotemRegistries.ZOMBIFIED)) {
             lines.add(Component.translatable("effect.dungeontotems.zombified.cure").withStyle(ChatFormatting.GRAY));
-        } else if (effect.is(TotemRegistries.RAMPAGE)) {
-            lines.add(timer("rampage", ClientPayloads.secondsLeft(Curse.RAMPAGE)));
+        } else if (effect.is(TotemRegistries.RAGE)) {
+            lines.add(timer("rage", ClientPayloads.secondsLeft(Curse.RAGE)));
         } else if (effect.is(TotemRegistries.BREATHLESS) || effect.is(TotemRegistries.INSOMNIA)
             || effect.is(TotemRegistries.VOW_OF_PEACE) || effect.is(TotemRegistries.MELON_DIET) || effect.is(TotemRegistries.RESTRAINED)) {
             String id = effect.getEffect().unwrapKey().map(key -> key.location().getPath()).orElse("");

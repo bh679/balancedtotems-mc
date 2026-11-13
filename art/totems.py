@@ -151,7 +151,7 @@ def zombified(vanilla: Vanilla) -> Image.Image:
     return im
 
 
-def rampage(vanilla: Vanilla) -> Image.Image:
+def rage(vanilla: Vanilla) -> Image.Image:
     """Blood red, angry brows, glowing eyes."""
     grid = [
         "................",
@@ -347,11 +347,11 @@ TOTEMS = {
     "heartbreak_totem": heartbreak,
     "blindness_totem": blindness,
     "morphing_totem": morphing,
-    "zombified_totem": zombified,
-    "rampage_totem": rampage,
+    "zombification_totem": zombified,
+    "rage_totem": rage,
     "loneliness_totem": loneliness,
     "pacifism_totem": pacifism,
-    "melon_totem": melon,
+    "melon_diet_totem": melon,
     "restraint_totem": restraint,
     "void_totem": void,
     "feather_totem": feather,

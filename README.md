@@ -49,7 +49,7 @@ back on the train, but it works on its own.
 
 - `games.brennan.dungeontotems.api.DungeonTotemsApi.setRescueTarget(player -> Optional<Vec3>)`
   picks where the Void Totem sends a player.
-- Curses are plain mob effects: `dungeontotems:heartbreak`, `morphed`, `zombified`, `rampage` (shown as Rage),
+- Curses are plain mob effects: `dungeontotems:heartbreak`, `morphed`, `zombified`, `rage`,
   `lonely`, `breathless`, `insomnia` and the rule curses.
 - Datapacks can change `dungeontotems:flying_forms` (entity type tag), and the morph forms with the
   `dungeontotems:morph_forms` data map: per entity type a `pool` (`land`, `water`, `lava`) and a `weight`

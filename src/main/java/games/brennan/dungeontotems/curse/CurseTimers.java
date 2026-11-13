@@ -38,7 +38,7 @@ public final class CurseTimers {
     /** How often the timer goes to your client, often enough for the countdown border to drain smoothly. */
     private static final int SYNC_TICKS = 5;
 
-    private static final List<Curse> TIMED = List.of(Curse.RAMPAGE, Curse.LONELINESS);
+    private static final List<Curse> TIMED = List.of(Curse.RAGE, Curse.LONELINESS);
 
     private CurseTimers() {}
 
@@ -86,12 +86,12 @@ public final class CurseTimers {
     }
 
     private static DamageSource damage(ServerPlayer player, Curse curse) {
-        ResourceKey<DamageType> key = curse == Curse.RAMPAGE ? TotemRegistries.RAMPAGE_FAILED : TotemRegistries.LONELINESS;
+        ResourceKey<DamageType> key = curse == Curse.RAGE ? TotemRegistries.RAGE_FAILED : TotemRegistries.LONELINESS;
         Holder<DamageType> type = player.level().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(key);
         return new DamageSource(type);
     }
 
     private static Supplier<AttachmentType<Long>> last(Curse curse) {
-        return curse == Curse.RAMPAGE ? TotemRegistries.LAST_HIT : TotemRegistries.LAST_GIFT;
+        return curse == Curse.RAGE ? TotemRegistries.LAST_HIT : TotemRegistries.LAST_GIFT;
     }
 }

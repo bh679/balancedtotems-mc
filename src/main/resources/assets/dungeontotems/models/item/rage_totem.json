@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "dungeontotems:item/melon_totem"
+    "layer0": "dungeontotems:item/rage_totem"
   }
 }

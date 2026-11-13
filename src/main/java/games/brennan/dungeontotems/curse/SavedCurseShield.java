@@ -28,9 +28,9 @@ public final class SavedCurseShield {
 
     private static final Map<ResourceKey<DamageType>, Curse> CURSE_DAMAGE = Map.of(
         TotemRegistries.BROKEN_VOW, Curse.PACIFISM,
-        TotemRegistries.BROKEN_DIET, Curse.MELON,
+        TotemRegistries.BROKEN_DIET, Curse.MELON_DIET,
         TotemRegistries.BROKEN_RESTRAINT, Curse.RESTRAINT,
-        TotemRegistries.RAMPAGE_FAILED, Curse.RAMPAGE,
+        TotemRegistries.RAGE_FAILED, Curse.RAGE,
         TotemRegistries.LONELINESS, Curse.LONELINESS,
         TotemRegistries.SUFFOCATION, Curse.BREATHLESSNESS);
 

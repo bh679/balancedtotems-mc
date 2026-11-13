@@ -53,7 +53,7 @@ public final class TotemRegistries {
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x3E6B2F, false));
 
     /** Hit something within the timer, or take damage until you do (see {@code curse/CurseTimers}). */
-    public static final DeferredHolder<MobEffect, MobEffect> RAMPAGE = EFFECTS.register("rampage",
+    public static final DeferredHolder<MobEffect, MobEffect> RAGE = EFFECTS.register("rage",
         () -> new CurseEffect(MobEffectCategory.HARMFUL, 0x8B0000, false));
 
     /** Give a gift within the timer, or take damage until you do (see {@code curse/CurseTimers}). */
@@ -105,8 +105,8 @@ public final class TotemRegistries {
 
     public static final ResourceKey<DamageType> ZOMBIFICATION =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("zombification"));
-    public static final ResourceKey<DamageType> RAMPAGE_FAILED =
-        ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("rampage_failed"));
+    public static final ResourceKey<DamageType> RAGE_FAILED =
+        ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("rage_failed"));
     public static final ResourceKey<DamageType> LONELINESS =
         ResourceKey.create(Registries.DAMAGE_TYPE, DungeonTotems.id("loneliness"));
     public static final ResourceKey<DamageType> BROKEN_VOW =

@@ -42,7 +42,7 @@ def zombified(vanilla: Vanilla) -> Image.Image:
     return outlined_face(skin.crop((8, 9, 16, 17)), (14, 30, 10))
 
 
-def rampage(vanilla: Vanilla) -> Image.Image:
+def rage(vanilla: Vanilla) -> Image.Image:
     """Vanilla Weakness sword between a half heart and an empty heart: kill, or lose them."""
     container = vanilla.load(HEART + "container.png")
     half = over(container, vanilla.load(HEART + "half.png"))
@@ -106,7 +106,7 @@ ICONS = {
     "heartbreak": heartbreak,
     "morphed": morphed,
     "zombified": zombified,
-    "rampage": rampage,
+    "rage": rage,
     "lonely": lonely,
     "vow_of_peace": vow_of_peace,
     "melon_diet": melon_diet,

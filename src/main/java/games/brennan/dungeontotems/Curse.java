@@ -28,15 +28,15 @@ public enum Curse {
     SLOWNESS("slowness_totem", Kind.HELD, () -> MobEffects.MOVEMENT_SLOWDOWN, 0, 0, Ticks.MINUTE * 4),
     BLINDNESS("blindness_totem", Kind.AFTER, () -> MobEffects.BLINDNESS, 0, 0, Ticks.SECOND * 30),
     MORPHING("morphing_totem", Kind.AFTER, () -> TotemRegistries.MORPHED, 0, 0, Ticks.SECOND * 30),
-    ZOMBIFIED("zombified_totem", Kind.AFTER, () -> TotemRegistries.ZOMBIFIED, 0, 0, Ticks.MINUTE * 10),
+    ZOMBIFIED("zombification_totem", Kind.AFTER, () -> TotemRegistries.ZOMBIFIED, 0, 0, Ticks.MINUTE * 10),
     /** Hit something within the timer (see {@code curse/CurseTimers}). */
-    RAMPAGE("rampage_totem", Kind.HELD, () -> TotemRegistries.RAMPAGE, 0, 1, Ticks.MINUTE * 5, 0, Ticks.MINUTE),
+    RAGE("rage_totem", Kind.HELD, () -> TotemRegistries.RAGE, 0, 1, Ticks.MINUTE * 5, 0, Ticks.MINUTE),
     /** Give a gift within the timer (see {@code curse/CurseTimers}). */
     LONELINESS("loneliness_totem", Kind.HELD, () -> TotemRegistries.LONELY, 0, 1, Ticks.MINUTE * 5, 0, Ticks.MINUTE),
     /** Hurt anything and the held totem pops; after a save, you drop to half a heart. */
     PACIFISM("pacifism_totem", Kind.HELD, () -> TotemRegistries.VOW_OF_PEACE, 0, 0, Ticks.MINUTE * 4),
     /** Eat anything but melon and the held totem pops; after a save, you drop to half a heart. */
-    MELON("melon_totem", Kind.HELD, () -> TotemRegistries.MELON_DIET, 0, 0, Ticks.MINUTE * 10),
+    MELON_DIET("melon_diet_totem", Kind.HELD, () -> TotemRegistries.MELON_DIET, 0, 0, Ticks.MINUTE * 10),
     /** Open a chest, barrel or ender chest and the held totem pops; after a save, you drop to half a heart. */
     RESTRAINT("restraint_totem", Kind.HELD, () -> TotemRegistries.RESTRAINED, 0, 0, Ticks.MINUTE * 4),
     /** You lose air even out of water (see {@code curse/Breathless}). */
@@ -125,7 +125,7 @@ public enum Curse {
 
     /** A rule curse: break the rule while holding the totem and it pops. */
     public boolean isRule() {
-        return this == PACIFISM || this == MELON || this == RESTRAINT;
+        return this == PACIFISM || this == MELON_DIET || this == RESTRAINT;
     }
 
     /** Whether the pop gives Fire Resistance: every totem but the narrow ones, except Fire. */

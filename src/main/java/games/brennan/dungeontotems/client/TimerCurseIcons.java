@@ -39,7 +39,7 @@ public final class TimerCurseIcons {
     private TimerCurseIcons() {}
 
     public static void onRegister(RegisterClientExtensionsEvent event) {
-        event.registerMobEffect(new Timed(Curse.RAMPAGE, RAGE_COLOUR), TotemRegistries.RAMPAGE.get());
+        event.registerMobEffect(new Timed(Curse.RAGE, RAGE_COLOUR), TotemRegistries.RAGE.get());
         event.registerMobEffect(new Timed(Curse.LONELINESS, LONELY_COLOUR), TotemRegistries.LONELY.get());
     }
 

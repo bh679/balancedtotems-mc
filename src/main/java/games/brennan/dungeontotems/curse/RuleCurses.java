@@ -63,12 +63,12 @@ public final class RuleCurses {
             player.getFoodData().setFoodLevel(before.food());
             player.getFoodData().setSaturation(before.saturation());
         }
-        broke(player, Curse.MELON, TotemRegistries.BROKEN_DIET);
+        broke(player, Curse.MELON_DIET, TotemRegistries.BROKEN_DIET);
     }
 
     /** Under the melon diet: holding its totem, or cursed with it. */
     static boolean dieting(ServerPlayer player) {
-        return HeldCurses.heldTotem(player, Curse.MELON) != null || player.hasEffect(TotemRegistries.MELON_DIET);
+        return HeldCurses.heldTotem(player, Curse.MELON_DIET) != null || player.hasEffect(TotemRegistries.MELON_DIET);
     }
 
     static boolean breaksMelonDiet(ItemStack stack, ServerPlayer player) {
@@ -83,7 +83,7 @@ public final class RuleCurses {
         if (isCake(block) && player.canEat(false) && dieting(player)) {
             // Cake isn't melon: no slice for you, and the diet is broken all the same.
             event.setCanceled(true);
-            broke(player, Curse.MELON, TotemRegistries.BROKEN_DIET);
+            broke(player, Curse.MELON_DIET, TotemRegistries.BROKEN_DIET);
         }
         if (isLootContainer(block)
             && !(player.isSecondaryUseActive() && event.getItemStack().getItem() instanceof BlockItem)) {
