@@ -19,9 +19,10 @@ LANG = RES / "assets/dungeontotems/lang/en_us.json"
 FORMS = RES / "data/dungeontotems/data_maps/entity_type/morph_forms.json"
 ROOT = "terms_and_conditions"
 
-TIMED = ["weakness", "fatigue", "heartbreak", "blindness", "morphing"]
-DEADLINES_AND_VOWS = ["zombified", "rampage", "loneliness", "pacifism", "melon", "restraint"]
-LIFESAVERS = ["void", "feather", "boom"]
+# Curse keys (Curse.key()): live through each one's after-save time, or cure Zombified.
+TIMED = ["weakness", "fatigue", "heartbreak", "hunger", "slowness", "breathlessness", "insomnia", "blindness", "morphing"]
+DEADLINES_AND_VOWS = ["zombified", "rage", "loneliness", "pacifism", "melon_diet", "restraint"]
+LIFESAVERS = ["void", "feather", "boom", "fire"]
 
 
 def per_key(trigger, field, keys):
@@ -49,13 +50,13 @@ ADVANCEMENTS = {
                         "Become a zombie and be cured", "Die. Un-die. Un-un-die.",
                         single("dungeontotems:curse_survived", {"curse": "zombified"})),
     "waiting_it_out": (ROOT, "minecraft:clock", "goal", "Waiting It Out",
-                       "Survive Weakness, Fatigue, Heartbreak, Blindness and Morphing to the end", None,
+                       "Live through Weakness, Fatigue, Heartbreak, Hunger, Slowness, Breathlessness, Insomnia, Blindness and Morphing after a save", None,
                        per_key("curse_survived", "curse", TIMED)),
     "promises_kept": (ROOT, "minecraft:writable_book", "challenge", "Promises Kept",
-                      "Survive Zombification, Rage, Loneliness, Pacifism, Melon Diet and Restraint", None,
+                      "Cure Zombification, and live through Rage, Loneliness, Pacifism, Melon Diet and Restraint after a save", None,
                       per_key("curse_survived", "curse", DEADLINES_AND_VOWS)),
     "close_calls": (ROOT, "minecraft:tnt", "goal", "Close Calls",
-                    "Be saved by the Void, Feather and Boom totems", "Even with limits, theyre useful",
+                    "Be saved by the Void, Feather, Boom and Fire totems", "Even with limits, theyre useful",
                     per_key("curse_survived", "curse", LIFESAVERS)),
     # Granted by advancement/TabComplete once the rest of the tab is earned.
     "terms_and_conditions_fulfilled": (ROOT, "minecraft:totem_of_undying", "challenge", "Terms and Conditions Fulfilled",

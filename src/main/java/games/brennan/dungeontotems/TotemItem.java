@@ -22,9 +22,15 @@ public class TotemItem extends Item {
         return curse;
     }
 
+    /** "While held" (held totems) then "After it saves you", or what a narrow totem saves you from. */
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable("item.dungeontotems." + curse.itemName() + ".curse")
-            .withStyle(curse.isNarrow() ? ChatFormatting.DARK_AQUA : ChatFormatting.RED));
+        String key = "item.dungeontotems." + curse.itemName();
+        if (curse.isNarrow()) {
+            tooltip.add(Component.translatable(key + ".curse").withStyle(ChatFormatting.DARK_AQUA));
+            return;
+        }
+        if (curse.isHeld()) tooltip.add(Component.translatable(key + ".held").withStyle(ChatFormatting.RED));
+        tooltip.add(Component.translatable(key + ".saved").withStyle(ChatFormatting.GOLD));
     }
 }

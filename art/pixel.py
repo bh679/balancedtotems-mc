@@ -74,3 +74,16 @@ class Vanilla:
         except KeyError:
             raise SystemExit(f"{TEXTURES + path} is not in {self.jar.filename}; is this the 1.21.1 client jar?")
         return Image.open(io.BytesIO(data)).convert("RGBA")
+
+
+def outlined(img: Image.Image, colour: tuple) -> Image.Image:
+    """The sprite with a 1px outline on its four sides, one pixel bigger all round."""
+    out = Image.new("RGBA", (img.width + 2, img.height + 2))
+    for y in range(img.height):
+        for x in range(img.width):
+            if img.getpixel((x, y))[3] == 0:
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                out.putpixel((x + 1 + dx, y + 1 + dy), (*colour, 255))
+    out.alpha_composite(img, (1, 1))
+    return out

@@ -1,7 +1,8 @@
 package games.brennan.dungeontotems.client;
 
+import games.brennan.dungeontotems.Curse;
 import games.brennan.dungeontotems.net.MorphSyncPayload;
-import games.brennan.dungeontotems.net.CurseCountPayload;
+import games.brennan.dungeontotems.net.CurseTimerPayload;
 import games.brennan.dungeontotems.net.MorphActionPayload;
 import games.brennan.dungeontotems.net.TotemPopPayload;
 import games.brennan.dungeontotems.registry.TotemRegistries;
@@ -14,6 +15,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Client side of every payload. Only ever reached from a payload handler on the client. */
 public final class ClientPayloads {
@@ -25,6 +28,9 @@ public final class ClientPayloads {
     private static CameraType cameraBeforeMorph;
     /** The view a morph switches you to. */
     private static final CameraType MORPH_CAMERA = CameraType.THIRD_PERSON_BACK;
+
+    /** The last timer the server sent for each timed curse, by Curse name. */
+    private static final Map<String, CurseTimerPayload> TIMERS = new ConcurrentHashMap<>();
 
     private ClientPayloads() {}
 
@@ -73,9 +79,20 @@ public final class ClientPayloads {
         }
     }
 
-    public static void onCurseCount(CurseCountPayload payload) {
-        Player player = Minecraft.getInstance().player;
-        if (player == null) return;
-        player.setData(payload.curse().equals("LONELINESS") ? TotemRegistries.LONELY_FRIENDS : TotemRegistries.RAMPAGE_KILLS, payload.count());
+    public static void onCurseTimer(CurseTimerPayload payload) {
+        TIMERS.put(payload.curse(), payload);
+    }
+
+    /** Seconds left on your Rage or Lonely timer, as the server last said; 0 when unknown. */
+    public static int secondsLeft(Curse curse) {
+        CurseTimerPayload timer = TIMERS.get(curse.name());
+        return timer == null ? 0 : (timer.ticksLeft() + 19) / 20;
+    }
+
+    /** How much of the Rage or Lonely timer is left, 1 (full) to 0 (time's up); 1 when unknown. */
+    public static float fractionLeft(Curse curse) {
+        CurseTimerPayload timer = TIMERS.get(curse.name());
+        if (timer == null || timer.totalTicks() <= 0) return 1.0F;
+        return Math.min(1.0F, timer.ticksLeft() / (float) timer.totalTicks());
     }
 }

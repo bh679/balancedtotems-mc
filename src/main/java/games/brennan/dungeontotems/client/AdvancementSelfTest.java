@@ -60,6 +60,7 @@ public final class AdvancementSelfTest {
         MinecraftServer server = minecraft.getSingleplayerServer();
         if (minecraft.player == null || server == null) return;
         tick++;
+        if (tick < WARM_UP_TICKS && minecraft.player.isDeadOrDying()) minecraft.player.respawn(); // a death saved in the world
         ServerPlayer player = server.getPlayerList().getPlayer(minecraft.player.getUUID());
         if (player == null) return;
         int play = PLAY ? AdvancementPlayTest.ticks() : 0;

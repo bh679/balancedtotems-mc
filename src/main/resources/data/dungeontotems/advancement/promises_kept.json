@@ -27,10 +27,10 @@
         "curse": "zombified"
       }
     },
-    "rampage": {
+    "rage": {
       "trigger": "dungeontotems:curse_survived",
       "conditions": {
-        "curse": "rampage"
+        "curse": "rage"
       }
     },
     "loneliness": {
@@ -45,10 +45,10 @@
         "curse": "pacifism"
       }
     },
-    "melon": {
+    "melon_diet": {
       "trigger": "dungeontotems:curse_survived",
       "conditions": {
-        "curse": "melon"
+        "curse": "melon_diet"
       }
     },
     "restraint": {
@@ -63,7 +63,7 @@
       "zombified"
     ],
     [
-      "rampage"
+      "rage"
     ],
     [
       "loneliness"
@@ -72,7 +72,7 @@
       "pacifism"
     ],
     [
-      "melon"
+      "melon_diet"
     ],
     [
       "restraint"

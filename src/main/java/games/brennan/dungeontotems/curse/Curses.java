@@ -1,7 +1,6 @@
 package games.brennan.dungeontotems.curse;
 
 import games.brennan.dungeontotems.Curse;
-import games.brennan.dungeontotems.effect.HeartbreakEffect;
 import games.brennan.dungeontotems.morph.Morphs;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,38 +9,52 @@ import net.minecraft.world.entity.EntityType;
 import net.neoforged.neoforge.common.EffectCures;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Putting a curse on a player. A curse instance never carries the totem cure, so a later pop (which
- * clears effects a totem cures, like vanilla) leaves it alone: curses stack, and the same curse can
- * level up. That missing cure is also how a curse is told apart from, say, a Weakness potion.
+ * clears effects a totem cures, like vanilla) leaves it alone. That missing cure is also how a curse is
+ * told apart from, say, a Weakness potion. A curse put on by holding a totem lasts forever and
+ * {@link HeldCurses} takes it off again; every other curse has a timer.
  */
 public final class Curses {
 
     private Curses() {}
 
     /**
-     * A totem of {@code curse} just popped. New curse: its base level and full time. Already cursed:
-     * Fatigue adds its time to what is left; Heartbreak at half a heart only refreshes the timer;
-     * anything else goes up a level with a fresh timer.
+     * A totem of {@code curse} just saved you: its after-save curse for its full time, at its after-save
+     * level or any higher level already on you, and protection from dying of it for that time.
      */
     public static void pop(ServerPlayer player, Curse curse) {
+        if (curse.effect() == null) return;
         MobEffectInstance current = player.getEffect(curse.effect());
-        if (current == null) {
-            apply(player, curse, curse.baseAmplifier(), curse.durationTicks());
-        } else if (curse.addsTimeNotLevels()) {
-            apply(player, curse, current.getAmplifier(), current.getDuration() + curse.durationTicks());
-        } else if (curse == Curse.HEARTBREAK && HeartbreakEffect.atHalfHeart(player)) {
-            apply(player, curse, current.getAmplifier(), curse.durationTicks());
-        } else {
-            apply(player, curse, current.getAmplifier() + 1, curse.durationTicks());
-        }
+        int amplifier = Math.max(curse.afterSaveAmplifier(), current == null ? 0 : current.getAmplifier());
+        apply(player, curse, amplifier, curse.afterSaveTicks());
+        markSaved(player, curse, curse.afterSaveTicks());
     }
 
-    /** Puts {@code curse} on the player at {@code amplifier} for {@code duration} ticks, plus its form if it has one. */
+    /** {@code curse} can't kill you for the next {@code ticks} (see {@link SavedCurseShield}). */
+    public static void markSaved(ServerPlayer player, Curse curse, int ticks) {
+        Map<String, Long> saved = new HashMap<>(player.getData(TotemRegistries.SAVED_UNTIL));
+        saved.put(curse.name(), player.level().getGameTime() + ticks);
+        player.setData(TotemRegistries.SAVED_UNTIL, Map.copyOf(saved));
+    }
+
+    /** Whether {@code curse} is still in the time after a save, when it can't kill you. */
+    public static boolean isSaved(ServerPlayer player, Curse curse) {
+        Long until = player.getData(TotemRegistries.SAVED_UNTIL).get(curse.name());
+        return until != null && until > player.level().getGameTime();
+    }
+
+    /**
+     * Puts {@code curse} on the player at {@code amplifier} for {@code duration} ticks
+     * ({@link MobEffectInstance#INFINITE_DURATION} while held), plus its form if it has one. A Rage or
+     * Lonely timer starts afresh when the curse is new to you.
+     */
     public static void apply(ServerPlayer player, Curse curse, int amplifier, int duration) {
         if (curse.effect() == null) return;
-        if (Tallies.counted(curse) && !player.hasEffect(curse.effect())) Tallies.reset(player, curse);
+        if (!player.hasEffect(curse.effect())) CurseTimers.restart(player, curse);
         // showIcon true, visible particles off: a curse is a status, not a potion cloud.
         MobEffectInstance instance = new MobEffectInstance(curse.effect(), duration, amplifier, false, false, true);
         instance.getCures().remove(EffectCures.PROTECTED_BY_TOTEM);

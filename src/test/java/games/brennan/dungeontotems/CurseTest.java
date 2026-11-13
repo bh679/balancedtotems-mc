@@ -12,26 +12,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CurseTest {
 
     @Test
-    void durationsMatchTheDesign() {
-        assertEquals(20 * 60 * 20, Curse.WEAKNESS.durationTicks());
-        assertEquals(20 * 60 * 20, Curse.FATIGUE.durationTicks());
-        assertEquals(20 * 60 * 20, Curse.HEARTBREAK.durationTicks());
-        assertEquals(30 * 20, Curse.BLINDNESS.durationTicks());
-        assertEquals(30 * 20, Curse.MORPHING.durationTicks());
-        assertEquals(10 * 60 * 20, Curse.ZOMBIFIED.durationTicks());
-        assertEquals(15 * 60 * 20, Curse.RAMPAGE.durationTicks());
-        assertEquals(10 * 60 * 20, Curse.LONELINESS.durationTicks());
-        assertEquals(20 * 60 * 20, Curse.PACIFISM.durationTicks());
-        assertEquals(20 * 60 * 20, Curse.MELON.durationTicks());
-        assertEquals(20 * 60 * 20, Curse.RESTRAINT.durationTicks());
+    void afterSaveTimesMatchTheDesign() {
+        int fourMinutes = 4 * 60 * 20;
+        for (Curse curse : new Curse[] {Curse.WEAKNESS, Curse.FATIGUE, Curse.HEARTBREAK, Curse.HUNGER, Curse.SLOWNESS,
+                Curse.PACIFISM, Curse.RESTRAINT, Curse.BREATHLESSNESS, Curse.INSOMNIA}) {
+            assertEquals(fourMinutes, curse.afterSaveTicks(), curse.name());
+        }
+        assertEquals(10 * 60 * 20, Curse.MELON_DIET.afterSaveTicks());
+        assertEquals(5 * 60 * 20, Curse.RAGE.afterSaveTicks());
+        assertEquals(5 * 60 * 20, Curse.LONELINESS.afterSaveTicks());
+        assertEquals(30 * 20, Curse.BLINDNESS.afterSaveTicks());
+        assertEquals(30 * 20, Curse.MORPHING.afterSaveTicks());
+        assertEquals(10 * 60 * 20, Curse.ZOMBIFIED.afterSaveTicks());
     }
 
     @Test
-    void onlyVoidFeatherAndBoomSaveFromOneThing() {
+    void onlyRageAndLonelyStayAfterYouLetGo() {
         for (Curse curse : Curse.values()) {
-            boolean narrow = curse == Curse.VOID || curse == Curse.FEATHER || curse == Curse.BOOM;
+            boolean lingers = curse == Curse.RAGE || curse == Curse.LONELINESS;
+            assertEquals(lingers, curse.letGoTicks() > 0, curse.name());
+        }
+        assertEquals(60 * 20, Curse.RAGE.letGoTicks());
+        assertEquals(0, Curse.RAGE.letGoAmplifier());
+        assertEquals(0, Curse.LONELINESS.letGoAmplifier());
+    }
+
+    @Test
+    void narrowTotemsSaveFromOneThingAndLeaveNoCurse() {
+        for (Curse curse : Curse.values()) {
+            boolean narrow = curse == Curse.VOID || curse == Curse.FEATHER || curse == Curse.BOOM || curse == Curse.FIRE;
             assertEquals(narrow, curse.isNarrow(), curse.name());
             assertEquals(narrow, curse.effect() == null, curse.name() + " should leave a curse unless it is narrow");
+        }
+        assertTrue(Curse.FIRE.givesFireResistance());
+        assertFalse(Curse.BOOM.givesFireResistance());
+    }
+
+    @Test
+    void onlyBlindnessMorphingAndZombifiedWaitForTheSave() {
+        for (Curse curse : Curse.values()) {
+            boolean after = curse == Curse.BLINDNESS || curse == Curse.MORPHING || curse == Curse.ZOMBIFIED;
+            assertEquals(after, curse.kind() == Curse.Kind.AFTER, curse.name());
         }
     }
 

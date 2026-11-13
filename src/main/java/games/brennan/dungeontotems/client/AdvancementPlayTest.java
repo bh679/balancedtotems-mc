@@ -9,7 +9,6 @@ import games.brennan.dungeontotems.morph.Morphs;
 import games.brennan.dungeontotems.registry.TotemRegistries;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementProgress;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -18,16 +17,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.item.PrimedTnt;
-import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.trading.ItemCost;
-import net.minecraft.world.item.trading.MerchantOffer;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.event.EventHooks;
-import net.neoforged.neoforge.event.entity.player.TradeWithVillagerEvent;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,9 +31,9 @@ import java.util.function.Consumer;
 
 /**
  * Development only ({@code ./gradlew runSelfTest -Dadvancements=play}): plays the whole Dungeon Totems tab
- * the way a player would, on the integrated server. It pops each totem by dying with it held, lets the
- * curses run out (their timers shortened), cures Zombified with a golden apple, lifts Rage with three villager
- * kills and Loneliness with three trades, and falls into the void, off a height and onto lit TNT. Then it
+ * the way a player would, on the integrated server. It pops each totem by dying with it held, lives through
+ * each curse's after-save time (cut short), cures Zombified with a golden apple, and falls into the void,
+ * off a height, onto lit TNT and burns. Then it
  * records which advancements it earned. {@link AdvancementSelfTest} screenshots the tab afterwards.
  */
 final class AdvancementPlayTest {
@@ -52,35 +46,21 @@ final class AdvancementPlayTest {
 
     private record Step(String name, Consumer<ServerPlayer> action) {}
 
+    /** Curses lived through after a save: their after-save time cut short so the run doesn't take minutes. */
+    private static final List<Curse> LIVED_THROUGH = List.of(Curse.WEAKNESS, Curse.FATIGUE, Curse.HEARTBREAK, Curse.HUNGER,
+        Curse.SLOWNESS, Curse.BREATHLESSNESS, Curse.INSOMNIA, Curse.BLINDNESS, Curse.MORPHING,
+        Curse.RAGE, Curse.LONELINESS, Curse.PACIFISM, Curse.MELON_DIET, Curse.RESTRAINT);
+
     private static final List<Step> STEPS = List.of(
-        new Step("timed curses and vows", player -> {
-            for (Curse curse : List.of(Curse.WEAKNESS, Curse.FATIGUE, Curse.HEARTBREAK, Curse.BLINDNESS, Curse.MORPHING,
-                    Curse.PACIFISM, Curse.MELON, Curse.RESTRAINT)) {
-                popByDying(player, curse);
-            }
-            for (Curse curse : List.of(Curse.WEAKNESS, Curse.FATIGUE, Curse.HEARTBREAK, Curse.BLINDNESS, Curse.MORPHING,
-                    Curse.PACIFISM, Curse.MELON, Curse.RESTRAINT)) {
-                shorten(player, curse);
-            }
+        new Step("arrive (spawn protection wears off)", player -> {}),
+        new Step("every curse, saved and lived through", player -> {
+            for (Curse curse : LIVED_THROUGH) popByDying(player, curse);
+            for (Curse curse : LIVED_THROUGH) shorten(player, curse);
         }),
         new Step("zombified, cured with a golden apple", player -> {
             popByDying(player, Curse.ZOMBIFIED);
             player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 200));
             EventHooks.onItemUseFinish(player, new ItemStack(Items.GOLDEN_APPLE), 0, ItemStack.EMPTY);
-        }),
-        new Step("rage, three villagers killed", player -> {
-            popByDying(player, Curse.RAMPAGE);
-            for (int i = 0; i < 3; i++) {
-                Villager villager = villager(player);
-                villager.hurt(player.damageSources().playerAttack(player), LETHAL);
-            }
-        }),
-        new Step("loneliness, three villagers traded with", player -> {
-            popByDying(player, Curse.LONELINESS);
-            for (int i = 0; i < 3; i++) {
-                MerchantOffer offer = new MerchantOffer(new ItemCost(Items.EMERALD), new ItemStack(Items.BREAD), 1, 1, 0.0F);
-                NeoForge.EVENT_BUS.post(new TradeWithVillagerEvent(player, offer, villager(player)));
-            }
         }),
         new Step("void", player -> {
             hold(player, Curse.VOID);
@@ -98,9 +78,20 @@ final class AdvancementPlayTest {
             tnt.setFuse(0);
             player.level().addFreshEntity(tnt);
         }),
+        new Step("fire", player -> {
+            floor(player.server); // the TNT blew a hole in it, and dropped you through
+            player.resetFallDistance();
+            hold(player, Curse.FIRE);
+            player.removeEffect(MobEffects.FIRE_RESISTANCE);
+            player.removeEffect(MobEffects.REGENERATION); // earlier saves' healing would outlast a slow burn
+            player.removeEffect(MobEffects.ABSORPTION);
+            player.setHealth(1.0F);
+            player.level().setBlockAndUpdate(player.blockPosition(), Blocks.LAVA.defaultBlockState());
+        }),
         new Step("morphing, five real morphs", player -> {
+            floor(player.server); // out of the lava
+
             for (int i = 0; i < 5; i++) popByDying(player, Curse.MORPHING);
-            shorten(player, Curse.MORPHING);
         }),
         new Step("the rest of the animals (not playable here)", player -> {
             BuiltInRegistries.ENTITY_TYPE.getDataMap(MorphForm.DATA_MAP).keySet().forEach(key ->
@@ -125,20 +116,30 @@ final class AdvancementPlayTest {
         server.execute(() -> {
             float before = player.getHealth();
             step.action().accept(player);
-            REPORT.add(String.format("step %-40s alive %s, health %.0f -> %.0f, form %s", step.name(), player.isAlive(),
-                before, player.getHealth(), Morphs.formOf(player).map(f -> BuiltInRegistries.ENTITY_TYPE.getKey(f).getPath()).orElse("player")));
+            REPORT.add(String.format("step %-40s alive %s, health %.0f -> %.0f, form %s, at %s", step.name(), player.isAlive(),
+                before, player.getHealth(), Morphs.formOf(player).map(f -> BuiltInRegistries.ENTITY_TYPE.getKey(f).getPath()).orElse("player"),
+                player.blockPosition().toShortString()));
             Morphs.formOf(player).ifPresent(form -> REAL_FORMS.add(BuiltInRegistries.ENTITY_TYPE.getKey(form).toString()));
         });
     }
 
     private static void setUp(MinecraftServer server) {
+        floor(server);
         run(server, "advancement revoke @a from dungeontotems:terms_and_conditions");
         run(server, "effect clear @a");
+        run(server, "effect give @a minecraft:instant_health 1 10 true");
         run(server, "clear @a");
         run(server, "gamemode survival @a");
         run(server, "difficulty normal");
         run(server, "gamerule doMobSpawning false");
         run(server, "kill @e[type=!player]");
+    }
+
+    /** A clean stone floor away from the morph self-test's lava pool, where a void rescue lands safely. */
+    private static void floor(MinecraftServer server) {
+        run(server, "fill 192 149 192 208 149 208 minecraft:stone");
+        run(server, "fill 192 150 192 208 160 208 minecraft:air");
+        run(server, "tp @a 200 150 200");
     }
 
     /** The tab as it stands: each advancement earned or not, with its progress. */
@@ -154,7 +155,10 @@ final class AdvancementPlayTest {
             }
             AdvancementProgress progress = player.getAdvancements().getOrStartProgress(holder);
             Component text = progress.getProgressText();
-            out.add(String.format("%-32s %s", id.getPath(), progress.isDone() ? "EARNED" : "not earned" + (text == null ? "" : " " + text.getString())));
+            List<String> missing = new ArrayList<>();
+            progress.getRemainingCriteria().forEach(missing::add);
+            out.add(String.format("%-32s %s", id.getPath(), progress.isDone() ? "EARNED"
+                : "not earned" + (text == null ? "" : " " + text.getString()) + (missing.size() <= 10 ? ", missing " + missing : "")));
         }
         out.add("animals morphed into for real: " + REAL_FORMS);
         out.add("curse trials left open: " + player.getData(TotemRegistries.CURSE_TRIALS));
@@ -172,18 +176,11 @@ final class AdvancementPlayTest {
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(TotemRegistries.TOTEMS.get(curse).get()));
     }
 
-    /** The same curse, its timer cut short (as {@code Curses.pop} sets it, so it still counts). */
+    /** A save, shorter: the curse and its after-save protection both end in {@link #SHORT} ticks, as {@code Curses.pop} sets them. */
     private static void shorten(ServerPlayer player, Curse curse) {
         MobEffectInstance current = player.getEffect(curse.effect());
         if (current != null) Curses.apply(player, curse, current.getAmplifier(), SHORT);
-    }
-
-    private static Villager villager(ServerPlayer player) {
-        Villager villager = EntityType.VILLAGER.create(player.level());
-        BlockPos at = player.blockPosition().offset(2, 0, 0);
-        villager.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
-        player.level().addFreshEntity(villager);
-        return villager;
+        Curses.markSaved(player, curse, SHORT);
     }
 
     private static void run(MinecraftServer server, String command) {

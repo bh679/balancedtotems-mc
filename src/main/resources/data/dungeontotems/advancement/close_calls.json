@@ -38,6 +38,12 @@
       "conditions": {
         "curse": "boom"
       }
+    },
+    "fire": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "fire"
+      }
     }
   },
   "requirements": [
@@ -49,6 +55,9 @@
     ],
     [
       "boom"
+    ],
+    [
+      "fire"
     ]
   ]
 }

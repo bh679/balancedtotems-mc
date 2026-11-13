@@ -39,6 +39,30 @@
         "curse": "heartbreak"
       }
     },
+    "hunger": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "hunger"
+      }
+    },
+    "slowness": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "slowness"
+      }
+    },
+    "breathlessness": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "breathlessness"
+      }
+    },
+    "insomnia": {
+      "trigger": "dungeontotems:curse_survived",
+      "conditions": {
+        "curse": "insomnia"
+      }
+    },
     "blindness": {
       "trigger": "dungeontotems:curse_survived",
       "conditions": {
@@ -61,6 +85,18 @@
     ],
     [
       "heartbreak"
+    ],
+    [
+      "hunger"
+    ],
+    [
+      "slowness"
+    ],
+    [
+      "breathlessness"
+    ],
+    [
+      "insomnia"
     ],
     [
       "blindness"
