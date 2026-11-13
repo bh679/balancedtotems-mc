@@ -22,7 +22,7 @@
     },
     "minecraft:camel": {
       "pool": "land",
-      "weight": 4
+      "weight": 2
     },
     "minecraft:cat": {
       "pool": "land",
@@ -46,7 +46,7 @@
     },
     "minecraft:donkey": {
       "pool": "land",
-      "weight": 5
+      "weight": 3
     },
     "minecraft:fox": {
       "pool": "land",
@@ -66,7 +66,7 @@
     },
     "minecraft:horse": {
       "pool": "land",
-      "weight": 5
+      "weight": 3
     },
     "minecraft:iron_golem": {
       "pool": "land",
@@ -82,7 +82,7 @@
     },
     "minecraft:mule": {
       "pool": "land",
-      "weight": 5
+      "weight": 3
     },
     "minecraft:ocelot": {
       "pool": "land",
@@ -102,7 +102,7 @@
     },
     "minecraft:polar_bear": {
       "pool": "land",
-      "weight": 5
+      "weight": 3
     },
     "minecraft:pufferfish": {
       "pool": "water",
@@ -146,7 +146,7 @@
     },
     "minecraft:trader_llama": {
       "pool": "land",
-      "weight": 3
+      "weight": 1
     },
     "minecraft:tropical_fish": {
       "pool": "water",
@@ -154,7 +154,7 @@
     },
     "minecraft:turtle": {
       "pool": "land",
-      "weight": 3
+      "weight": 2
     },
     "minecraft:wolf": {
       "pool": "land",
