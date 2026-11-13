@@ -26,8 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Insomnia: phantoms come for you whether you have slept or not. Vanilla's {@code PhantomSpawner} rules,
- * minus its time-since-rest roll, its local-difficulty roll and its night-only check: every 60 to 119
- * seconds, if you can see the sky at or above sea level, phantoms spawn above you. At night they always
+ * minus its time-since-rest roll, its local-difficulty roll, its sea-level floor and its night-only check:
+ * every 60 to 119 seconds, if you can see the sky, phantoms spawn above you. At night they always
  * do (vanilla's chance at the longest insomnia); by day a quarter of the time, and those day phantoms get
  * Fire Resistance so the sun can't burn them. Your real time since rest is left alone.
  */
@@ -70,9 +70,14 @@ public final class InsomniaPhantoms {
         ServerLevel level = player.serverLevel();
         if (level.getDifficulty() == Difficulty.PEACEFUL || !level.getGameRules().getBoolean(GameRules.RULE_DOINSOMNIA)) return 0;
         if (player.isSpectator() || player.isCreative()) return 0;
-        BlockPos pos = player.blockPosition();
+        return trySpawnAt(level, player.blockPosition(), random);
+    }
+
+    /** The try itself, over {@code pos}: open sky, then the day or night chance, then a group above. */
+    public static int trySpawnAt(ServerLevel level, BlockPos pos, RandomSource random) {
         boolean skylit = level.dimensionType().hasSkyLight();
-        if (skylit && (pos.getY() < level.getSeaLevel() || !level.canSeeSky(pos))) return 0;
+        // Vanilla also wants sea level or above, which a superflat world never reaches; the open sky is enough.
+        if (skylit && !level.canSeeSky(pos)) return 0;
         DifficultyInstance difficulty = level.getCurrentDifficultyAt(pos);
         boolean day = skylit && level.getSkyDarken() < NIGHT_SKY_DARKEN;
         if (random.nextFloat() >= (day ? DAY_CHANCE : NIGHT_CHANCE)) return 0;

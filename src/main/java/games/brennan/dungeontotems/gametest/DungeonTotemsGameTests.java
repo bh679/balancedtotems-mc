@@ -436,6 +436,27 @@ public final class DungeonTotemsGameTests {
     }
 
     @GameTest(template = EMPTY)
+    public static void nightTryAlwaysSpawnsPhantoms(GameTestHelper helper) {
+        ServerPlayer player = player(helper);
+        var level = helper.getLevel();
+        long time = level.getDayTime();
+        level.setDayTime(18000);
+        level.updateSkyBrightness();
+        try {
+            int spawned = 0;
+            for (int i = 0; i < 5 && spawned == 0; i++) {
+                spawned = InsomniaPhantoms.trySpawnAt(level, player.blockPosition(), level.getRandom());
+            }
+            check(helper, spawned > 0, "a night try should spawn phantoms, even below sea level in a flat world");
+        } finally {
+            level.setDayTime(time);
+            level.updateSkyBrightness();
+            level.getEntitiesOfClass(Phantom.class, player.getBoundingBox().inflate(64)).forEach(Phantom::discard);
+        }
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY)
     public static void dayPhantomsResistFire(GameTestHelper helper) {
         BlockPos at = helper.absolutePos(new BlockPos(2, 3, 2));
         var level = helper.getLevel();
